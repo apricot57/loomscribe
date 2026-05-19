@@ -8,9 +8,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const API_KEY = 'YOUR_DEEPSEEK_API_KEY'; 
     const API_URL = 'https://api.deepseek.com/chat/completions';
 
-    let conversationHistory = [
+    const STORAGE_KEY = 'vibe_chat_history';
+    
+    // Load history from localStorage or initialize with system prompt
+    const storedHistory = localStorage.getItem(STORAGE_KEY);
+    let conversationHistory = storedHistory ? JSON.parse(storedHistory) : [
         { role: 'system', content: 'You are a helpful and concise AI assistant.' }
     ];
+
+    // Restore UI from history
+    if (storedHistory && conversationHistory.length > 1) {
+        chatContainer.innerHTML = ''; // clear default message
+        conversationHistory.forEach(msg => {
+            if (msg.role !== 'system') {
+                const sender = msg.role === 'assistant' ? 'bot' : 'user';
+                addMessageToUI(sender, msg.content);
+            }
+        });
+    }
+    
+    function saveHistory() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(conversationHistory));
+    }
 
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -21,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add user message to UI
         addMessageToUI('user', message);
         conversationHistory.push({ role: 'user', content: message });
+        saveHistory();
         
         // Clear input
         userInput.value = '';
@@ -56,6 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Add bot message to UI and history
             conversationHistory.push({ role: 'assistant', content: botMessage });
             addMessageToUI('bot', botMessage);
+            saveHistory();
 
         } catch (error) {
             console.error('Error fetching DeepSeek response:', error);
