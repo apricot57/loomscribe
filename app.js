@@ -634,6 +634,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Handle Enter and Shift+Enter for textarea
+    if (userInput) {
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const text = userInput.value.trim();
+                if (text) {
+                    chatForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                }
+            }
+        });
+
+        userInput.addEventListener('input', () => {
+            userInput.style.height = 'auto';
+            userInput.style.height = Math.min(userInput.scrollHeight, 150) + 'px';
+        });
+    }
+
     // Message submit trigger
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -663,6 +681,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Clear input early
         userInput.value = '';
+        userInput.style.height = 'auto';
 
         // Write message record to IndexedDB with new fields
         const userMsgId = await db.messages.add({
