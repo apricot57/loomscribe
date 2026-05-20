@@ -910,9 +910,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function showDescendants(msgId) {
-        const ids = await getDescendantIds(msgId);
-        for (const id of ids) {
-            await db.messages.update(id, { isActive: true });
+        let currentId = msgId;
+        while (true) {
+            const children = await db.messages.where('parentMsgId').equals(currentId).toArray();
+            if (children.length === 0) break;
+            
+            let bestChild = children[0];
+            for (let i = 1; i < children.length; i++) {
+                if (children[i].versionGroupId === bestChild.versionGroupId) {
+                    if ((children[i].version || 1) > (bestChild.version || 1)) {
+                        bestChild = children[i];
+                    }
+                } else {
+                    if (children[i].id > bestChild.id) {
+                        bestChild = children[i];
+                    }
+                }
+            }
+            
+            await db.messages.update(bestChild.id, { isActive: true });
+            currentId = bestChild.id;
         }
     }
 
@@ -1230,26 +1247,29 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!originalMsg) return;
 
         const versionGroupId = originalMsg.versionGroupId || originalMsg.id;
-        const existingVersions = await db.messages
-            .where('versionGroupId').equals(versionGroupId)
-            .toArray();
-        const maxVersion = existingVersions.reduce((max, v) => Math.max(max, v.version || 1), 0);
-        const newVersion = maxVersion + 1;
 
         // Mark original message with versionGroupId if first edit
         if (!originalMsg.versionGroupId) {
             await db.messages.update(msgId, {
                 versionGroupId: versionGroupId,
                 version: 1,
-                isActive: false
             });
+            originalMsg.versionGroupId = versionGroupId;
+            originalMsg.version = 1;
         }
+
+        const existingVersions = await db.messages
+            .where('versionGroupId').equals(versionGroupId)
+            .toArray();
+        const maxVersion = existingVersions.reduce((max, v) => Math.max(max, v.version || 1), 0);
+        const newVersion = maxVersion + 1;
 
         // Hide all descendants of old versions
         for (const v of existingVersions) {
             await db.messages.update(v.id, { isActive: false });
             await hideDescendants(v.id);
         }
+        await db.messages.update(msgId, { isActive: false });
         await hideDescendants(msgId);
 
         // Create new version of the edited message
@@ -1264,13 +1284,7 @@ document.addEventListener('DOMContentLoaded', () => {
             parentMsgId: originalMsg.parentMsgId || null
         });
 
-        // Remove the edit UI elements (full view refresh follows)
-        const te = messageDiv.querySelector('.inline-edit-textarea');
-        const ea = messageDiv.querySelector('.inline-edit-actions');
-        if (te) te.remove();
-        if (ea) ea.remove();
-        const ar = messageDiv.querySelector('.message-action-row');
-        if (ar) ar.style.display = '';
+        await refreshConversationView();
 
         // Regenerate AI response
         await streamApiResponse({
@@ -1294,23 +1308,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const stopAtId = parentUserMsg ? parentUserMsg.id : msgId;
 
         const versionGroupId = assistantMsg.versionGroupId || assistantMsg.id;
+
+        // Mark original if first regenerate
+        if (!assistantMsg.versionGroupId) {
+            await db.messages.update(msgId, { versionGroupId, version: 1 });
+            assistantMsg.versionGroupId = versionGroupId;
+            assistantMsg.version = 1;
+        }
+
         const existingVersions = await db.messages
             .where('versionGroupId').equals(versionGroupId)
             .toArray();
         const maxVersion = existingVersions.reduce((max, v) => Math.max(max, v.version || 1), 0);
         const newVersion = maxVersion + 1;
 
-        // Mark original if first regenerate
-        if (!assistantMsg.versionGroupId) {
-            await db.messages.update(msgId, { versionGroupId, version: 1, isActive: false });
-        }
-
         // Hide descendants and deactivate old versions
         for (const v of existingVersions) {
             await db.messages.update(v.id, { isActive: false });
             await hideDescendants(v.id);
         }
+        await db.messages.update(msgId, { isActive: false });
         await hideDescendants(msgId);
+
+        await refreshConversationView();
 
         await streamApiResponse({
             conversationId: assistantMsg.conversationId,
