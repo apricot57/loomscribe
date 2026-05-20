@@ -479,7 +479,11 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
-        contentDiv.textContent = text;
+        if (sender === 'bot') {
+            contentDiv.innerHTML = typeof marked !== 'undefined' ? marked.parse(text) : text;
+        } else {
+            contentDiv.textContent = text;
+        }
         
         messageDiv.appendChild(avatarDiv);
         messageDiv.appendChild(contentDiv);
