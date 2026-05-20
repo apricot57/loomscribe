@@ -309,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
             messages.forEach(msg => {
                 if (msg.role !== 'system') {
                     const sender = msg.role === 'assistant' ? 'bot' : 'user';
-                    addMessageToUI(sender, msg.content);
+                    addMessageToUI(sender, msg.content, msg.reasoning);
                 }
             });
         }
@@ -534,6 +534,7 @@ document.addEventListener('DOMContentLoaded', () => {
         abortController = new AbortController();
         let streamMsgId = null;
         let fullContent = '';
+        let fullReasoning = '';
 
         if (stopBtn) stopBtn.classList.remove('hidden');
         document.getElementById('send-btn').classList.add('hidden');
@@ -587,7 +588,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     try {
                         const parsed = JSON.parse(payload);
+                        const reasoningDelta = parsed.choices?.[0]?.delta?.reasoning_content;
                         const delta = parsed.choices?.[0]?.delta?.content;
+                        if (reasoningDelta) {
+                            fullReasoning += reasoningDelta;
+                            updateStreamingReasoning(streamMsgId, fullReasoning);
+                        }
                         if (delta) {
                             fullContent += delta;
                             updateStreamingBotMessage(streamMsgId, fullContent);
@@ -604,16 +610,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     conversationId: currentConversationId,
                     role: 'assistant',
                     content: fullContent,
+                    reasoning: fullReasoning || undefined,
                     timestamp: Date.now()
                 });
-                finalizeStreamingBotMessage(streamMsgId, fullContent);
+                finalizeStreamingBotMessage(streamMsgId, fullContent, fullReasoning);
             }
 
         } catch (error) {
             if (error.name === 'AbortError') {
                 // Finalize partial content so the blinking cursor stops
-                if (fullContent && streamMsgId) {
-                    finalizeStreamingBotMessage(streamMsgId, fullContent);
+                if (streamMsgId) {
+                    finalizeStreamingBotMessage(streamMsgId, fullContent, fullReasoning);
                 }
                 return;
             }
@@ -628,29 +635,60 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    function addMessageToUI(sender, text) {
+    function addMessageToUI(sender, text, reasoning) {
         const container = chatContainer.querySelector('.messages-container');
         if (!container) return;
 
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${sender}-message`;
-        
+
         const avatarDiv = document.createElement('div');
         avatarDiv.className = 'avatar';
         avatarDiv.textContent = sender === 'bot' ? '🤖' : '👤';
-        
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'message-content';
+
         if (sender === 'bot') {
+            const bodyDiv = document.createElement('div');
+            bodyDiv.className = 'message-body';
+
+            // Add reasoning block if present
+            if (reasoning) {
+                const reasoningBlock = document.createElement('div');
+                reasoningBlock.className = 'reasoning-block collapsed';
+                const reasoningHeader = document.createElement('div');
+                reasoningHeader.className = 'reasoning-header';
+                reasoningHeader.innerHTML = `
+                    <svg class="reasoning-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                    <span>Thought</span>
+                `;
+                const reasoningContent = document.createElement('div');
+                reasoningContent.className = 'reasoning-content';
+                reasoningContent.textContent = reasoning;
+                reasoningBlock.appendChild(reasoningHeader);
+                reasoningBlock.appendChild(reasoningContent);
+                reasoningHeader.addEventListener('click', () => {
+                    reasoningBlock.classList.toggle('collapsed');
+                });
+                bodyDiv.appendChild(reasoningBlock);
+            }
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
             contentDiv.innerHTML = typeof marked !== 'undefined' ? marked.parse(text) : text;
+
+            bodyDiv.appendChild(contentDiv);
+            messageDiv.appendChild(avatarDiv);
+            messageDiv.appendChild(bodyDiv);
         } else {
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
             contentDiv.textContent = text;
+            messageDiv.appendChild(avatarDiv);
+            messageDiv.appendChild(contentDiv);
         }
-        
-        messageDiv.appendChild(avatarDiv);
-        messageDiv.appendChild(contentDiv);
+
         container.appendChild(messageDiv);
-        
         scrollToBottom();
     }
 
@@ -694,14 +732,51 @@ document.addEventListener('DOMContentLoaded', () => {
         avatarDiv.className = 'avatar';
         avatarDiv.textContent = '🤖';
 
+        const bodyDiv = document.createElement('div');
+        bodyDiv.className = 'message-body';
+
+        // Collapsible reasoning block
+        const reasoningBlock = document.createElement('div');
+        reasoningBlock.className = 'reasoning-block';
+        const reasoningHeader = document.createElement('div');
+        reasoningHeader.className = 'reasoning-header';
+        reasoningHeader.innerHTML = `
+            <svg class="reasoning-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+            <span>Thinking...</span>
+        `;
+        const reasoningContent = document.createElement('div');
+        reasoningContent.className = 'reasoning-content';
+        reasoningBlock.appendChild(reasoningHeader);
+        reasoningBlock.appendChild(reasoningContent);
+
+        reasoningHeader.addEventListener('click', () => {
+            reasoningBlock.classList.toggle('collapsed');
+        });
+
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content streaming';
 
+        bodyDiv.appendChild(reasoningBlock);
+        bodyDiv.appendChild(contentDiv);
         messageDiv.appendChild(avatarDiv);
-        messageDiv.appendChild(contentDiv);
+        messageDiv.appendChild(bodyDiv);
         container.appendChild(messageDiv);
         scrollToBottom();
         return id;
+    }
+
+    function updateStreamingReasoning(id, reasoning) {
+        const msg = document.getElementById(id);
+        if (!msg) return;
+        const block = msg.querySelector('.reasoning-content');
+        if (!block) return;
+        block.textContent = reasoning;
+        // Auto-expand when new reasoning arrives
+        const parent = msg.querySelector('.reasoning-block');
+        if (parent) parent.classList.remove('collapsed');
+        scrollToBottom();
     }
 
     function updateStreamingBotMessage(id, content) {
@@ -713,13 +788,32 @@ document.addEventListener('DOMContentLoaded', () => {
         scrollToBottom();
     }
 
-    function finalizeStreamingBotMessage(id, content) {
+    function finalizeStreamingBotMessage(id, content, reasoning) {
         const msg = document.getElementById(id);
         if (!msg) return;
+
+        // Update reasoning header label
+        const header = msg.querySelector('.reasoning-header span');
+        if (header) header.textContent = 'Thought';
+
+        // Finalize reasoning content if present
+        const reasoningContent = msg.querySelector('.reasoning-content');
+        if (reasoningContent && reasoning) {
+            reasoningContent.textContent = reasoning;
+            // Default to collapsed when complete
+            const block = msg.querySelector('.reasoning-block');
+            if (block) block.classList.add('collapsed');
+        } else if (reasoningContent) {
+            // No reasoning — remove the whole block
+            const block = msg.querySelector('.reasoning-block');
+            if (block) block.remove();
+        }
+
+        // Finalize main content with markdown
         const contentDiv = msg.querySelector('.message-content');
         if (!contentDiv) return;
         contentDiv.classList.remove('streaming');
-        contentDiv.innerHTML = typeof marked !== 'undefined' ? marked.parse(content) : content;
+        contentDiv.innerHTML = typeof marked !== 'undefined' ? marked.parse(content || '') : (content || '');
         scrollToBottom();
     }
 
