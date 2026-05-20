@@ -257,7 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             renameBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                renameConversation(conv.id, conv.title);
+                startInlineRename(item, titleSpan, conv.id, titleSpan.textContent);
             });
             
             deleteBtn.addEventListener('click', (e) => {
@@ -365,16 +365,75 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Rename a conversation thread
-    async function renameConversation(id, currentTitle) {
-        const newTitle = prompt('Enter a new title for this conversation:', currentTitle);
-        if (newTitle !== null) {
-            const trimmedTitle = newTitle.trim();
-            if (trimmedTitle) {
-                await db.conversations.update(id, { title: trimmedTitle });
-                await loadConversations();
+    // Rename a conversation thread inline in the sidebar UI
+    function startInlineRename(item, titleSpan, id, currentTitle) {
+        // Prevent multiple simultaneous rename inputs inside this item
+        if (item.querySelector('.chat-item-rename-input')) return;
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'chat-item-rename-input';
+        input.value = currentTitle;
+        
+        // Save references to other buttons to temporarily hide them
+        const renameBtn = item.querySelector('.chat-rename-btn');
+        const deleteBtn = item.querySelector('.chat-delete-btn');
+        
+        if (renameBtn) renameBtn.style.display = 'none';
+        if (deleteBtn) deleteBtn.style.display = 'none';
+
+        // Stop propagation of events to prevent parent button behavior (selection, clicks, active styling)
+        const stopProp = (e) => e.stopPropagation();
+        input.addEventListener('click', stopProp);
+        input.addEventListener('mousedown', stopProp);
+        input.addEventListener('mouseup', stopProp);
+        input.addEventListener('dblclick', stopProp);
+
+        let isFinished = false;
+
+        const finishRename = async (commitChanges) => {
+            if (isFinished) return;
+            isFinished = true;
+
+            const newTitle = input.value.trim();
+            if (commitChanges && newTitle && newTitle !== currentTitle) {
+                // Synchronously update UI elements
+                titleSpan.textContent = newTitle;
+                input.replaceWith(titleSpan);
+                if (renameBtn) renameBtn.style.display = '';
+                if (deleteBtn) deleteBtn.style.display = '';
+                item.title = newTitle;
+                
+                // Update database in background
+                await db.conversations.update(id, { title: newTitle });
+            } else {
+                // Restore original state
+                input.replaceWith(titleSpan);
+                if (renameBtn) renameBtn.style.display = '';
+                if (deleteBtn) deleteBtn.style.display = '';
             }
-        }
+        };
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                finishRename(true);
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                finishRename(false);
+            }
+        });
+
+        input.addEventListener('blur', () => {
+            finishRename(true);
+        });
+
+        // Replace the titleSpan with the input field
+        titleSpan.replaceWith(input);
+        
+        // Focus and select all text
+        input.focus();
+        input.select();
     }
 
     // Auto title based on first prompt
