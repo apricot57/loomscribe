@@ -28,6 +28,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveKeyBtn = document.getElementById('save-key-btn');
     const deleteKeyBtn = document.getElementById('delete-key-btn');
 
+    // New Chat Modal DOM Elements
+    const newChatModal = document.getElementById('new-chat-modal');
+    const newChatModalCloseBtn = document.getElementById('new-chat-modal-close-btn');
+    const newChatTitleInput = document.getElementById('new-chat-title-input');
+    const modalPromptSelectBtn = document.getElementById('modal-prompt-select-btn');
+    const modalActivePromptName = document.getElementById('modal-active-prompt-name');
+    const modalPromptDropdownMenu = document.getElementById('modal-prompt-dropdown-menu');
+    const startChatBtn = document.getElementById('start-chat-btn');
+    let modalSelectedPromptId = null;
+
+    // Prompt Editor Modal DOM Elements
+    const promptEditorModal = document.getElementById('prompt-editor-modal');
+    const promptEditorCloseBtn = document.getElementById('prompt-editor-close-btn');
+    const promptEditorTitle = document.getElementById('prompt-editor-title');
+    const promptNameInput = document.getElementById('prompt-name-input');
+    const promptCategoryInput = document.getElementById('prompt-category-input');
+    const promptCategoryList = document.getElementById('prompt-category-list');
+    const promptContentInput = document.getElementById('prompt-content-input');
+    const savePromptBtn = document.getElementById('save-prompt-btn');
+    let editingPromptId = null;
+
+    // Footer Prompt Selector DOM Elements
+    const promptSelectBtn = document.getElementById('prompt-select-btn');
+    const activePromptName = document.getElementById('active-prompt-name');
+    const promptDropdownMenu = document.getElementById('prompt-dropdown-menu');
+
     // Storage Keys & API configurations
     const API_KEY_STORAGE_KEY = 'vibe_chat_api_key';
     const MODEL_STORAGE_KEY = 'vibe_chat_model';
@@ -39,10 +65,23 @@ document.addEventListener('DOMContentLoaded', () => {
         conversations: "++id, title, activeModel, createdAt",
         messages: "++id, conversationId, role, content, timestamp"
     });
+    db.version(2).stores({
+        conversations: "++id, title, activeModel, systemPromptId, createdAt",
+        messages: "++id, conversationId, role, content, timestamp"
+    });
+    db.version(3).stores({
+        conversations: "++id, title, activeModel, systemPromptId, createdAt",
+        messages: "++id, conversationId, role, content, timestamp",
+        prompts: "++id, name, category, content, createdAt"
+    });
 
     // Active conversation state tracker
     let currentConversationId = null;
     let abortController = null;
+    const DEFAULT_SYSTEM_PROMPT = 'You are a helpful and concise AI assistant.';
+    let currentSystemPromptId = null;
+    let factoryPromptCategories = null;
+    const promptContentCache = new Map();
 
     // Toggle Sidebar on mobile viewports
     if (sidebarToggleBtn && sidebar) {
@@ -85,6 +124,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('click', () => {
             modelDropdownMenu.classList.add('hidden');
             modelSelectBtn.parentElement.classList.remove('open');
+            promptDropdownMenu.classList.add('hidden');
+            promptSelectBtn.parentElement.classList.remove('open');
         });
     }
 
@@ -298,6 +339,13 @@ document.addEventListener('DOMContentLoaded', () => {
             initializeModelUI();
         }
 
+        // Restore system prompt for this conversation
+        currentSystemPromptId = conv?.systemPromptId || null;
+        if (currentSystemPromptId) {
+            await fetchPromptContent(currentSystemPromptId);
+        }
+        updatePromptSelectorDisplay();
+
         // Fetch corresponding messages
         const messages = await db.messages.where('conversationId').equals(id).sortBy('timestamp');
         
@@ -323,30 +371,37 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Spawn a new empty conversation
-    async function createNewConversation() {
+    async function createNewConversation(title = 'New Chat', systemPromptId = null) {
         const selectedModel = localStorage.getItem(MODEL_STORAGE_KEY) || 'deepseek-v4-pro';
-        
+
+        if (systemPromptId) {
+            await fetchPromptContent(systemPromptId);
+        }
+
         const newId = await db.conversations.add({
-            title: 'New Chat',
+            title: title,
             activeModel: selectedModel,
+            systemPromptId: systemPromptId || null,
             createdAt: Date.now()
         });
-        
+
         currentConversationId = newId;
-        
+        currentSystemPromptId = systemPromptId || null;
+        updatePromptSelectorDisplay();
+
         await loadConversations();
-        
+
         const container = chatContainer.querySelector('.messages-container');
         if (container) {
             container.innerHTML = '';
         }
-        
+
         scrollToBottom();
 
         if (window.innerWidth <= 768) {
             sidebar.classList.remove('active');
         }
-        
+
         return newId;
     }
 
@@ -450,12 +505,93 @@ document.addEventListener('DOMContentLoaded', () => {
         await loadConversations();
     }
 
-    // New/Clear Chat History button triggers fresh empty chat creation
+    // New Chat button — shows modal instead of immediate creation
     if (clearChatBtn) {
-        clearChatBtn.addEventListener('click', async () => {
-            await createNewConversation();
+        clearChatBtn.addEventListener('click', () => {
+            newChatTitleInput.value = '';
+            modalActivePromptName.textContent = 'None (Default)';
+            modalSelectedPromptId = null;
+            newChatModal.classList.remove('hidden');
+            setTimeout(() => newChatTitleInput.focus(), 100);
         });
     }
+
+    // New Chat Modal close
+    newChatModalCloseBtn.addEventListener('click', () => newChatModal.classList.add('hidden'));
+    newChatModal.addEventListener('click', (e) => {
+        if (e.target === newChatModal) newChatModal.classList.add('hidden');
+    });
+
+    // New Chat Modal — prompt dropdown toggle
+    modalPromptSelectBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = !modalPromptDropdownMenu.classList.contains('hidden');
+        if (isOpen) {
+            modalPromptDropdownMenu.classList.add('hidden');
+        } else {
+            populatePromptDropdown(modalPromptDropdownMenu, modalSelectedPromptId, (promptId) => {
+                modalSelectedPromptId = promptId;
+                if (promptCategories && promptId) {
+                    for (const prompts of Object.values(promptCategories.categories)) {
+                        for (const p of prompts) {
+                            if (`${p.category}/${p.filename}` === promptId) {
+                                modalActivePromptName.textContent = p.name;
+                                modalPromptDropdownMenu.classList.add('hidden');
+                                return;
+                            }
+                        }
+                    }
+                }
+                modalActivePromptName.textContent = promptId ? 'Selected' : 'None (Default)';
+                modalPromptDropdownMenu.classList.add('hidden');
+            });
+        }
+    });
+
+    // Start Chat button in modal
+    startChatBtn.addEventListener('click', async () => {
+        const title = newChatTitleInput.value.trim() || 'New Chat';
+        await createNewConversation(title, modalSelectedPromptId);
+        newChatModal.classList.add('hidden');
+    });
+
+    // Prompt Editor Modal close
+    promptEditorCloseBtn.addEventListener('click', () => promptEditorModal.classList.add('hidden'));
+    promptEditorModal.addEventListener('click', (e) => {
+        if (e.target === promptEditorModal) promptEditorModal.classList.add('hidden');
+    });
+
+    // Save Prompt button
+    savePromptBtn.addEventListener('click', async () => {
+        const name = promptNameInput.value.trim();
+        const category = promptCategoryInput.value.trim();
+        const content = promptContentInput.value.trim();
+        if (!name || !content) {
+            alert('Prompt name and content are required.');
+            return;
+        }
+        if (editingPromptId) {
+            await db.prompts.update(editingPromptId, { name, category, content });
+        } else {
+            await db.prompts.add({ name, category, content, createdAt: Date.now() });
+        }
+        promptEditorModal.classList.add('hidden');
+        promptContentCache.clear();
+    });
+
+    // Footer prompt selector toggle
+    promptSelectBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = !promptDropdownMenu.classList.contains('hidden');
+        if (isOpen) {
+            promptDropdownMenu.classList.add('hidden');
+        } else {
+            promptDropdownMenu.classList.remove('hidden');
+            populatePromptDropdown(promptDropdownMenu, currentSystemPromptId, (promptId) => {
+                setSystemPrompt(promptId);
+            });
+        }
+    });
 
     // Stop generation button
     if (stopBtn) {
@@ -519,8 +655,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Pull full conversation history records to sync with DeepSeek payload
         const messagesFromDb = await db.messages.where('conversationId').equals(currentConversationId).sortBy('timestamp');
         
+        const systemContent = getSystemPromptContentSync();
         const payloadMessages = [
-            { role: 'system', content: 'You are a helpful and concise AI assistant.' }
+            { role: 'system', content: systemContent }
         ];
         
         messagesFromDb.forEach(msg => {
@@ -823,16 +960,272 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // App Bootstrapper
     async function initApp() {
+        await loadFactoryPrompts();
         initializeModelUI();
         updateKeyStatusUI();
         await loadConversations();
-        
+
         // Auto select latest thread or create new one if starting clean
         const latest = await db.conversations.orderBy('createdAt').reverse().first();
         if (latest) {
             await switchConversation(latest.id);
         } else {
             await createNewConversation();
+        }
+        updatePromptSelectorDisplay();
+    }
+
+    // ============================================================
+    // System Prompt Profiles — Helper Functions
+    // ============================================================
+
+    function prettifyCategory(str) {
+        return str.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    async function loadFactoryPrompts() {
+        try {
+            const res = await fetch('/api/prompts');
+            if (res.ok) {
+                factoryPromptCategories = await res.json();
+            }
+        } catch {
+            // Server not available (file:// protocol) — only user prompts + default
+        }
+    }
+
+    async function getAllUserPrompts() {
+        return await db.prompts.orderBy('createdAt').toArray();
+    }
+
+    async function getAllPromptCategories() {
+        const merged = new Map();
+
+        if (factoryPromptCategories) {
+            for (const [catDir, prompts] of Object.entries(factoryPromptCategories.categories)) {
+                const label = prettifyCategory(catDir);
+                if (!merged.has(label)) merged.set(label, []);
+                for (const p of prompts) {
+                    merged.get(label).push({
+                        name: p.name,
+                        promptId: `${p.category}/${p.filename}`,
+                        source: 'factory'
+                    });
+                }
+            }
+        }
+
+        const userPrompts = await getAllUserPrompts();
+        for (const up of userPrompts) {
+            const label = up.category || 'Uncategorized';
+            if (!merged.has(label)) merged.set(label, []);
+            merged.get(label).push({
+                name: up.name,
+                promptId: `user/${up.id}`,
+                source: 'user',
+                dbId: up.id
+            });
+        }
+
+        return merged;
+    }
+
+    async function fetchPromptContent(promptId) {
+        if (!promptId) return DEFAULT_SYSTEM_PROMPT;
+        if (promptContentCache.has(promptId)) return promptContentCache.get(promptId);
+
+        let content = null;
+        if (promptId.startsWith('user/')) {
+            const dbId = parseInt(promptId.split('/')[1]);
+            const record = await db.prompts.get(dbId);
+            content = record?.content;
+        } else {
+            try {
+                const res = await fetch(`/api/prompts/${promptId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    content = data.content;
+                }
+            } catch {}
+        }
+
+        if (content) {
+            promptContentCache.set(promptId, content);
+            return content;
+        }
+        return DEFAULT_SYSTEM_PROMPT;
+    }
+
+    function getSystemPromptContentSync() {
+        if (!currentSystemPromptId) return DEFAULT_SYSTEM_PROMPT;
+        return promptContentCache.get(currentSystemPromptId) || DEFAULT_SYSTEM_PROMPT;
+    }
+
+    async function lookupPromptName(promptId) {
+        if (!promptId) return null;
+        if (promptId.startsWith('user/')) {
+            const dbId = parseInt(promptId.split('/')[1]);
+            const record = await db.prompts.get(dbId);
+            return record?.name || null;
+        }
+        if (factoryPromptCategories) {
+            for (const prompts of Object.values(factoryPromptCategories.categories)) {
+                for (const p of prompts) {
+                    if (`${p.category}/${p.filename}` === promptId) return p.name;
+                }
+            }
+        }
+        return null;
+    }
+
+    async function populatePromptDropdown(menuElement, currentSelectionId, onSelect) {
+        menuElement.innerHTML = '';
+        const categories = await getAllPromptCategories();
+
+        // "None (Default)" option
+        const defaultBtn = document.createElement('button');
+        defaultBtn.className = 'dropdown-item' + (currentSelectionId === null ? ' selected' : '');
+        defaultBtn.textContent = 'None (Default)';
+        defaultBtn.addEventListener('click', (e) => { e.stopPropagation(); onSelect(null); menuElement.classList.add('hidden'); });
+        menuElement.appendChild(defaultBtn);
+
+        // Divider
+        const divider = document.createElement('div');
+        divider.className = 'dropdown-divider';
+        menuElement.appendChild(divider);
+
+        // Each category
+        for (const [categoryLabel, prompts] of categories) {
+            const header = document.createElement('div');
+            header.className = 'dropdown-category-header';
+            header.textContent = categoryLabel;
+            menuElement.appendChild(header);
+
+            for (const p of prompts) {
+                if (p.source === 'user') {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'dropdown-item dropdown-item-user' + (currentSelectionId === p.promptId ? ' selected' : '');
+
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = p.name;
+                    nameSpan.style.flex = '1';
+                    nameSpan.style.textAlign = 'left';
+                    nameSpan.style.cursor = 'pointer';
+                    nameSpan.addEventListener('click', (e) => { e.stopPropagation(); onSelect(p.promptId); menuElement.classList.add('hidden'); });
+
+                    const actions = document.createElement('span');
+                    actions.className = 'user-prompt-actions';
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'user-prompt-action-btn';
+                    editBtn.textContent = '✎';
+                    editBtn.title = 'Edit';
+                    editBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        menuElement.classList.add('hidden');
+                        editingPromptId = p.dbId;
+                        promptEditorTitle.textContent = 'Edit Prompt';
+                        promptNameInput.value = p.name;
+                        promptCategoryInput.value = categoryLabel;
+                        promptContentInput.value = '';
+                        // Fetch full content for editing
+                        fetchPromptContent(p.promptId).then(content => {
+                            promptContentInput.value = content;
+                        });
+                        populateCategoryDatalist();
+                        promptEditorModal.classList.remove('hidden');
+                    });
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'user-prompt-action-btn delete';
+                    deleteBtn.textContent = '✕';
+                    deleteBtn.title = 'Delete';
+                    deleteBtn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        menuElement.classList.add('hidden');
+                        if (confirm('Delete this prompt?')) {
+                            await db.prompts.delete(p.dbId);
+                            promptContentCache.delete(`user/${p.dbId}`);
+                            if (currentSystemPromptId === `user/${p.dbId}`) {
+                                await setSystemPrompt(null);
+                            }
+                        }
+                    });
+                    actions.appendChild(editBtn);
+                    actions.appendChild(deleteBtn);
+
+                    wrapper.appendChild(nameSpan);
+                    wrapper.appendChild(actions);
+                    menuElement.appendChild(wrapper);
+                } else {
+                    const btn = document.createElement('button');
+                    btn.className = 'dropdown-item' + (currentSelectionId === p.promptId ? ' selected' : '');
+                    btn.textContent = p.name;
+                    btn.addEventListener('click', (e) => { e.stopPropagation(); onSelect(p.promptId); menuElement.classList.add('hidden'); });
+                    menuElement.appendChild(btn);
+                }
+            }
+        }
+
+        // Create New Prompt option at bottom
+        const createDiv = document.createElement('div');
+        createDiv.className = 'dropdown-divider';
+        menuElement.appendChild(createDiv);
+        const createBtn = document.createElement('button');
+        createBtn.className = 'dropdown-item create-prompt-item';
+        createBtn.textContent = '+ Create New Prompt';
+        createBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            menuElement.classList.add('hidden');
+            editingPromptId = null;
+            promptEditorTitle.textContent = 'Create Prompt';
+            promptNameInput.value = '';
+            promptCategoryInput.value = '';
+            promptContentInput.value = '';
+            populateCategoryDatalist();
+            promptEditorModal.classList.remove('hidden');
+        });
+        menuElement.appendChild(createBtn);
+    }
+
+    async function setSystemPrompt(promptId) {
+        currentSystemPromptId = promptId;
+        if (promptId) {
+            await fetchPromptContent(promptId);
+        }
+        updatePromptSelectorDisplay();
+        if (currentConversationId) {
+            await db.conversations.update(currentConversationId, { systemPromptId: promptId || null });
+        }
+    }
+
+    function updatePromptSelectorDisplay() {
+        if (!currentSystemPromptId) {
+            activePromptName.textContent = 'Default';
+            return;
+        }
+        lookupPromptName(currentSystemPromptId).then(name => {
+            activePromptName.textContent = name || 'Default';
+        });
+    }
+
+    function populateCategoryDatalist() {
+        promptCategoryList.innerHTML = '';
+        const seen = new Set();
+        if (factoryPromptCategories) {
+            for (const catDir of Object.keys(factoryPromptCategories.categories)) {
+                const label = prettifyCategory(catDir);
+                if (!seen.has(label)) {
+                    seen.add(label);
+                    const opt = document.createElement('option');
+                    opt.value = label;
+                    promptCategoryList.appendChild(opt);
+                }
+            }
         }
     }
 
