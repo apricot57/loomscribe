@@ -1,6 +1,6 @@
 # 🌌 VibeChat — Material Expressive DeepSeek Workspace
 
-A lightweight, visually gorgeous, and responsive vanilla HTML/CSS/JS frontend for interacting with the DeepSeek API. Fully customized using a premium **Material Design Expressive (Material 3)** system, featuring organic contours, a dark-violet dynamic tonal color scheme, and fluid transitions. Zero heavy frameworks, zero compilation—pure responsive design.
+A lightweight, visually gorgeous, and responsive vanilla HTML/CSS/JS frontend for interacting with the DeepSeek API. Fully customized using a premium **Material Design Expressive (Material 3)** system, featuring organic contours, a vibrant Sky Blue & Turquoise expressive dark theme, and fluid transitions. Zero heavy frameworks, zero compilation—pure responsive design.
 
 ![VibeChat Header](https://raw.githubusercontent.com/google/material-design-icons/master/png/action/visibility/white/2x/elg_visibility_white_48dp.png) *(Tactile, premium developer-focused chat workspace)*
 
@@ -8,11 +8,11 @@ A lightweight, visually gorgeous, and responsive vanilla HTML/CSS/JS frontend fo
 
 ## ✨ Features
 
-- **Material Expressive Aesthetics**: Sleek organic dark mode built on deep amethyst and charcoal backdrops, styled with dynamic lavender highlights (`#b18cff`), soft berry rose secondary cues, and peach gradients.
+- **Material Expressive Aesthetics**: Sleek organic dark mode built on deep oceanic obsidian and slate backdrops, styled with dynamic sky blue highlights (`#38bdf8`), vibrant teal/turquoise secondary highlights (`#2dd4bf`), and clean cyan gradients.
 - **Organic Tactile Shapes**: Styled with playfulness and character:
   - **M3 Sidebar Drawer**: Rounded drawer panel featuring navigation pill settings and connections.
-  - **M3 Squircle Extended FAB**: Fully customized squircle Floating Action Button (`border-radius: 20px`) with lavender depth for chat resets.
-  - **Organic Card Messaging**: Bot cards elevated with left-lavender indicator borders, and user message bubbles utilizing curved shapes and sharp tail points.
+  - **M3 Squircle Extended FAB**: Fully customized squircle Floating Action Button (`border-radius: 20px`) with vibrant sky-blue/cyan depth for chat resets.
+  - **ChatGPT-style Message Layout**: Flat, borderless, transparent bot rows next to circular avatars, and user message bubbles styled as flat, symmetric pill bubbles in sleek slate grey-blue (`#1e293b`) with no tails.
   - **Giant Pill Chat Input**: A massive, tactile cozy pill container (`border-radius: 9999px`) floating centered inside the reading viewport.
 - **Outfit Typography**: Features Google Fonts' **Outfit** for all titles, messages, and configurations, offering highly readable and tailored sans-serif geometric lines.
 - **DeepSeek V4 Integration**: Ready for the latest DeepSeek V4 dynamic model endpoints:

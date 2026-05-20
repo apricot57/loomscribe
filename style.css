@@ -1,28 +1,31 @@
 :root {
     /* ==========================================================================
-       Material Design 3 Expressive Dark Palette Tokens
+       Material Design 3 Expressive Dark Palette Tokens — Sky Blue Expressive
        ========================================================================== */
-    --bg-main: #0f0b16;                 /* Deep royal obsidian background */
-    --bg-sidebar: #151020;              /* Elegant violet-toned sidebar drawer */
-    --bg-header: rgba(15, 11, 22, 0.85);
-    --bg-input: #211c2b;                /* Surface container (mid input depth) */
-    --bg-message-user: #49287a;         /* Primary container for user bubble */
+    --bg-main: #0b0f19;                 /* Deep oceanic obsidian background */
+    --bg-sidebar: #111827;              /* Slate-grey/blue elegant sidebar drawer */
+    --bg-header: rgba(11, 15, 25, 0.85);
+    --bg-input: #1e293b;                /* Surface container (mid input depth) */
+    --bg-message-user: #0284c7;         /* Primary container for user bubble (vibrant sky blue) */
     --border-color: rgba(255, 255, 255, 0.08);
     
     /* Expressive Dynamic Highlight Palettes */
-    --accent-color: #b18cff;            /* Pastel lavender primary brand */
-    --accent-hover: #c4a6ff;            /* Lighter lavender for dynamic hover */
-    --accent-glow: rgba(177, 140, 255, 0.25);
-    --accent-dim: rgba(177, 140, 255, 0.12);
-    --accent-text: #1d004d;             /* High contrast dark indigo text on primary */
+    --accent-color: #38bdf8;            /* Pastel sky blue primary brand */
+    --accent-hover: #7dd3fc;            /* Lighter sky blue for dynamic hover */
+    --accent-glow: rgba(56, 189, 248, 0.25);
+    --accent-dim: rgba(56, 189, 248, 0.12);
+    --accent-text: #032541;             /* High contrast dark navy text on primary */
     
-    --accent-secondary: #f48fb1;        /* Warm rose/orchid accent */
-    --accent-secondary-dim: rgba(244, 143, 177, 0.15);
-    --accent-tertiary: #ffd59a;         /* Warm peach highlight */
+    --accent-secondary: #2dd4bf;        /* Warm turquoise/teal accent */
+    --accent-secondary-dim: rgba(45, 212, 191, 0.15);
+    --accent-tertiary: #a5f3fc;         /* Light cyan highlight */
     
-    --text-primary: #e6e1e9;            /* Soft lilac-white readable text */
-    --text-secondary: #9c95a6;          /* Neutral mid lavender-grey text */
-    --text-muted: #6e6777;              /* Muted tonal label grey */
+    --accent-danger: #f43f5e;           /* Modern soft crimson danger/warning */
+    --accent-danger-dim: rgba(244, 63, 94, 0.15);
+    
+    --text-primary: #f1f5f9;            /* Soft ice-white readable text */
+    --text-secondary: #94a3b8;          /* Neutral mid slate-grey text */
+    --text-muted: #64748b;              /* Muted tonal slate grey */
     
     /* Material 3 Expressive Structural Tokens */
     --border-radius-xl: 28px;           /* Organic corners for drawers, cards, modals */
@@ -140,16 +143,16 @@ body {
 }
 
 .sidebar-btn.btn-neon {
-    background: linear-gradient(135deg, var(--accent-color) 0%, #d4a5ff 100%);
+    background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-tertiary) 100%);
     border: none;
     color: var(--accent-text);
-    box-shadow: 0 4px 14px rgba(177, 140, 255, 0.25);
+    box-shadow: 0 4px 14px rgba(56, 189, 248, 0.25);
     border-radius: 20px; /* Playful squircle M3 Extended FAB */
 }
 
 .sidebar-btn.btn-neon:hover {
-    background: linear-gradient(135deg, var(--accent-hover) 0%, #c189ff 100%);
-    box-shadow: 0 8px 20px rgba(177, 140, 255, 0.4);
+    background: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent-tertiary) 100%);
+    box-shadow: 0 8px 20px rgba(56, 189, 248, 0.4);
     transform: scale(1.03) translateY(-1px);
     color: var(--accent-text);
 }
@@ -217,7 +220,7 @@ body {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background-color: var(--accent-secondary); /* Rose warning dot */
+    background-color: var(--accent-danger); /* Crimson warning dot */
     animation: statusPulseRose 2s infinite;
     flex-shrink: 0;
 }
@@ -266,7 +269,7 @@ body {
     background-color: var(--accent-dim);
     color: var(--accent-color);
     font-weight: 600;
-    box-shadow: inset 0 0 0 1px rgba(177, 140, 255, 0.15);
+    box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.15);
 }
 
 .chat-item-icon {
@@ -306,8 +309,8 @@ body {
 
 .chat-list-item:hover .chat-delete-btn:hover {
     opacity: 1;
-    color: var(--accent-secondary);
-    background-color: rgba(244, 143, 177, 0.1);
+    color: var(--accent-danger);
+    background-color: var(--accent-danger-dim);
 }
 
 .sidebar-settings {
@@ -435,7 +438,7 @@ body {
     border-radius: var(--border-radius-pill);
 }
 .messages-wrapper::-webkit-scrollbar-thumb:hover {
-    background: rgba(177, 140, 255, 0.2);
+    background: rgba(56, 189, 248, 0.2);
 }
 
 .messages-container {
@@ -471,23 +474,23 @@ body {
     box-shadow: var(--shadow-m3-low);
 }
 
-/* Elevated Custom Bot Card layout */
+/* ChatGPT-style Bot message layout (transparent, flat, borderless) */
 .bot-message {
-    flex-direction: column;
-    align-self: flex-start;
+    flex-direction: row;
+    align-self: stretch;
     width: 100%;
-    background-color: var(--bg-input);
-    border: 1px solid rgba(255, 255, 255, 0.03);
-    padding: 20px 24px;
-    border-radius: var(--border-radius-xl); /* XL Rounded corners */
-    box-shadow: var(--shadow-m3-mid);
-    border-left: 4px solid var(--accent-color); /* Premium lavender brand indicator strip */
+    background-color: transparent;
+    border: none;
+    padding: 12px 0;
+    border-radius: 0;
+    box-shadow: none;
 }
 
 .bot-message .avatar {
     background-color: var(--accent-dim);
     border: 1px solid var(--accent-color);
-    box-shadow: 0 0 8px var(--accent-glow);
+    box-shadow: none;
+    border-radius: 50%; /* Circular avatar */
 }
 
 .bot-message .message-content {
@@ -496,10 +499,12 @@ body {
     font-size: 0.975rem;
     word-break: break-word;
     white-space: pre-wrap;
-    margin-top: 12px; /* Displace beneath avatar row */
+    margin-top: 0; /* Keep aligned with avatar */
+    padding-top: 6px;
+    flex: 1;
 }
 
-/* Sleek organic User Message card */
+/* Sleek organic User Message card (ChatGPT-style flat symmetric pill bubble) */
 .user-message {
     flex-direction: row-reverse;
     align-self: flex-end;
@@ -509,19 +514,19 @@ body {
 .user-message .avatar {
     background-color: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--border-color);
+    border-radius: 50%; /* Circular avatar */
 }
 
 .user-message .message-content {
-    background-color: var(--bg-message-user); /* Rich Purple container */
-    color: #ffffff;
-    padding: 14px 20px;
-    border-radius: var(--border-radius-xl);
-    border-bottom-right-radius: 4px; /* Distinct organic chat tail */
+    background-color: var(--bg-input); /* Flat slate grey-blue container */
+    color: var(--text-primary);
+    padding: 12px 20px;
+    border-radius: 24px; /* Symmetric pill shape, no unique tails */
     line-height: 1.55;
     font-size: 0.95rem;
     word-break: break-word;
     white-space: pre-wrap;
-    box-shadow: 0 6px 20px rgba(73, 40, 122, 0.25);
+    box-shadow: none;
 }
 
 /* ==========================================================================
@@ -561,7 +566,7 @@ body {
 
 #chat-form:focus-within {
     border-color: var(--accent-color);
-    box-shadow: 0 0 16px rgba(177, 140, 255, 0.2);
+    box-shadow: 0 0 16px rgba(56, 189, 248, 0.2);
 }
 
 #user-input {
@@ -593,13 +598,13 @@ body {
     color: var(--accent-text);
     cursor: pointer;
     transition: var(--transition-m3);
-    box-shadow: 0 4px 10px rgba(177, 140, 255, 0.3);
+    box-shadow: 0 4px 10px rgba(56, 189, 248, 0.3);
 }
 
 #send-btn:hover {
     background-color: var(--accent-hover);
     color: var(--accent-text);
-    box-shadow: 0 6px 14px rgba(177, 140, 255, 0.5);
+    box-shadow: 0 6px 14px rgba(56, 189, 248, 0.5);
     transform: scale(1.05);
 }
 
@@ -623,14 +628,14 @@ body {
 .typing-indicator {
     display: flex;
     gap: 6px;
-    padding: 14px 20px;
-    background: var(--bg-input);
-    border-radius: var(--border-radius-m);
+    padding: 12px 0;
+    margin-left: 52px;
+    background: transparent;
+    border: none;
     align-self: flex-start;
     align-items: center;
     animation: fadeIn 0.3s ease-out forwards;
-    border-left: 3px solid var(--accent-secondary); /* Expressive rose highlight indicator strip */
-    box-shadow: var(--shadow-m3-low);
+    box-shadow: none;
 }
 
 .typing-dot {
@@ -664,7 +669,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(15, 11, 22, 0.85); /* Tonal backdrop overlay */
+    background-color: rgba(11, 15, 25, 0.85); /* Tonal backdrop overlay */
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     display: flex;
@@ -681,7 +686,7 @@ body {
 }
 
 .modal-content {
-    background: #171220; /* Deep violet-charcoal modal surface */
+    background: var(--bg-sidebar); /* Unified dark slate/blue surface */
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-xl); /* XL Rounded corners */
     padding: 36px;
@@ -809,30 +814,30 @@ body {
 .btn-primary {
     background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-secondary) 100%);
     color: var(--accent-text);
-    box-shadow: 0 4px 12px rgba(177, 140, 255, 0.25);
+    box-shadow: 0 4px 12px rgba(56, 189, 248, 0.25);
 }
 
 .btn-primary:hover {
-    background: linear-gradient(135deg, var(--accent-hover) 0%, #e27ea1 100%);
-    box-shadow: 0 6px 18px rgba(177, 140, 255, 0.4);
+    background: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent-secondary) 100%);
+    box-shadow: 0 6px 18px rgba(56, 189, 248, 0.4);
 }
 
 .btn-danger {
-    background-color: rgba(244, 143, 177, 0.06);
-    color: var(--accent-secondary);
-    border: 1px solid rgba(244, 143, 177, 0.15);
+    background-color: var(--accent-danger-dim);
+    color: var(--accent-danger);
+    border: 1px solid rgba(244, 63, 94, 0.2);
 }
 
 .btn-danger:hover {
-    background-color: rgba(244, 143, 177, 0.12);
-    border-color: rgba(244, 143, 177, 0.3);
+    background-color: rgba(244, 63, 94, 0.25);
+    border-color: rgba(244, 63, 94, 0.4);
 }
 
 /* Tonal Pulsing Dots animations for Sidebar indicators */
 @keyframes statusPulseRose {
-    0% { box-shadow: 0 0 0 0 rgba(244, 143, 177, 0.4); }
-    70% { box-shadow: 0 0 0 6px rgba(244, 143, 177, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(244, 143, 177, 0); }
+    0% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.4); }
+    70% { box-shadow: 0 0 0 6px rgba(244, 63, 94, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); }
 }
 
 @keyframes statusPulseGreen {
@@ -899,7 +904,7 @@ body {
 .model-dropdown-btn:hover {
     background: var(--bg-message-user);
     color: #ffffff;
-    border-color: rgba(177, 140, 255, 0.3);
+    border-color: rgba(56, 189, 248, 0.3);
 }
 
 .model-dropdown-btn:focus {
@@ -922,7 +927,7 @@ body {
     position: absolute;
     bottom: calc(100% + 8px);
     left: 0;
-    background-color: #1a1526; /* Deep amethyst-charcoal menu */
+    background-color: var(--bg-sidebar); /* Slate-obsidian elegant menu */
     border: 1px solid var(--border-color);
     border-radius: 20px; /* Elevated Rounded Menu */
     padding: 8px;
@@ -966,7 +971,7 @@ body {
 
 .dropdown-item.active {
     background-color: var(--accent-dim);
-    border-color: rgba(177, 140, 255, 0.2);
+    border-color: rgba(56, 189, 248, 0.2);
 }
 
 .item-info {
