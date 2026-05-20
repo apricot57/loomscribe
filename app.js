@@ -219,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const container = chatContainer.querySelector('.messages-container');
                 if (container) {
                     container.innerHTML = '';
-                    addMessageToUI('bot', "Hello! I'm your DeepSeek AI assistant configured with a stunning Neon Green workspace. How can I help you customize your code today?");
+                    addMessageToUI('bot', "Hello! I'm your DeepSeek AI assistant configured with a stunning Material Expressive workspace. How can I help you customize your code today?");
                 }
                 
                 // Auto-close sidebar on mobile
