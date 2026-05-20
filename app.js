@@ -286,16 +286,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (container) {
             container.innerHTML = '';
             
-            if (messages.length === 0) {
-                addMessageToUI('bot', "Hello! I'm your DeepSeek AI assistant configured with a stunning Material Expressive workspace. How can I help you customize your code today?");
-            } else {
-                messages.forEach(msg => {
-                    if (msg.role !== 'system') {
-                        const sender = msg.role === 'assistant' ? 'bot' : 'user';
-                        addMessageToUI(sender, msg.content);
-                    }
-                });
-            }
+            messages.forEach(msg => {
+                if (msg.role !== 'system') {
+                    const sender = msg.role === 'assistant' ? 'bot' : 'user';
+                    addMessageToUI(sender, msg.content);
+                }
+            });
         }
         
         scrollToBottom();
@@ -323,7 +319,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = chatContainer.querySelector('.messages-container');
         if (container) {
             container.innerHTML = '';
-            addMessageToUI('bot', "Hello! I'm your DeepSeek AI assistant configured with a stunning Material Expressive workspace. How can I help you customize your code today?");
         }
         
         scrollToBottom();
