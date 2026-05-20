@@ -309,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
             messages.forEach(msg => {
                 if (msg.role !== 'system') {
                     const sender = msg.role === 'assistant' ? 'bot' : 'user';
-                    addMessageToUI(sender, msg.content);
+                    addMessageToUI(sender, msg.content, msg.reasoning);
                 }
             });
         }
@@ -530,11 +530,12 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Show typing indicator
-        const typingId = showTypingIndicator();
-
-        // Set up abort controller for stop button
+        // Set up abort controller and streaming state
         abortController = new AbortController();
+        let streamMsgId = null;
+        let fullContent = '';
+        let fullReasoning = '';
+
         if (stopBtn) stopBtn.classList.remove('hidden');
         document.getElementById('send-btn').classList.add('hidden');
         userInput.disabled = true;
@@ -551,11 +552,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({
                     model: selectedModel,
                     messages: payloadMessages,
-                    temperature: 0.7
+                    temperature: 0.7,
+                    stream: true
                 })
             });
-
-            removeTypingIndicator(typingId);
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
@@ -563,27 +563,68 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
             }
 
-            const data = await response.json();
-            const botMessage = data.choices[0].message.content;
+            // Create streaming bot message element
+            streamMsgId = addStreamingBotMessage();
 
-            // Save bot response to IndexedDB
-            await db.messages.add({
-                conversationId: currentConversationId,
-                role: 'assistant',
-                content: botMessage,
-                timestamp: Date.now()
-            });
+            // Read the SSE stream
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
 
-            // Render bot message to UI
-            addMessageToUI('bot', botMessage);
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (!trimmed || !trimmed.startsWith('data: ')) continue;
+
+                    const payload = trimmed.slice(6);
+                    if (payload === '[DONE]') continue;
+
+                    try {
+                        const parsed = JSON.parse(payload);
+                        const reasoningDelta = parsed.choices?.[0]?.delta?.reasoning_content;
+                        const delta = parsed.choices?.[0]?.delta?.content;
+                        if (reasoningDelta) {
+                            fullReasoning += reasoningDelta;
+                            updateStreamingReasoning(streamMsgId, fullReasoning);
+                        }
+                        if (delta) {
+                            fullContent += delta;
+                            updateStreamingBotMessage(streamMsgId, fullContent);
+                        }
+                    } catch (e) {
+                        // Skip malformed JSON lines
+                    }
+                }
+            }
+
+            // Stream completed — save and finalize render
+            if (fullContent) {
+                await db.messages.add({
+                    conversationId: currentConversationId,
+                    role: 'assistant',
+                    content: fullContent,
+                    reasoning: fullReasoning || undefined,
+                    timestamp: Date.now()
+                });
+                finalizeStreamingBotMessage(streamMsgId, fullContent, fullReasoning);
+            }
 
         } catch (error) {
             if (error.name === 'AbortError') {
-                removeTypingIndicator(typingId);
+                // Finalize partial content so the blinking cursor stops
+                if (streamMsgId) {
+                    finalizeStreamingBotMessage(streamMsgId, fullContent, fullReasoning);
+                }
                 return;
             }
             console.error('Error fetching DeepSeek response:', error);
-            removeTypingIndicator(typingId);
             addMessageToUI('bot', 'Sorry, I encountered an error connecting to the server. Please check your API key or try again later.');
         } finally {
             abortController = null;
@@ -594,29 +635,60 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    function addMessageToUI(sender, text) {
+    function addMessageToUI(sender, text, reasoning) {
         const container = chatContainer.querySelector('.messages-container');
         if (!container) return;
 
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${sender}-message`;
-        
+
         const avatarDiv = document.createElement('div');
         avatarDiv.className = 'avatar';
         avatarDiv.textContent = sender === 'bot' ? '🤖' : '👤';
-        
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'message-content';
+
         if (sender === 'bot') {
+            const bodyDiv = document.createElement('div');
+            bodyDiv.className = 'message-body';
+
+            // Add reasoning block if present
+            if (reasoning) {
+                const reasoningBlock = document.createElement('div');
+                reasoningBlock.className = 'reasoning-block collapsed';
+                const reasoningHeader = document.createElement('div');
+                reasoningHeader.className = 'reasoning-header';
+                reasoningHeader.innerHTML = `
+                    <svg class="reasoning-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                    <span>Thought</span>
+                `;
+                const reasoningContent = document.createElement('div');
+                reasoningContent.className = 'reasoning-content';
+                reasoningContent.textContent = reasoning;
+                reasoningBlock.appendChild(reasoningHeader);
+                reasoningBlock.appendChild(reasoningContent);
+                reasoningHeader.addEventListener('click', () => {
+                    reasoningBlock.classList.toggle('collapsed');
+                });
+                bodyDiv.appendChild(reasoningBlock);
+            }
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
             contentDiv.innerHTML = typeof marked !== 'undefined' ? marked.parse(text) : text;
+
+            bodyDiv.appendChild(contentDiv);
+            messageDiv.appendChild(avatarDiv);
+            messageDiv.appendChild(bodyDiv);
         } else {
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
             contentDiv.textContent = text;
+            messageDiv.appendChild(avatarDiv);
+            messageDiv.appendChild(contentDiv);
         }
-        
-        messageDiv.appendChild(avatarDiv);
-        messageDiv.appendChild(contentDiv);
+
         container.appendChild(messageDiv);
-        
         scrollToBottom();
     }
 
@@ -645,6 +717,104 @@ document.addEventListener('DOMContentLoaded', () => {
         if (indicator) {
             indicator.remove();
         }
+    }
+
+    function addStreamingBotMessage() {
+        const container = chatContainer.querySelector('.messages-container');
+        if (!container) return null;
+
+        const id = 'stream-msg-' + Date.now();
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message bot-message';
+        messageDiv.id = id;
+
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = 'avatar';
+        avatarDiv.textContent = '🤖';
+
+        const bodyDiv = document.createElement('div');
+        bodyDiv.className = 'message-body';
+
+        // Collapsible reasoning block
+        const reasoningBlock = document.createElement('div');
+        reasoningBlock.className = 'reasoning-block';
+        const reasoningHeader = document.createElement('div');
+        reasoningHeader.className = 'reasoning-header';
+        reasoningHeader.innerHTML = `
+            <svg class="reasoning-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+            <span>Thinking...</span>
+        `;
+        const reasoningContent = document.createElement('div');
+        reasoningContent.className = 'reasoning-content';
+        reasoningBlock.appendChild(reasoningHeader);
+        reasoningBlock.appendChild(reasoningContent);
+
+        reasoningHeader.addEventListener('click', () => {
+            reasoningBlock.classList.toggle('collapsed');
+        });
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content streaming';
+
+        bodyDiv.appendChild(reasoningBlock);
+        bodyDiv.appendChild(contentDiv);
+        messageDiv.appendChild(avatarDiv);
+        messageDiv.appendChild(bodyDiv);
+        container.appendChild(messageDiv);
+        scrollToBottom();
+        return id;
+    }
+
+    function updateStreamingReasoning(id, reasoning) {
+        const msg = document.getElementById(id);
+        if (!msg) return;
+        const block = msg.querySelector('.reasoning-content');
+        if (!block) return;
+        block.textContent = reasoning;
+        // Auto-expand when new reasoning arrives
+        const parent = msg.querySelector('.reasoning-block');
+        if (parent) parent.classList.remove('collapsed');
+        scrollToBottom();
+    }
+
+    function updateStreamingBotMessage(id, content) {
+        const msg = document.getElementById(id);
+        if (!msg) return;
+        const contentDiv = msg.querySelector('.message-content');
+        if (!contentDiv) return;
+        contentDiv.textContent = content;
+        scrollToBottom();
+    }
+
+    function finalizeStreamingBotMessage(id, content, reasoning) {
+        const msg = document.getElementById(id);
+        if (!msg) return;
+
+        // Update reasoning header label
+        const header = msg.querySelector('.reasoning-header span');
+        if (header) header.textContent = 'Thought';
+
+        // Finalize reasoning content if present
+        const reasoningContent = msg.querySelector('.reasoning-content');
+        if (reasoningContent && reasoning) {
+            reasoningContent.textContent = reasoning;
+            // Default to collapsed when complete
+            const block = msg.querySelector('.reasoning-block');
+            if (block) block.classList.add('collapsed');
+        } else if (reasoningContent) {
+            // No reasoning — remove the whole block
+            const block = msg.querySelector('.reasoning-block');
+            if (block) block.remove();
+        }
+
+        // Finalize main content with markdown
+        const contentDiv = msg.querySelector('.message-content');
+        if (!contentDiv) return;
+        contentDiv.classList.remove('streaming');
+        contentDiv.innerHTML = typeof marked !== 'undefined' ? marked.parse(content || '') : (content || '');
+        scrollToBottom();
     }
 
     function scrollToBottom() {

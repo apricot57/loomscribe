@@ -579,6 +579,79 @@ body {
     box-shadow: none;
 }
 
+/* Message body wrapper for stacked content (reasoning + response) */
+.message-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+/* Collapsible reasoning block */
+.reasoning-block {
+    margin-bottom: 10px;
+    border-left: 2px solid var(--text-muted);
+    padding-left: 12px;
+}
+
+.reasoning-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 500;
+    user-select: none;
+    padding: 2px 0;
+    transition: color 0.2s;
+}
+
+.reasoning-header:hover {
+    color: var(--text-secondary);
+}
+
+.reasoning-chevron {
+    width: 14px;
+    height: 14px;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+}
+
+.reasoning-block.collapsed .reasoning-chevron {
+    transform: rotate(-90deg);
+}
+
+.reasoning-block.collapsed .reasoning-content {
+    display: none;
+}
+
+.reasoning-content {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    margin-top: 6px;
+    font-style: italic;
+}
+
+/* Streaming message cursor animation */
+.message-content.streaming::after {
+    content: '';
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    background-color: var(--accent-color);
+    margin-left: 2px;
+    vertical-align: text-bottom;
+    animation: blink-cursor 0.8s step-end infinite;
+}
+
+@keyframes blink-cursor {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
 /* ==========================================================================
    Chat Input Footer
    ========================================================================== */
