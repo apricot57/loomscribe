@@ -1,82 +1,85 @@
-# 🗺️ Implementation Plan: ChatGPT-Style Workspace & DeepSeek V4 Integration
+# 🗺️ Implementation Plan: Material Expressive Redesign
 
-We have successfully overhauled VibeChat from a centered, mobile-style floating card layout into a full-viewport, spacious workspace modeled after **ChatGPT**, featuring a **Vivid Neon Green (Cyberpunk/Matrix)** theme, full dynamic integration with the latest **DeepSeek V4 Pro** and **DeepSeek V4 Flash** models, and a sleek bottom-docked model dropdown selector floating directly above the chat box.
+We will completely overhaul VibeChat's interface from a rigid Cyberpunk/Neon Green theme to a friendly, premium, and highly tactile **Material Design Expressive (Material 3)** system. 
+
+The design will be built on organic shapes, pill contours, a rich expressive color system (deep lavender, vibrant orchid, and peach accents), and elegant transitions.
 
 ---
 
-## 🎨 Visual Design & Theming System (COMPLETED)
+## 🎨 Visual Design & Tonal System
 
-We established a premium dark mode using pitch black and dark charcoal backdrops, styled with glowing neon green highlights:
+We will establish a modern Material 3 Tonal Color Palette based on an expressive violet dynamic scheme:
 
 ```css
 :root {
-    --bg-main: #141414;           /* Dark slate black main workspace background */
-    --bg-sidebar: #0b0b0b;        /* Onyx black sidebar background */
-    --bg-input: #1e1e1e;          /* Charcoal grey input field */
-    --bg-message-user: #222222;   /* Subtly lighter slate for user messages */
+    /* M3 Expressive Tonal Palette (Dark Theme) */
+    --md-sys-color-background: #0f0b16;          /* Deep royal obsidian black with warm violet undertone */
+    --md-sys-color-surface: #171220;             /* Elevated base card surface */
+    --md-sys-color-surface-container: #211c2b;   /* Mid elevated surface */
+    --md-sys-color-surface-container-high: #2b2537; /* High elevated surface (input/dropdown) */
     
-    --border-color: rgba(255, 255, 255, 0.08); /* Minimal divider line */
-    --border-glow: rgba(0, 255, 102, 0.1);
+    --md-sys-color-primary: #b18cff;             /* Pastel lavender primary brand color */
+    --md-sys-color-primary-container: #49287a;   /* Rich purple container block */
+    --md-sys-color-on-primary-container: #eaddff; /* High contrast text on purple */
     
-    /* Neon Green Palette */
-    --accent-color: #00ff66;      /* High-intensity toxic neon green */
-    --accent-hover: #10b981;      /* Emerald green for hover transitions */
-    --accent-glow: rgba(0, 255, 102, 0.3);
+    --md-sys-color-secondary: #f48fb1;           /* Warm rose/orchid accent */
+    --md-sys-color-secondary-container: #5d1039; /* Deep berry secondary block */
     
-    --text-primary: #e3e3e3;      /* Off-white readable text */
-    --text-secondary: #8e8e8e;    /* Cool grey description text */
+    --md-sys-color-tertiary: #ffd59a;            /* Warm peach highlight */
+    --md-sys-color-on-tertiary: #4a2800;
+    
+    --md-sys-color-outline: rgba(255, 255, 255, 0.12); /* Subtle card separator */
+    --md-sys-color-outline-variant: rgba(177, 140, 255, 0.25); /* Glowing lavender outline focus */
+    
+    --md-sys-color-text-primary: #e6e1e9;        /* Soft lilac-white text */
+    --md-sys-color-text-secondary: #9c95a6;      /* Muted lavender-grey text */
+    
+    /* Shapes & Elevations */
+    --md-shape-corner-full: 9999px;              /* Perfect pill shapes for buttons, badges, selectors */
+    --md-shape-corner-extra-large: 28px;        /* Organic rounded shapes for card surfaces, inputs, modals */
+    --md-shape-corner-medium: 16px;             /* Standard bubble rounds */
 }
 ```
 
 ---
 
-## 🛠️ Structure & Layout Overhaul (COMPLETED)
+## 🛠️ Proposed Changes
 
-### 1. Multi-Column Layout
-#### [index.html](file:///c:/Users/Focus/Documents/Misc/vibe-api/index.html)
-We rewrote the DOM layout to support a split-pane sidebar system:
-*   **`.app-layout`**: Main viewport container spanning `100vw` and `100vh` in flex row orientation.
-*   **`.sidebar`**: Left-anchored panel (`260px` wide) housing:
-    *   **New Chat Button**: Glowing outline neon green button to reset the conversational state.
-    *   **Settings / API Key Panel**: A dedicated collapsible box inside the sidebar to configure the DeepSeek API Key, containing a password input field, visibility icon, and save/delete controls.
-    *   **App Status Info**: Aesthetic connection info with glowing green connection state indicators.
-*   **`.main-content`**: Main scrollable canvas on the right containing:
-    *   **`.chat-header`**: Minimalist header bar containing the sidebar mobile hamburger toggle and the main VibeChat brand heading.
-    *   **`.messages-wrapper`**: Expansive message viewport centering conversation cards inside a constrained reading grid (`max-width: 768px`).
-    *   **`.input-area-container`**: Bottom input station housing a left-aligned, bottom-docked **Model Selector** that pops upwards and a centered chat-form input box with glowing green borders.
+### 1. Typography & Header Overhaul
+#### [MODIFY] [index.html](file:///c:/Users/Focus/Documents/Misc/vibe-api/index.html)
+*   **Google Fonts**: Swap `Inter` for **Outfit**, an extremely friendly, modern, and expressive sans-serif font that makes the interface look highly tailored.
+*   **M3 Navigation Drawer (Sidebar)**:
+    *   Transform the left sidebar into a standard M3 rounded drawer (`border-radius: 0 var(--md-shape-corner-extra-large) var(--md-shape-corner-extra-large) 0`).
+    *   Turn "New Chat" into an M3 **Floating Action Button (FAB)** with a playful, heavily rounded squircle shape (`border-radius: 20px`) and deep lavender backgrounds.
+*   **Tactile Top Header**: Keep a lightweight header displaying "VibeChat" with large, expressive bold typography.
 
-### 2. DeepSeek V4 Model Integration & UI Positioning
-#### [app.js](file:///c:/Users/Focus/Documents/Misc/vibe-api/app.js) & [style.css](file:///c:/Users/Focus/Documents/Misc/vibe-api/style.css)
-*   **Dynamic Model Selector**: Added support for selecting between the latest models:
-    *   `deepseek-v4-pro` (Flagship reasoning model)
-    *   `deepseek-v4-flash` (Efficient, low-latency model)
-*   **Bottom-Docked Positioning**: The model selection wrapper has been moved from the header to directly above the chat box input field. It aligns perfectly with the left edge of the chatbox (`align-self: flex-start`), and its dropdown menu has been styled to pop upwards (`bottom: calc(100% + 8px)`) for a superior, non-intrusive interactive experience.
-*   **API Payloads**: Updated the API fetch logic to read the active model from `localStorage` (`MODEL_STORAGE_KEY`) and dispatch it dynamically under the `model` payload parameter, eliminating hardcoded legacies.
+### 2. Layout, Cards, & Input Repositioning
+#### [MODIFY] [style.css](file:///c:/Users/Focus/Documents/Misc/vibe-api/style.css)
+*   **Expressive Chat Bubbles**:
+    *   *User Messages*: Rounded sleek bubbles in primary lavender container (`--md-sys-color-primary-container`), aligned right, with fully rounded curves except a unique sharp anchor on the tail.
+    *   *Bot Messages*: Housed in custom, elevated, elegant cards with double-border borders and soft violet gradients.
+*   **Pill-Shaped Bottom Input**:
+    *   Transform `#chat-form` into a giant, cozy pill-shaped input container (`border-radius: 32px`) floating centered at the bottom.
+    *   Restyle `#send-btn` into a primary colored button with tactile hover scale states.
+*   **Floating Model Selector**:
+    *   Keep the selector near the chatbox but style it as a cute Material 3 Pill Button (`border-radius: 9999px`) with an elegant chevron icon and subtle elevated shadows.
+    *   Style the popped-up menu with organic corners (`border-radius: 20px`) and glassmorphic elevated depth.
 
----
-
-## 🛡️ Next Roadmap Phase: Security & Backend API Proxy (PROPOSED)
-
-Stashing the DeepSeek API Key in client-side code introduces credential leakage issues if shared publicly. To secure the app further, we can proxy calls through a backend node server.
-
-### Proposed Changes
-
-#### [NEW] `server.js` (Root Directory)
-Create a minimal Express server in the root directory that handles key injection.
-- Endpoint `POST /api/chat` takes client message history, appends the server's environment variable `DEEPSEEK_API_KEY`, and sends the request to DeepSeek.
-- Serves the static assets (`index.html`, `style.css`, `app.js`) securely.
-
+### 3. Logic & Behavior Sync
 #### [MODIFY] [app.js](file:///c:/Users/Focus/Documents/Misc/vibe-api/app.js)
-- Modify the `API_URL` variable to point to our local proxy endpoint: `const API_URL = '/api/chat';`
-- Completely remove the `API_KEY_STORAGE_KEY` and UI input if desired, or let users choose between self-hosting key mode and backend proxy mode.
+*   Adjust default message icons or classes if needed.
+*   Keep the core state logic (Local Storage API key saving, model state toggling, and asynchronous DeepSeek V4 payloads) fully intact.
+
+### 4. Custom M3 Favicon Asset
+#### [NEW] [favicon.png](file:///c:/Users/Focus/Documents/Misc/vibe-api/favicon.png)
+*   Generate an expressive, abstract geometric AI sphere utilizing the new Material 3 lavender, rose, and amber color palettes, perfectly matching the visual updates.
 
 ---
 
-## 📈 Advanced UX Enhancements (PROPOSED)
+## 🔍 Verification Plan
 
-### 1. Markdown Response Formatting
-- **Implementation**: Reference `marked.js` from a CDN inside [index.html](file:///c:/Users/Focus/Documents/Misc/vibe-api/index.html).
-- **Modification**: Update `addMessageToUI` in [app.js](file:///c:/Users/Focus/Documents/Misc/vibe-api/app.js) to parse the bot's markdown strings into formatted HTML instead of using plain text.
-
-### 2. Advanced Parameter Sliders
-- Let users customize the `temperature` parameter dynamically in the settings sidebar to adjust the response creativity and determinism.
+### Manual Verification
+1.  **Typography Check**: Verify that all headers, text inputs, and labels use the friendly **Outfit** sans-serif font face.
+2.  **Tactile Shapes**: Inspect elements to verify the transition to heavy organic border-radii (`28px` for modal contents and sidebar edges, `9999px` for search/model pill buttons).
+3.  **Color Harmony**: Review high-contrast visibility under the new Lavender & Berry expressive dark palette. Ensure warning panels, links, and buttons maintain excellent readability.
+4.  **Responsive drawer transitions**: Verify sidebar animations slide out cleanly on mobile device widths.
