@@ -784,7 +784,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!msg) return;
         const contentDiv = msg.querySelector('.message-content');
         if (!contentDiv) return;
-        contentDiv.textContent = content;
+        contentDiv.innerHTML = typeof marked !== 'undefined' ? marked.parse(content) : content;
         scrollToBottom();
     }
 
