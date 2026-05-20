@@ -231,6 +231,16 @@ document.addEventListener('DOMContentLoaded', () => {
             titleSpan.className = 'chat-item-title';
             titleSpan.textContent = conv.title || 'Untitled Conversation';
             
+            const renameBtn = document.createElement('button');
+            renameBtn.className = 'chat-rename-btn';
+            renameBtn.setAttribute('aria-label', 'Rename conversation');
+            renameBtn.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+            `;
+
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'chat-delete-btn';
             deleteBtn.setAttribute('aria-label', 'Delete conversation');
@@ -244,6 +254,11 @@ document.addEventListener('DOMContentLoaded', () => {
             item.addEventListener('click', () => {
                 switchConversation(conv.id);
             });
+
+            renameBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                startInlineRename(item, titleSpan, conv.id, titleSpan.textContent);
+            });
             
             deleteBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -252,6 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             item.innerHTML = iconSvg;
             item.appendChild(titleSpan);
+            item.appendChild(renameBtn);
             item.appendChild(deleteBtn);
             chatsList.appendChild(item);
         });
@@ -347,6 +363,77 @@ document.addEventListener('DOMContentLoaded', () => {
                 await loadConversations();
             }
         }
+    }
+
+    // Rename a conversation thread inline in the sidebar UI
+    function startInlineRename(item, titleSpan, id, currentTitle) {
+        // Prevent multiple simultaneous rename inputs inside this item
+        if (item.querySelector('.chat-item-rename-input')) return;
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'chat-item-rename-input';
+        input.value = currentTitle;
+        
+        // Save references to other buttons to temporarily hide them
+        const renameBtn = item.querySelector('.chat-rename-btn');
+        const deleteBtn = item.querySelector('.chat-delete-btn');
+        
+        if (renameBtn) renameBtn.style.display = 'none';
+        if (deleteBtn) deleteBtn.style.display = 'none';
+
+        // Stop propagation of events to prevent parent button behavior (selection, clicks, active styling)
+        const stopProp = (e) => e.stopPropagation();
+        input.addEventListener('click', stopProp);
+        input.addEventListener('mousedown', stopProp);
+        input.addEventListener('mouseup', stopProp);
+        input.addEventListener('dblclick', stopProp);
+
+        let isFinished = false;
+
+        const finishRename = async (commitChanges) => {
+            if (isFinished) return;
+            isFinished = true;
+
+            const newTitle = input.value.trim();
+            if (commitChanges && newTitle && newTitle !== currentTitle) {
+                // Synchronously update UI elements
+                titleSpan.textContent = newTitle;
+                input.replaceWith(titleSpan);
+                if (renameBtn) renameBtn.style.display = '';
+                if (deleteBtn) deleteBtn.style.display = '';
+                item.title = newTitle;
+                
+                // Update database in background
+                await db.conversations.update(id, { title: newTitle });
+            } else {
+                // Restore original state
+                input.replaceWith(titleSpan);
+                if (renameBtn) renameBtn.style.display = '';
+                if (deleteBtn) deleteBtn.style.display = '';
+            }
+        };
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                finishRename(true);
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                finishRename(false);
+            }
+        });
+
+        input.addEventListener('blur', () => {
+            finishRename(true);
+        });
+
+        // Replace the titleSpan with the input field
+        titleSpan.replaceWith(input);
+        
+        // Focus and select all text
+        input.focus();
+        input.select();
     }
 
     // Auto title based on first prompt
