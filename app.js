@@ -9,6 +9,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const sidebarCloseBtn = document.getElementById('sidebar-close-btn');
     const clearChatBtn = document.getElementById('clear-chat-btn');
 
+    // Model Selector DOM Elements
+    const modelSelectBtn = document.getElementById('model-select-btn');
+    const modelDropdownMenu = document.getElementById('model-dropdown-menu');
+    const activeModelName = document.getElementById('active-model-name');
+    const dropdownItems = document.querySelectorAll('.dropdown-item');
+
     // DOM Elements for API Key configuration
     const keyBtn = document.getElementById('key-btn');
     const keyStatusDot = document.getElementById('key-status-dot');
@@ -22,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Storage Keys & API configurations
     const STORAGE_KEY = 'vibe_chat_history';
     const API_KEY_STORAGE_KEY = 'vibe_chat_api_key';
+    const MODEL_STORAGE_KEY = 'vibe_chat_model';
     const API_URL = 'https://api.deepseek.com/chat/completions';
 
     // Toggle Sidebar on mobile viewports
@@ -36,6 +43,59 @@ document.addEventListener('DOMContentLoaded', () => {
             sidebar.classList.remove('active');
         });
     }
+
+    // Model Selection UI Logic
+    function initializeModelUI() {
+        const storedModel = localStorage.getItem(MODEL_STORAGE_KEY) || 'deepseek-v4-pro';
+        localStorage.setItem(MODEL_STORAGE_KEY, storedModel);
+        
+        dropdownItems.forEach(item => {
+            const itemModel = item.getAttribute('data-model');
+            if (itemModel === storedModel) {
+                item.classList.add('active');
+                activeModelName.textContent = item.querySelector('.item-name').textContent;
+            } else {
+                item.classList.remove('active');
+            }
+        });
+    }
+
+    // Initialize model selection
+    initializeModelUI();
+
+    // Toggle model dropdown menu
+    if (modelSelectBtn && modelDropdownMenu) {
+        modelSelectBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            modelDropdownMenu.classList.toggle('hidden');
+            modelSelectBtn.parentElement.classList.toggle('open');
+        });
+
+        // Close dropdown when clicking anywhere else
+        document.addEventListener('click', () => {
+            modelDropdownMenu.classList.add('hidden');
+            modelSelectBtn.parentElement.classList.remove('open');
+        });
+    }
+
+    // Select model event handling
+    dropdownItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const modelVal = item.getAttribute('data-model');
+            localStorage.setItem(MODEL_STORAGE_KEY, modelVal);
+            
+            // Update header button label
+            activeModelName.textContent = item.querySelector('.item-name').textContent;
+            
+            // Set active class
+            dropdownItems.forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+            
+            // Close menu
+            modelDropdownMenu.classList.add('hidden');
+            modelSelectBtn.parentElement.classList.remove('open');
+        });
+    });
 
     // Update the visual status of the key icon dot
     function updateKeyStatusUI() {
@@ -199,6 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const typingId = showTypingIndicator();
 
         try {
+            const selectedModel = localStorage.getItem(MODEL_STORAGE_KEY) || 'deepseek-v4-pro';
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: {
@@ -206,7 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     'Authorization': `Bearer ${activeApiKey}`
                 },
                 body: JSON.stringify({
-                    model: 'deepseek-chat',
+                    model: selectedModel,
                     messages: conversationHistory,
                     temperature: 0.7
                 })

@@ -62,8 +62,30 @@
                     </svg>
                 </button>
                 <div class="header-title">
-                    <h3>deepseek-chat</h3>
-                    <span class="badge-neon">v3</span>
+                    <div class="model-select-wrapper">
+                        <button id="model-select-btn" class="model-dropdown-btn">
+                            <span id="active-model-name">DeepSeek V4 Pro</span>
+                            <svg class="dropdown-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                        <div id="model-dropdown-menu" class="model-dropdown-menu hidden">
+                            <button class="dropdown-item" data-model="deepseek-v4-pro">
+                                <div class="item-info">
+                                    <span class="item-name">DeepSeek V4 Pro</span>
+                                    <span class="item-desc">Maximum reasoning & intelligence</span>
+                                </div>
+                                <span class="item-badge">v4</span>
+                            </button>
+                            <button class="dropdown-item" data-model="deepseek-v4-flash">
+                                <div class="item-info">
+                                    <span class="item-name">DeepSeek V4 Flash</span>
+                                    <span class="item-desc">High-speed, efficient generation</span>
+                                </div>
+                                <span class="item-badge">v4</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <div class="header-actions-placeholder"></div>
             </header>
