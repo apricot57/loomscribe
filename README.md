@@ -15,7 +15,7 @@ A lightweight, visually gorgeous, and responsive vanilla HTML/CSS/JS frontend fo
 
 ## 🚀 Getting Started
 
-To get the running locally:
+Getting the application up and running locally:
 
 ### 1. Clone or Download the Files
 Ensure you have the following files in the same directory:
