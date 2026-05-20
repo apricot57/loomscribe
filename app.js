@@ -530,11 +530,11 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Show typing indicator
-        const typingId = showTypingIndicator();
-
-        // Set up abort controller for stop button
+        // Set up abort controller and streaming state
         abortController = new AbortController();
+        let streamMsgId = null;
+        let fullContent = '';
+
         if (stopBtn) stopBtn.classList.remove('hidden');
         document.getElementById('send-btn').classList.add('hidden');
         userInput.disabled = true;
@@ -551,11 +551,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({
                     model: selectedModel,
                     messages: payloadMessages,
-                    temperature: 0.7
+                    temperature: 0.7,
+                    stream: true
                 })
             });
-
-            removeTypingIndicator(typingId);
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
@@ -563,27 +562,62 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
             }
 
-            const data = await response.json();
-            const botMessage = data.choices[0].message.content;
+            // Create streaming bot message element
+            streamMsgId = addStreamingBotMessage();
 
-            // Save bot response to IndexedDB
-            await db.messages.add({
-                conversationId: currentConversationId,
-                role: 'assistant',
-                content: botMessage,
-                timestamp: Date.now()
-            });
+            // Read the SSE stream
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
 
-            // Render bot message to UI
-            addMessageToUI('bot', botMessage);
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (!trimmed || !trimmed.startsWith('data: ')) continue;
+
+                    const payload = trimmed.slice(6);
+                    if (payload === '[DONE]') continue;
+
+                    try {
+                        const parsed = JSON.parse(payload);
+                        const delta = parsed.choices?.[0]?.delta?.content;
+                        if (delta) {
+                            fullContent += delta;
+                            updateStreamingBotMessage(streamMsgId, fullContent);
+                        }
+                    } catch (e) {
+                        // Skip malformed JSON lines
+                    }
+                }
+            }
+
+            // Stream completed — save and finalize render
+            if (fullContent) {
+                await db.messages.add({
+                    conversationId: currentConversationId,
+                    role: 'assistant',
+                    content: fullContent,
+                    timestamp: Date.now()
+                });
+                finalizeStreamingBotMessage(streamMsgId, fullContent);
+            }
 
         } catch (error) {
             if (error.name === 'AbortError') {
-                removeTypingIndicator(typingId);
+                // Finalize partial content so the blinking cursor stops
+                if (fullContent && streamMsgId) {
+                    finalizeStreamingBotMessage(streamMsgId, fullContent);
+                }
                 return;
             }
             console.error('Error fetching DeepSeek response:', error);
-            removeTypingIndicator(typingId);
             addMessageToUI('bot', 'Sorry, I encountered an error connecting to the server. Please check your API key or try again later.');
         } finally {
             abortController = null;
@@ -645,6 +679,48 @@ document.addEventListener('DOMContentLoaded', () => {
         if (indicator) {
             indicator.remove();
         }
+    }
+
+    function addStreamingBotMessage() {
+        const container = chatContainer.querySelector('.messages-container');
+        if (!container) return null;
+
+        const id = 'stream-msg-' + Date.now();
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message bot-message';
+        messageDiv.id = id;
+
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = 'avatar';
+        avatarDiv.textContent = '🤖';
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content streaming';
+
+        messageDiv.appendChild(avatarDiv);
+        messageDiv.appendChild(contentDiv);
+        container.appendChild(messageDiv);
+        scrollToBottom();
+        return id;
+    }
+
+    function updateStreamingBotMessage(id, content) {
+        const msg = document.getElementById(id);
+        if (!msg) return;
+        const contentDiv = msg.querySelector('.message-content');
+        if (!contentDiv) return;
+        contentDiv.textContent = content;
+        scrollToBottom();
+    }
+
+    function finalizeStreamingBotMessage(id, content) {
+        const msg = document.getElementById(id);
+        if (!msg) return;
+        const contentDiv = msg.querySelector('.message-content');
+        if (!contentDiv) return;
+        contentDiv.classList.remove('streaming');
+        contentDiv.innerHTML = typeof marked !== 'undefined' ? marked.parse(content) : content;
+        scrollToBottom();
     }
 
     function scrollToBottom() {
