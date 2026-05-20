@@ -57,3 +57,18 @@ We will restructure the empty `.sidebar-menu` container into a dynamic, styled l
 3.  **Persistence Review**: Refresh the browser page. Confirm that your conversation list and active message content are completely preserved and loaded via IndexedDB.
 4.  **Cascade Deletion**: Hover over a conversation item, click the trash icon, and confirm deletion. Verify that the thread is removed and the interface falls back gracefully to a blank welcome state.
 5.  **Offline Verification**: Ensure no errors occur when running without an active internet connection (other than deepseek completion timeouts).
+
+---
+
+## 🔮 Future Roadmap
+
+- [ ] **Secure Proxy Backend**: Move client-side `fetch` routines to a lightweight Node.js/Express proxy server to safeguard credentials in public deployments.
+- [x] **Markdown Renderer**: Link a lightweight script like `marked.js` to parse bullet lists, bold highlights, and code formatting blocks inside the assistant bubbles.
+- [ ] **Dynamic Prompt Sliders**: Add settings panel sliders to adjust temperature, max tokens, or system-level developer instructions.
+- [ ] **Stop Generation Button**: Cancel an in-progress AI response with an abort signal on the fetch request.
+- [ ] **Streaming Responses**: Switch from awaiting the full response to real-time token streaming via the DeepSeek SSE endpoint for a more responsive chat feel.
+- [ ] **Code Syntax Highlighting**: Integrate a lightweight highlighter (e.g. highlight.js) to colorize code blocks within rendered markdown.
+- [ ] **Conversation Export**: Download individual chat threads as `.md` or `.json` files for portability.
+- [ ] **Dark / Light Theme Toggle**: Add a Material You light theme variant with a toggle in the sidebar settings.
+- [ ] **Token Usage & Cost Tracker**: Display token counts per message and estimate cost per conversation session.
+- [ ] **System Prompt Customization**: Allow users to set a custom system instruction in settings (e.g. "You are an expert Rust developer").
