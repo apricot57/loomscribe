@@ -1,6 +1,6 @@
 # 🗺️ Implementation Plan: ChatGPT-Style Workspace & DeepSeek V4 Integration
 
-We have successfully overhauled VibeChat from a centered, mobile-style floating card layout into a full-viewport, spacious workspace modeled after **ChatGPT**, featuring a **Vivid Neon Green (Cyberpunk/Matrix)** theme and full dynamic integration with the latest **DeepSeek V4 Pro** and **DeepSeek V4 Flash** models.
+We have successfully overhauled VibeChat from a centered, mobile-style floating card layout into a full-viewport, spacious workspace modeled after **ChatGPT**, featuring a **Vivid Neon Green (Cyberpunk/Matrix)** theme, full dynamic integration with the latest **DeepSeek V4 Pro** and **DeepSeek V4 Flash** models, and a sleek bottom-docked model dropdown selector floating directly above the chat box.
 
 ---
 
@@ -41,15 +41,16 @@ We rewrote the DOM layout to support a split-pane sidebar system:
     *   **Settings / API Key Panel**: A dedicated collapsible box inside the sidebar to configure the DeepSeek API Key, containing a password input field, visibility icon, and save/delete controls.
     *   **App Status Info**: Aesthetic connection info with glowing green connection state indicators.
 *   **`.main-content`**: Main scrollable canvas on the right containing:
-    *   **`.chat-header`**: Minimalist header bar containing the sidebar mobile hamburger toggle and active model information.
+    *   **`.chat-header`**: Minimalist header bar containing the sidebar mobile hamburger toggle and the main VibeChat brand heading.
     *   **`.messages-wrapper`**: Expansive message viewport centering conversation cards inside a constrained reading grid (`max-width: 768px`).
-    *   **`.input-wrapper-outer`**: Bottom input station housing a centered, auto-resizing text-input box with glowing green borders.
+    *   **`.input-area-container`**: Bottom input station housing a left-aligned, bottom-docked **Model Selector** that pops upwards and a centered chat-form input box with glowing green borders.
 
-### 2. DeepSeek V4 Model Integration
-#### [app.js](file:///c:/Users/Focus/Documents/Misc/vibe-api/app.js)
+### 2. DeepSeek V4 Model Integration & UI Positioning
+#### [app.js](file:///c:/Users/Focus/Documents/Misc/vibe-api/app.js) & [style.css](file:///c:/Users/Focus/Documents/Misc/vibe-api/style.css)
 *   **Dynamic Model Selector**: Added support for selecting between the latest models:
     *   `deepseek-v4-pro` (Flagship reasoning model)
     *   `deepseek-v4-flash` (Efficient, low-latency model)
+*   **Bottom-Docked Positioning**: The model selection wrapper has been moved from the header to directly above the chat box input field. It aligns perfectly with the left edge of the chatbox (`align-self: flex-start`), and its dropdown menu has been styled to pop upwards (`bottom: calc(100% + 8px)`) for a superior, non-intrusive interactive experience.
 *   **API Payloads**: Updated the API fetch logic to read the active model from `localStorage` (`MODEL_STORAGE_KEY`) and dispatch it dynamically under the `model` payload parameter, eliminating hardcoded legacies.
 
 ---

@@ -741,10 +741,12 @@ body {
 }
 
 /* ==========================================================================
-   Custom Model Dropdown in Header
+   Custom Model Dropdown near Chatbox
    ========================================================================== */
 .model-select-wrapper {
     position: relative;
+    align-self: flex-start;
+    margin-bottom: 6px;
 }
 
 .model-dropdown-btn {
@@ -787,15 +789,14 @@ body {
 
 .model-dropdown-menu {
     position: absolute;
-    top: calc(100% + 8px);
-    left: 50%;
-    transform: translateX(-50%);
+    bottom: calc(100% + 8px);
+    left: 0;
     background-color: #111111;
     border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 6px;
     width: 280px;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7);
+    box-shadow: 0 -10px 25px -5px rgba(0, 0, 0, 0.7);
     z-index: 200;
     display: flex;
     flex-direction: column;
