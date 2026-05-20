@@ -1,85 +1,59 @@
-# 🗺️ Implementation Plan: Material Expressive Redesign
+# 🗺️ Implementation Plan: Dexie.js IndexedDB Chat History
 
-We will completely overhaul VibeChat's interface from a rigid Cyberpunk/Neon Green theme to a friendly, premium, and highly tactile **Material Design Expressive (Material 3)** system. 
-
-The design will be built on organic shapes, pill contours, a rich expressive color system (deep lavender, vibrant orchid, and peach accents), and elegant transitions.
+We will migrate VibeChat's client-side storage from the synchronous, limited `localStorage` (5MB limit) to **IndexedDB** utilizing the lightweight wrapper **Dexie.js**. This enables robust, offline-first storage of unlimited chat threads, conversational history list features in the left sidebar, thread deletions, and dynamic UI loading.
 
 ---
 
-## 🎨 Visual Design & Tonal System
+## 🎨 Layout & UI Additions
 
-We will establish a modern Material 3 Tonal Color Palette based on an expressive violet dynamic scheme:
+### 1. Sidebar Chat History List
+We will restructure the empty `.sidebar-menu` container into a dynamic, styled list of recent conversations.
 
-```css
-:root {
-    /* M3 Expressive Tonal Palette (Dark Theme) */
-    --md-sys-color-background: #0f0b16;          /* Deep royal obsidian black with warm violet undertone */
-    --md-sys-color-surface: #171220;             /* Elevated base card surface */
-    --md-sys-color-surface-container: #211c2b;   /* Mid elevated surface */
-    --md-sys-color-surface-container-high: #2b2537; /* High elevated surface (input/dropdown) */
-    
-    --md-sys-color-primary: #b18cff;             /* Pastel lavender primary brand color */
-    --md-sys-color-primary-container: #49287a;   /* Rich purple container block */
-    --md-sys-color-on-primary-container: #eaddff; /* High contrast text on purple */
-    
-    --md-sys-color-secondary: #f48fb1;           /* Warm rose/orchid accent */
-    --md-sys-color-secondary-container: #5d1039; /* Deep berry secondary block */
-    
-    --md-sys-color-tertiary: #ffd59a;            /* Warm peach highlight */
-    --md-sys-color-on-tertiary: #4a2800;
-    
-    --md-sys-color-outline: rgba(255, 255, 255, 0.12); /* Subtle card separator */
-    --md-sys-color-outline-variant: rgba(177, 140, 255, 0.25); /* Glowing lavender outline focus */
-    
-    --md-sys-color-text-primary: #e6e1e9;        /* Soft lilac-white text */
-    --md-sys-color-text-secondary: #9c95a6;      /* Muted lavender-grey text */
-    
-    /* Shapes & Elevations */
-    --md-shape-corner-full: 9999px;              /* Perfect pill shapes for buttons, badges, selectors */
-    --md-shape-corner-extra-large: 28px;        /* Organic rounded shapes for card surfaces, inputs, modals */
-    --md-shape-corner-medium: 16px;             /* Standard bubble rounds */
-}
-```
+*   **HTML Structure**: Link the Dexie.js library via CDN and add the `#chats-list` list structure in the sidebar.
+*   **Aesthetic Styling (`style.css`)**:
+    *   Style items as elegant, minimal navigation pill buttons with light-hover background transitions (`var(--accent-dim)`).
+    *   Include a speech bubble icon on the left, an auto-truncating title in the center, and a hover-only trash icon on the right.
+    *   Transition styling for active conversation list items to have high-contrast text and a soft highlight backdrop.
 
 ---
 
 ## 🛠️ Proposed Changes
 
-### 1. Typography & Header Overhaul
+### 1. Database Schema & API Setup
 #### [MODIFY] [index.html](file:///c:/Users/Focus/Documents/Misc/vibe-api/index.html)
-*   **Google Fonts**: Swap `Inter` for **Outfit**, an extremely friendly, modern, and expressive sans-serif font that makes the interface look highly tailored.
-*   **M3 Navigation Drawer (Sidebar)**:
-    *   Transform the left sidebar into a standard M3 rounded drawer (`border-radius: 0 var(--md-shape-corner-extra-large) var(--md-shape-corner-extra-large) 0`).
-    *   Turn "New Chat" into an M3 **Floating Action Button (FAB)** with a playful, heavily rounded squircle shape (`border-radius: 20px`) and deep lavender backgrounds.
-*   **Tactile Top Header**: Keep a lightweight header displaying "VibeChat" with large, expressive bold typography.
+*   **CDN Link**: Include `<script src="https://cdn.jsdelivr.net/npm/dexie@latest/dist/dexie.min.js"></script>` right before `<script src="app.js"></script>`.
+*   **Sidebar Refactoring**: Replace the placeholder `.sidebar-menu` structure with a structured `#chats-list` recent conversations container.
 
-### 2. Layout, Cards, & Input Repositioning
+### 2. Styling the Sidebar History Item States
 #### [MODIFY] [style.css](file:///c:/Users/Focus/Documents/Misc/vibe-api/style.css)
-*   **Expressive Chat Bubbles**:
-    *   *User Messages*: Rounded sleek bubbles in primary lavender container (`--md-sys-color-primary-container`), aligned right, with fully rounded curves except a unique sharp anchor on the tail.
-    *   *Bot Messages*: Housed in custom, elevated, elegant cards with double-border borders and soft violet gradients.
-*   **Pill-Shaped Bottom Input**:
-    *   Transform `#chat-form` into a giant, cozy pill-shaped input container (`border-radius: 32px`) floating centered at the bottom.
-    *   Restyle `#send-btn` into a primary colored button with tactile hover scale states.
-*   **Floating Model Selector**:
-    *   Keep the selector near the chatbox but style it as a cute Material 3 Pill Button (`border-radius: 9999px`) with an elegant chevron icon and subtle elevated shadows.
-    *   Style the popped-up menu with organic corners (`border-radius: 20px`) and glassmorphic elevated depth.
+*   Create visual rules for `.chats-list-container`, `.chat-list-item`, `.chat-item-title`, `.chat-delete-btn`, and hover activations.
+*   Add smooth slide-in animations for newly spawned conversation row items.
 
-### 3. Logic & Behavior Sync
+### 3. Dexie.js Store Layer & State Router
 #### [MODIFY] [app.js](file:///c:/Users/Focus/Documents/Misc/vibe-api/app.js)
-*   Adjust default message icons or classes if needed.
-*   Keep the core state logic (Local Storage API key saving, model state toggling, and asynchronous DeepSeek V4 payloads) fully intact.
-
-### 4. Custom M3 Favicon Asset
-#### [NEW] [favicon.png](file:///c:/Users/Focus/Documents/Misc/vibe-api/favicon.png)
-*   Generate an expressive, abstract geometric AI sphere utilizing the new Material 3 lavender, rose, and amber color palettes, perfectly matching the visual updates.
+*   **Dexie Initialization**:
+    ```javascript
+    const db = new Dexie("VibeChatDatabase");
+    db.version(1).stores({
+        conversations: "++id, title, activeModel, createdAt",
+        messages: "++id, conversationId, role, content, timestamp"
+    });
+    ```
+*   **State Management**:
+    *   `currentConversationId`: Keeps track of the active thread ID.
+    *   `loadConversations()`: Fetches conversations from IndexedDB, populating the sidebar.
+    *   `switchConversation(id)`: Loads and renders messages matching the target `conversationId`.
+    *   `createNewConversation()`: Creates a new record in the database, updates the active state, and prompts a fresh visual conversation.
+    *   `deleteConversation(id, event)`: Removes the conversation and all cascade messages from the database, reloading the active states gracefully.
+    *   **Auto-Titling**: On the very first message sent in a new conversation, automatically update the thread title using the first few words of the user's prompt (e.g. 25 characters followed by `...`) and save to IndexedDB.
 
 ---
 
 ## 🔍 Verification Plan
 
 ### Manual Verification
-1.  **Typography Check**: Verify that all headers, text inputs, and labels use the friendly **Outfit** sans-serif font face.
-2.  **Tactile Shapes**: Inspect elements to verify the transition to heavy organic border-radii (`28px` for modal contents and sidebar edges, `9999px` for search/model pill buttons).
-3.  **Color Harmony**: Review high-contrast visibility under the new Lavender & Berry expressive dark palette. Ensure warning panels, links, and buttons maintain excellent readability.
-4.  **Responsive drawer transitions**: Verify sidebar animations slide out cleanly on mobile device widths.
+1.  **Creation Mechanics**: Click the M3 Extended **New Chat** squircle button. Verify that it creates a blank conversation space and resets the chat container.
+2.  **Auto-Titling Check**: Send a message (e.g. *"What is the speed of light in a vacuum?"*). Verify that the sidebar conversation item dynamically updates its title to *"What is the speed of lig..."*.
+3.  **Persistence Review**: Refresh the browser page. Confirm that your conversation list and active message content are completely preserved and loaded via IndexedDB.
+4.  **Cascade Deletion**: Hover over a conversation item, click the trash icon, and confirm deletion. Verify that the thread is removed and the interface falls back gracefully to a blank welcome state.
+5.  **Offline Verification**: Ensure no errors occur when running without an active internet connection (other than deepseek completion timeouts).

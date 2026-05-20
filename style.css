@@ -227,6 +227,96 @@ body {
     animation: statusPulseGreen 2s infinite;
 }
 
+/* Chat History List styling */
+.chats-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow-y: auto;
+    flex: 1;
+    margin-top: 4px;
+}
+
+.chat-list-item {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border-radius: var(--border-radius-pill);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-align: left;
+    transition: var(--transition-m3);
+    width: 100%;
+    font-family: inherit;
+    position: relative;
+    user-select: none;
+}
+
+.chat-list-item:hover {
+    background-color: var(--accent-dim);
+    color: var(--text-primary);
+}
+
+.chat-list-item.active {
+    background-color: var(--accent-dim);
+    color: var(--accent-color);
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1px rgba(177, 140, 255, 0.15);
+}
+
+.chat-item-icon {
+    width: 16px;
+    height: 16px;
+    color: inherit;
+    opacity: 0.7;
+    flex-shrink: 0;
+}
+
+.chat-item-title {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    pointer-events: none; /* Let clicks pass through to parent button */
+}
+
+.chat-delete-btn {
+    background: transparent;
+    border: none;
+    padding: 4px;
+    border-radius: 50%;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: var(--transition-m3);
+    flex-shrink: 0;
+}
+
+.chat-list-item:hover .chat-delete-btn {
+    opacity: 0.7;
+}
+
+.chat-list-item:hover .chat-delete-btn:hover {
+    opacity: 1;
+    color: var(--accent-secondary);
+    background-color: rgba(244, 143, 177, 0.1);
+}
+
+.sidebar-settings {
+    padding: 10px 16px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+}
+
 .sidebar-footer {
     padding: 20px;
     border-top: 1px solid var(--border-color);
