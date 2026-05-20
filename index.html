@@ -3,49 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DeepSeek Vibe Chat</title>
+    <title>VibeChat — DeepSeek Workspace</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="app-container">
-        <header>
-            <div class="header-info">
-                <h1>VibeChat</h1>
-                <p class="subtitle">Powered by DeepSeek</p>
+    <div class="app-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="brand">
+                    <span class="brand-logo">🌌</span>
+                    <h2>VibeChat</h2>
+                </div>
+                <button id="sidebar-close-btn" class="sidebar-close-btn" aria-label="Close sidebar">
+                    &times;
+                </button>
             </div>
-            <button id="key-btn" class="icon-btn" aria-label="Configure API Key">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="key-icon">
-                    <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
-                </svg>
-                <span id="key-status-dot" class="status-dot"></span>
-            </button>
-        </header>
-        
-        <main id="chat-container">
-            <div class="message bot-message">
-                <div class="message-content">Hello! I'm your DeepSeek AI assistant. How can I help you today?</div>
+            
+            <div class="sidebar-actions">
+                <button id="clear-chat-btn" class="sidebar-btn btn-neon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar-icon">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    <span>New Chat</span>
+                </button>
             </div>
-        </main>
-        
-        <footer>
-            <form id="chat-form">
-                <input type="text" id="user-input" placeholder="Type your message..." autocomplete="off" required>
-                <button type="submit" id="send-btn" aria-label="Send message">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="22" y1="2" x2="11" y2="13"></line>
-                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            
+            <div class="sidebar-menu">
+                <div class="menu-section-label">Settings</div>
+                <button id="key-btn" class="sidebar-item" aria-label="Configure API Key">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar-icon">
+                        <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+                    </svg>
+                    <span>DeepSeek API Key</span>
+                    <span id="key-status-dot" class="status-dot"></span>
+                </button>
+            </div>
+            
+            <div class="sidebar-footer">
+                <div class="status-panel">
+                    <span class="status-indicator-dot online"></span>
+                    <span class="status-text">DeepSeek Model Active</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="main-content">
+            <!-- Header bar -->
+            <header class="chat-header">
+                <button id="sidebar-toggle-btn" class="header-btn" aria-label="Toggle sidebar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="header-icon">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
                     </svg>
                 </button>
-            </form>
-        </footer>
+                <div class="header-title">
+                    <h3>deepseek-chat</h3>
+                    <span class="badge-neon">v3</span>
+                </div>
+                <div class="header-actions-placeholder"></div>
+            </header>
+            
+            <!-- Message container -->
+            <div class="messages-wrapper" id="chat-container">
+                <div class="messages-container">
+                    <div class="message bot-message">
+                        <div class="avatar">🤖</div>
+                        <div class="message-content">Hello! I'm your DeepSeek AI assistant configured with a stunning Neon Green workspace. How can I help you customize your code today?</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Input control -->
+            <footer class="chat-footer">
+                <div class="input-area-container">
+                    <form id="chat-form">
+                        <input type="text" id="user-input" placeholder="Message DeepSeek..." autocomplete="off" required>
+                        <button type="submit" id="send-btn" aria-label="Send message">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                        </button>
+                    </form>
+                    <p class="input-disclaimer">Direct to DeepSeek. Your key and chats persist locally in your browser storage.</p>
+                </div>
+            </footer>
+        </main>
 
-        <!-- API Key Modal -->
+        <!-- API Key Modal (Centered Glassmorphic Popup overlay) -->
         <div id="key-modal" class="modal-overlay hidden">
             <div class="modal-content">
                 <button id="modal-close-btn" class="close-btn" aria-label="Close modal">&times;</button>
                 <h2>Configure API Key</h2>
-                <p class="modal-description">Enter your DeepSeek API key. It is saved locally in your browser's storage and never sent elsewhere.</p>
+                <p class="modal-description">Enter your DeepSeek API key. It is saved locally in your browser's storage and never sent anywhere else.</p>
                 
                 <div class="input-wrapper">
                     <input type="password" id="api-key-input" placeholder="Paste sk-... key here" autocomplete="off">

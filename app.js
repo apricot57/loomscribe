@@ -3,6 +3,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const userInput = document.getElementById('user-input');
     const chatContainer = document.getElementById('chat-container');
 
+    // Sidebar DOM Elements
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
+    const sidebarCloseBtn = document.getElementById('sidebar-close-btn');
+    const clearChatBtn = document.getElementById('clear-chat-btn');
+
     // DOM Elements for API Key configuration
     const keyBtn = document.getElementById('key-btn');
     const keyStatusDot = document.getElementById('key-status-dot');
@@ -17,6 +23,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const STORAGE_KEY = 'vibe_chat_history';
     const API_KEY_STORAGE_KEY = 'vibe_chat_api_key';
     const API_URL = 'https://api.deepseek.com/chat/completions';
+
+    // Toggle Sidebar on mobile viewports
+    if (sidebarToggleBtn && sidebar) {
+        sidebarToggleBtn.addEventListener('click', () => {
+            sidebar.classList.add('active');
+        });
+    }
+
+    if (sidebarCloseBtn && sidebar) {
+        sidebarCloseBtn.addEventListener('click', () => {
+            sidebar.classList.remove('active');
+        });
+    }
 
     // Update the visual status of the key icon dot
     function updateKeyStatusUI() {
@@ -46,6 +65,11 @@ document.addEventListener('DOMContentLoaded', () => {
         
         keyModal.classList.remove('hidden');
         apiKeyInput.focus();
+        
+        // Auto-close sidebar on mobile after clicking item
+        if (window.innerWidth <= 768) {
+            sidebar.classList.remove('active');
+        }
     });
 
     // Close API Key Modal
@@ -111,11 +135,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Restore UI from history
     if (storedHistory && conversationHistory.length > 1) {
-        chatContainer.innerHTML = ''; // clear default message
-        conversationHistory.forEach(msg => {
-            if (msg.role !== 'system') {
-                const sender = msg.role === 'assistant' ? 'bot' : 'user';
-                addMessageToUI(sender, msg.content);
+        const container = chatContainer.querySelector('.messages-container');
+        if (container) {
+            container.innerHTML = ''; // clear default message
+            conversationHistory.forEach(msg => {
+                if (msg.role !== 'system') {
+                    const sender = msg.role === 'assistant' ? 'bot' : 'user';
+                    addMessageToUI(sender, msg.content);
+                }
+            });
+        }
+    }
+
+    // New/Clear Chat History logic
+    if (clearChatBtn) {
+        clearChatBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to clear your current conversation?')) {
+                localStorage.removeItem(STORAGE_KEY);
+                conversationHistory = [
+                    { role: 'system', content: 'You are a helpful and concise AI assistant.' }
+                ];
+                
+                const container = chatContainer.querySelector('.messages-container');
+                if (container) {
+                    container.innerHTML = '';
+                    addMessageToUI('bot', "Hello! I'm your DeepSeek AI assistant configured with a stunning Neon Green workspace. How can I help you customize your code today?");
+                }
+                
+                // Auto-close sidebar on mobile
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('active');
+                }
             }
         });
     }
@@ -133,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Retrieve current key from storage
         const activeApiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
         if (!activeApiKey || activeApiKey.trim() === '') {
-            addMessageToUI('bot', '⚠️ API Key is missing! Please click the key icon (🔑) in the top-right header to configure your DeepSeek API key.');
+            addMessageToUI('bot', '⚠️ API Key is missing! Please configure your DeepSeek API key in the sidebar under Settings (🔑).');
             return;
         }
 
@@ -186,22 +236,31 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function addMessageToUI(sender, text) {
+        const container = chatContainer.querySelector('.messages-container');
+        if (!container) return;
+
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${sender}-message`;
         
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = 'avatar';
+        avatarDiv.textContent = sender === 'bot' ? '🤖' : '👤';
+        
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
-        
-        // Very basic sanitization, using textContent
         contentDiv.textContent = text;
         
+        messageDiv.appendChild(avatarDiv);
         messageDiv.appendChild(contentDiv);
-        chatContainer.appendChild(messageDiv);
+        container.appendChild(messageDiv);
         
         scrollToBottom();
     }
 
     function showTypingIndicator() {
+        const container = chatContainer.querySelector('.messages-container');
+        if (!container) return null;
+
         const id = 'typing-' + Date.now();
         const indicator = document.createElement('div');
         indicator.className = 'typing-indicator';
@@ -213,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
             indicator.appendChild(dot);
         }
         
-        chatContainer.appendChild(indicator);
+        container.appendChild(indicator);
         scrollToBottom();
         return id;
     }
