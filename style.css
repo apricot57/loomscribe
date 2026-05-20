@@ -44,6 +44,10 @@
     padding: 0;
 }
 
+.hidden {
+    display: none !important;
+}
+
 body {
     font-family: 'Outfit', sans-serif;
     background-color: var(--bg-main);
@@ -661,6 +665,38 @@ body {
 #send-btn svg {
     width: 18px;
     height: 18px;
+}
+
+/* Stop Generation Button */
+#stop-btn {
+    background-color: #ef4444;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--border-radius-pill);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+    cursor: pointer;
+    transition: var(--transition-m3);
+    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
+    flex-shrink: 0;
+}
+
+#stop-btn:hover {
+    background-color: #f87171;
+    box-shadow: 0 6px 14px rgba(239, 68, 68, 0.5);
+    transform: scale(1.05);
+}
+
+#stop-btn:active {
+    transform: scale(0.95);
+}
+
+#stop-btn svg {
+    width: 16px;
+    height: 16px;
 }
 
 .input-disclaimer {

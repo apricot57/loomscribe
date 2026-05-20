@@ -9,6 +9,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const sidebarCloseBtn = document.getElementById('sidebar-close-btn');
     const clearChatBtn = document.getElementById('clear-chat-btn');
 
+    // Stop Button DOM Element
+    const stopBtn = document.getElementById('stop-btn');
+
     // Model Selector DOM Elements
     const modelSelectBtn = document.getElementById('model-select-btn');
     const modelDropdownMenu = document.getElementById('model-dropdown-menu');
@@ -39,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Active conversation state tracker
     let currentConversationId = null;
+    let abortController = null;
 
     // Toggle Sidebar on mobile viewports
     if (sidebarToggleBtn && sidebar) {
@@ -453,6 +457,26 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Stop generation button
+    if (stopBtn) {
+        stopBtn.addEventListener('click', () => {
+            if (abortController) {
+                abortController.abort();
+                abortController = null;
+            }
+            const typingIndicator = document.querySelector('.typing-indicator');
+            if (typingIndicator) {
+                const id = typingIndicator.id;
+                if (id) removeTypingIndicator(id);
+                else typingIndicator.remove();
+            }
+            stopBtn.classList.add('hidden');
+            document.getElementById('send-btn').classList.remove('hidden');
+            userInput.disabled = false;
+            userInput.focus();
+        });
+    }
+
     // Message submit trigger
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -509,6 +533,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Show typing indicator
         const typingId = showTypingIndicator();
 
+        // Set up abort controller for stop button
+        abortController = new AbortController();
+        if (stopBtn) stopBtn.classList.remove('hidden');
+        document.getElementById('send-btn').classList.add('hidden');
+        userInput.disabled = true;
+
         try {
             const selectedModel = localStorage.getItem(MODEL_STORAGE_KEY) || 'deepseek-v4-pro';
             const response = await fetch(API_URL, {
@@ -517,6 +547,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${activeApiKey}`
                 },
+                signal: abortController.signal,
                 body: JSON.stringify({
                     model: selectedModel,
                     messages: payloadMessages,
@@ -534,7 +565,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await response.json();
             const botMessage = data.choices[0].message.content;
-            
+
             // Save bot response to IndexedDB
             await db.messages.add({
                 conversationId: currentConversationId,
@@ -547,9 +578,19 @@ document.addEventListener('DOMContentLoaded', () => {
             addMessageToUI('bot', botMessage);
 
         } catch (error) {
+            if (error.name === 'AbortError') {
+                removeTypingIndicator(typingId);
+                return;
+            }
             console.error('Error fetching DeepSeek response:', error);
             removeTypingIndicator(typingId);
             addMessageToUI('bot', 'Sorry, I encountered an error connecting to the server. Please check your API key or try again later.');
+        } finally {
+            abortController = null;
+            if (stopBtn) stopBtn.classList.add('hidden');
+            document.getElementById('send-btn').classList.remove('hidden');
+            userInput.disabled = false;
+            userInput.focus();
         }
     });
 
