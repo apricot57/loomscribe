@@ -701,6 +701,10 @@ body {
     font-size: 0.975rem;
     padding: 8px 0;
     font-family: inherit;
+    resize: none;
+    overflow-y: auto;
+    max-height: 150px;
+    line-height: 1.5;
 }
 
 #user-input::placeholder {
