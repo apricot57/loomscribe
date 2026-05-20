@@ -1,28 +1,63 @@
-# 🗺️ VibeChat Implementation & Roadmap Plan
+# 🗺️ Implementation Plan: ChatGPT-Style Workspace & DeepSeek V4 Integration
 
-Build a lightweight, aesthetically stunning chatbot frontend using vanilla HTML, CSS, and JS that integrates with the DeepSeek API. This document details the completed components (Phase 1) and outlines the plans for upcoming features.
-
----
-
-## 🏁 Phase 1: Core Client-Side Application (COMPLETED)
-
-Successfully implemented a standalone, highly aesthetic web app running on pure client-side vanilla code.
-
-### Completed Structural Features
-- **[index.html](file:///c:/Users/Focus/Documents/Misc/vibe-api/index.html)**: Added clean semantic markup, custom SVG send button, responsive container framework, and styling hooks.
-- **[style.css](file:///c:/Users/Focus/Documents/Misc/vibe-api/style.css)**: Implemented premium glassmorphic dark theme variables, responsive layout handling (full-height mobile vs floating desktop card), scroll styling, message alignments, and custom typing animations.
-- **[app.js](file:///c:/Users/Focus/Documents/Misc/vibe-api/app.js)**: Formulated conversation state array, `localStorage` persistence, dynamically updating UI nodes, automatic scroll alignment, typing state triggers, and DeepSeek connection protocol.
-
-### Manual Verification Status
-- [x] Responsive layout renders seamlessly down to mobile screen sizes.
-- [x] Dynamic typing indicator starts before the fetch request and dismounts cleanly when the response is processed.
-- [x] Chat history persists on browser refresh and defaults to a helpful system message if `localStorage` is empty.
+We have successfully overhauled VibeChat from a centered, mobile-style floating card layout into a full-viewport, spacious workspace modeled after **ChatGPT**, featuring a **Vivid Neon Green (Cyberpunk/Matrix)** theme, full dynamic integration with the latest **DeepSeek V4 Pro** and **DeepSeek V4 Flash** models, and a sleek bottom-docked model dropdown selector floating directly above the chat box.
 
 ---
 
-## 🛡️ Phase 2: Security & Backend API Proxy (IN REVIEW)
+## 🎨 Visual Design & Theming System (COMPLETED)
 
-Stashing the DeepSeek API Key in client-side code introduces serious credential leakage issues. To scale this app, we need to proxy calls through a backend node server.
+We established a premium dark mode using pitch black and dark charcoal backdrops, styled with glowing neon green highlights:
+
+```css
+:root {
+    --bg-main: #141414;           /* Dark slate black main workspace background */
+    --bg-sidebar: #0b0b0b;        /* Onyx black sidebar background */
+    --bg-input: #1e1e1e;          /* Charcoal grey input field */
+    --bg-message-user: #222222;   /* Subtly lighter slate for user messages */
+    
+    --border-color: rgba(255, 255, 255, 0.08); /* Minimal divider line */
+    --border-glow: rgba(0, 255, 102, 0.1);
+    
+    /* Neon Green Palette */
+    --accent-color: #00ff66;      /* High-intensity toxic neon green */
+    --accent-hover: #10b981;      /* Emerald green for hover transitions */
+    --accent-glow: rgba(0, 255, 102, 0.3);
+    
+    --text-primary: #e3e3e3;      /* Off-white readable text */
+    --text-secondary: #8e8e8e;    /* Cool grey description text */
+}
+```
+
+---
+
+## 🛠️ Structure & Layout Overhaul (COMPLETED)
+
+### 1. Multi-Column Layout
+#### [index.html](file:///c:/Users/Focus/Documents/Misc/vibe-api/index.html)
+We rewrote the DOM layout to support a split-pane sidebar system:
+*   **`.app-layout`**: Main viewport container spanning `100vw` and `100vh` in flex row orientation.
+*   **`.sidebar`**: Left-anchored panel (`260px` wide) housing:
+    *   **New Chat Button**: Glowing outline neon green button to reset the conversational state.
+    *   **Settings / API Key Panel**: A dedicated collapsible box inside the sidebar to configure the DeepSeek API Key, containing a password input field, visibility icon, and save/delete controls.
+    *   **App Status Info**: Aesthetic connection info with glowing green connection state indicators.
+*   **`.main-content`**: Main scrollable canvas on the right containing:
+    *   **`.chat-header`**: Minimalist header bar containing the sidebar mobile hamburger toggle and the main VibeChat brand heading.
+    *   **`.messages-wrapper`**: Expansive message viewport centering conversation cards inside a constrained reading grid (`max-width: 768px`).
+    *   **`.input-area-container`**: Bottom input station housing a left-aligned, bottom-docked **Model Selector** that pops upwards and a centered chat-form input box with glowing green borders.
+
+### 2. DeepSeek V4 Model Integration & UI Positioning
+#### [app.js](file:///c:/Users/Focus/Documents/Misc/vibe-api/app.js) & [style.css](file:///c:/Users/Focus/Documents/Misc/vibe-api/style.css)
+*   **Dynamic Model Selector**: Added support for selecting between the latest models:
+    *   `deepseek-v4-pro` (Flagship reasoning model)
+    *   `deepseek-v4-flash` (Efficient, low-latency model)
+*   **Bottom-Docked Positioning**: The model selection wrapper has been moved from the header to directly above the chat box input field. It aligns perfectly with the left edge of the chatbox (`align-self: flex-start`), and its dropdown menu has been styled to pop upwards (`bottom: calc(100% + 8px)`) for a superior, non-intrusive interactive experience.
+*   **API Payloads**: Updated the API fetch logic to read the active model from `localStorage` (`MODEL_STORAGE_KEY`) and dispatch it dynamically under the `model` payload parameter, eliminating hardcoded legacies.
+
+---
+
+## 🛡️ Next Roadmap Phase: Security & Backend API Proxy (PROPOSED)
+
+Stashing the DeepSeek API Key in client-side code introduces credential leakage issues if shared publicly. To secure the app further, we can proxy calls through a backend node server.
 
 ### Proposed Changes
 
@@ -33,31 +68,15 @@ Create a minimal Express server in the root directory that handles key injection
 
 #### [MODIFY] [app.js](file:///c:/Users/Focus/Documents/Misc/vibe-api/app.js)
 - Modify the `API_URL` variable to point to our local proxy endpoint: `const API_URL = '/api/chat';`
-- Completely remove the `API_KEY` definition from front-end Javascript.
-
-> [!CAUTION]
-> **Credential Exposure Risk**: Direct client-to-API requests should only be run in local/sandbox development. Moving to Phase 2 is **highly recommended** before hoisting the site to any public hosting provider (Vercel, Netlify, Render, etc.).
+- Completely remove the `API_KEY_STORAGE_KEY` and UI input if desired, or let users choose between self-hosting key mode and backend proxy mode.
 
 ---
 
-## 📈 Phase 3: Advanced UX Enhancements (PROPOSED)
-
-Once the foundation is secure, these enhancements will push the user experience from MVP to a production-grade product.
+## 📈 Advanced UX Enhancements (PROPOSED)
 
 ### 1. Markdown Response Formatting
-- **Implementation**: Reference `marked.js` from a CDN (or install via npm for the backend) inside [index.html](file:///c:/Users/Focus/Documents/Misc/vibe-api/index.html).
-- **Modification**: Update `addMessageToUI` in [app.js](file:///c:/Users/Focus/Documents/Misc/vibe-api/app.js) to parse the bot's markdown strings into valid formatted HTML instead of using plain `textContent`.
+- **Implementation**: Reference `marked.js` from a CDN inside [index.html](file:///c:/Users/Focus/Documents/Misc/vibe-api/index.html).
+- **Modification**: Update `addMessageToUI` in [app.js](file:///c:/Users/Focus/Documents/Misc/vibe-api/app.js) to parse the bot's markdown strings into formatted HTML instead of using plain text.
 
-### 2. Conversational Controls
-- **Trash / Clear Button**: Add an elegant trash SVG button next to the title in `<header>`. Clicking it clears `localStorage` and resets `conversationHistory` to the default system message.
-- **System Prompt Customization**: Let users toggle settings or customize system-level rules (e.g. changing the bot from "helpful assistant" to "code refactoring assistant").
-- **Parameter Control**: Add slider components for `temperature` adjustment to let users tune prompt creativity.
-
----
-
-## 📝 User Feedback & Next Action
-
-Please let me know if you would like to:
-1. **Proceed to Phase 2** and spin up a lightweight, highly secure backend proxy for your DeepSeek API key.
-2. **Proceed to Phase 3** and focus strictly on front-end aesthetics (such as implementing Markdown rendering for responses and system settings).
-
+### 2. Advanced Parameter Sliders
+- Let users customize the `temperature` parameter dynamically in the settings sidebar to adjust the response creativity and determinism.
