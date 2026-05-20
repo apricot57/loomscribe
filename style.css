@@ -498,7 +498,7 @@ body {
     line-height: 1.65;
     font-size: 0.975rem;
     word-break: break-word;
-    white-space: pre-wrap;
+    white-space: normal; /* Allow HTML tags to layout whitespace naturally */
     margin-top: 0; /* Keep aligned with avatar */
     padding-top: 6px;
     flex: 1;
@@ -1011,3 +1011,85 @@ body {
     border-color: var(--accent-dim);
     background-color: var(--accent-dim);
 }
+
+/* ==========================================================================
+   Markdown Elements Inside Message Content
+   ========================================================================== */
+.message-content p {
+    margin-bottom: 12px;
+}
+.message-content p:last-child {
+    margin-bottom: 0;
+}
+
+.message-content strong {
+    font-weight: 700;
+    color: #ffffff; /* High contrast bold text */
+}
+
+/* Styled Lists */
+.message-content ul, 
+.message-content ol {
+    margin-left: 24px;
+    margin-bottom: 12px;
+    padding-left: 0;
+}
+
+.message-content li {
+    margin-bottom: 6px;
+    line-height: 1.6;
+}
+
+.message-content li::marker {
+    color: var(--accent-secondary); /* Turquoise list points! */
+    font-weight: 700;
+}
+
+/* Styled Code blocks (Preformatted code) */
+.message-content pre {
+    background-color: #0b0f19; /* Deep slate obsidian code block background */
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 16px 0;
+    overflow-x: auto;
+    box-shadow: var(--shadow-m3-low);
+}
+
+.message-content pre code {
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    border: none;
+    font-family: 'Fira Code', 'Courier New', Courier, monospace;
+    font-size: 0.88rem;
+    color: #e2e8f0;
+}
+
+/* Styled Inline Code blocks */
+.message-content code {
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 6px;
+    padding: 3px 6px;
+    font-family: 'Fira Code', 'Courier New', Courier, monospace;
+    font-size: 0.88rem;
+    color: var(--accent-color); /* Sky blue colored inline code highlights */
+}
+
+/* Styled Headers inside messages */
+.message-content h1,
+.message-content h2,
+.message-content h3,
+.message-content h4 {
+    color: #ffffff;
+    font-weight: 700;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    letter-spacing: -0.3px;
+}
+
+.message-content h1 { font-size: 1.4rem; }
+.message-content h2 { font-size: 1.25rem; }
+.message-content h3 { font-size: 1.15rem; }
+.message-content h4 { font-size: 1.05rem; }
