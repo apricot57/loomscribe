@@ -3,12 +3,105 @@ document.addEventListener('DOMContentLoaded', () => {
     const userInput = document.getElementById('user-input');
     const chatContainer = document.getElementById('chat-container');
 
-    // NOTE: For a real application, do NOT store your API key in the frontend.
-    // This should ideally be passed through a secure backend proxy.
-    const API_KEY = 'YOUR_DEEPSEEK_API_KEY'; 
+    // DOM Elements for API Key configuration
+    const keyBtn = document.getElementById('key-btn');
+    const keyStatusDot = document.getElementById('key-status-dot');
+    const keyModal = document.getElementById('key-modal');
+    const modalCloseBtn = document.getElementById('modal-close-btn');
+    const apiKeyInput = document.getElementById('api-key-input');
+    const toggleKeyVisibility = document.getElementById('toggle-key-visibility');
+    const saveKeyBtn = document.getElementById('save-key-btn');
+    const deleteKeyBtn = document.getElementById('delete-key-btn');
+
+    // Storage Keys & API configurations
+    const STORAGE_KEY = 'vibe_chat_history';
+    const API_KEY_STORAGE_KEY = 'vibe_chat_api_key';
     const API_URL = 'https://api.deepseek.com/chat/completions';
 
-    const STORAGE_KEY = 'vibe_chat_history';
+    // Update the visual status of the key icon dot
+    function updateKeyStatusUI() {
+        const key = localStorage.getItem(API_KEY_STORAGE_KEY);
+        if (key && key.trim() !== '') {
+            keyStatusDot.classList.add('active');
+        } else {
+            keyStatusDot.classList.remove('active');
+        }
+    }
+
+    // Initialize key status on load
+    updateKeyStatusUI();
+
+    // Show API Key Modal
+    keyBtn.addEventListener('click', () => {
+        const storedKey = localStorage.getItem(API_KEY_STORAGE_KEY) || '';
+        apiKeyInput.value = storedKey;
+        apiKeyInput.type = 'password';
+        
+        // Reset eye icon SVG to default closed state
+        const eyeIcon = toggleKeyVisibility.querySelector('.eye-icon');
+        eyeIcon.innerHTML = `
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+        `;
+        
+        keyModal.classList.remove('hidden');
+        apiKeyInput.focus();
+    });
+
+    // Close API Key Modal
+    function closeModal() {
+        keyModal.classList.add('hidden');
+    }
+
+    modalCloseBtn.addEventListener('click', closeModal);
+    
+    // Close modal when clicking outside of it
+    keyModal.addEventListener('click', (e) => {
+        if (e.target === keyModal) {
+            closeModal();
+        }
+    });
+
+    // Toggle input field type (show/hide password mask)
+    toggleKeyVisibility.addEventListener('click', () => {
+        const eyeIcon = toggleKeyVisibility.querySelector('.eye-icon');
+        if (apiKeyInput.type === 'password') {
+            apiKeyInput.type = 'text';
+            // Swap with cross-out eye SVG
+            eyeIcon.innerHTML = `
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+                <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="2"></line>
+            `;
+        } else {
+            apiKeyInput.type = 'password';
+            // Restore regular eye SVG
+            eyeIcon.innerHTML = `
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+            `;
+        }
+    });
+
+    // Save key to LocalStorage
+    saveKeyBtn.addEventListener('click', () => {
+        const keyVal = apiKeyInput.value.trim();
+        if (!keyVal) {
+            alert('Please enter a valid DeepSeek API key.');
+            return;
+        }
+        localStorage.setItem(API_KEY_STORAGE_KEY, keyVal);
+        updateKeyStatusUI();
+        closeModal();
+    });
+
+    // Remove key from LocalStorage
+    deleteKeyBtn.addEventListener('click', () => {
+        localStorage.removeItem(API_KEY_STORAGE_KEY);
+        apiKeyInput.value = '';
+        updateKeyStatusUI();
+        closeModal();
+    });
     
     // Load history from localStorage or initialize with system prompt
     const storedHistory = localStorage.getItem(STORAGE_KEY);
@@ -37,6 +130,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const message = userInput.value.trim();
         if (!message) return;
 
+        // Retrieve current key from storage
+        const activeApiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
+        if (!activeApiKey || activeApiKey.trim() === '') {
+            addMessageToUI('bot', '⚠️ API Key is missing! Please click the key icon (🔑) in the top-right header to configure your DeepSeek API key.');
+            return;
+        }
+
         // Add user message to UI
         addMessageToUI('user', message);
         conversationHistory.push({ role: 'user', content: message });
@@ -53,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${API_KEY}`
+                    'Authorization': `Bearer ${activeApiKey}`
                 },
                 body: JSON.stringify({
                     model: 'deepseek-chat',

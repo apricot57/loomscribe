@@ -10,8 +10,16 @@
 <body>
     <div class="app-container">
         <header>
-            <h1>VibeChat</h1>
-            <p class="subtitle">Powered by DeepSeek</p>
+            <div class="header-info">
+                <h1>VibeChat</h1>
+                <p class="subtitle">Powered by DeepSeek</p>
+            </div>
+            <button id="key-btn" class="icon-btn" aria-label="Configure API Key">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="key-icon">
+                    <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+                </svg>
+                <span id="key-status-dot" class="status-dot"></span>
+            </button>
         </header>
         
         <main id="chat-container">
@@ -31,6 +39,30 @@
                 </button>
             </form>
         </footer>
+
+        <!-- API Key Modal -->
+        <div id="key-modal" class="modal-overlay hidden">
+            <div class="modal-content">
+                <button id="modal-close-btn" class="close-btn" aria-label="Close modal">&times;</button>
+                <h2>Configure API Key</h2>
+                <p class="modal-description">Enter your DeepSeek API key. It is saved locally in your browser's storage and never sent elsewhere.</p>
+                
+                <div class="input-wrapper">
+                    <input type="password" id="api-key-input" placeholder="Paste sk-... key here" autocomplete="off">
+                    <button id="toggle-key-visibility" class="visibility-btn" type="button" aria-label="Toggle key visibility">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="eye-icon">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="modal-actions">
+                    <button id="save-key-btn" class="btn btn-primary">Save Key</button>
+                    <button id="delete-key-btn" class="btn btn-danger">Remove Key</button>
+                </div>
+            </div>
+        </div>
     </div>
     
     <script src="app.js"></script>
