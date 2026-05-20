@@ -313,6 +313,32 @@ body {
     background-color: var(--accent-danger-dim);
 }
 
+.chat-rename-btn {
+    background: transparent;
+    border: none;
+    padding: 4px;
+    border-radius: 50%;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: var(--transition-m3);
+    flex-shrink: 0;
+    margin-right: 2px;
+}
+
+.chat-list-item:hover .chat-rename-btn {
+    opacity: 0.7;
+}
+
+.chat-list-item:hover .chat-rename-btn:hover {
+    opacity: 1;
+    color: var(--accent-color);
+    background-color: var(--accent-dim);
+}
+
 .sidebar-settings {
     padding: 10px 16px;
     border-top: 1px solid var(--border-color);
