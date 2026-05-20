@@ -21,7 +21,7 @@ A lightweight, visually gorgeous, and responsive vanilla HTML/CSS/JS frontend fo
 - **Dynamic Model Selector Pill**: A cute rounded chip selector floating directly above the bottom chat box. Opens upwards cleanly so it never covers your input fields or clips off-screen.
 - **Client-Side Key Management**: Input and clear your DeepSeek API key securely through the sidebar settings menu (🔑). Keys persist exclusively in your private browser `localStorage`.
 - **API Connection Indicators**: Tonal pulsing rose warning light turns to a soft green pulsing glow when an API key is saved and active.
-- **Persistent Conversational Logs**: Automatically saves and restores messages locally, maintaining active threads across page reloads.
+- **IndexedDB Multi-Thread Chat History**: Powered by the lightweight `Dexie.js` wrapper, VibeChat supports unlimited local-first conversation logs, a dynamic sidebar navigation drawer listing recent chats, first-prompt auto-titling, thread-specific model restoration, and clean thread deletion cascade actions.
 
 ---
 
