@@ -74,6 +74,11 @@ document.addEventListener('DOMContentLoaded', () => {
         messages: "++id, conversationId, role, content, timestamp",
         prompts: "++id, name, category, content, createdAt"
     });
+    db.version(4).stores({
+        conversations: "++id, title, activeModel, systemPromptId, createdAt",
+        messages: "++id, conversationId, role, content, timestamp, versionGroupId, version, isActive, parentMsgId",
+        prompts: "++id, name, category, content, createdAt"
+    });
 
     // Active conversation state tracker
     let currentConversationId = null;
@@ -347,17 +352,33 @@ document.addEventListener('DOMContentLoaded', () => {
         updatePromptSelectorDisplay();
 
         // Fetch corresponding messages
-        const messages = await db.messages.where('conversationId').equals(id).sortBy('timestamp');
-        
+        const allMessages = await db.messages.where('conversationId').equals(id).sortBy('timestamp');
+        const activeMessages = allMessages.filter(m => m.isActive !== false);
+
+        // Pre-compute version counts per group in one pass
+        const versionCounts = new Map();
+        for (const msg of allMessages) {
+            if (msg.versionGroupId) {
+                versionCounts.set(msg.versionGroupId, (versionCounts.get(msg.versionGroupId) || 0) + 1);
+            }
+        }
+
         // Render messages
         const container = chatContainer.querySelector('.messages-container');
         if (container) {
             container.innerHTML = '';
-            
-            messages.forEach(msg => {
+
+            activeMessages.forEach(msg => {
                 if (msg.role !== 'system') {
                     const sender = msg.role === 'assistant' ? 'bot' : 'user';
-                    addMessageToUI(sender, msg.content, msg.reasoning);
+                    const versionGroupId = msg.versionGroupId;
+                    const versionCount = versionGroupId ? (versionCounts.get(versionGroupId) || 1) : 1;
+                    addMessageToUI(sender, msg.content, msg.reasoning, {
+                        id: msg.id,
+                        versionGroupId: versionGroupId,
+                        version: msg.version || 1,
+                        versionCount: versionCount
+                    });
                 }
             });
         }
@@ -632,18 +653,25 @@ document.addEventListener('DOMContentLoaded', () => {
             await createNewConversation();
         }
 
+        // Find the previous active message to set parentMsgId
+        const prevMsgs = await db.messages.where('conversationId').equals(currentConversationId).toArray();
+        const lastActive = prevMsgs.filter(m => m.isActive !== false).sort((a, b) => a.timestamp - b.timestamp).pop();
+        const parentMsgIdVal = lastActive ? lastActive.id : null;
+
         // Add user message to UI
         addMessageToUI('user', message);
-        
+
         // Clear input early
         userInput.value = '';
-        
-        // Write message record to IndexedDB
-        await db.messages.add({
+
+        // Write message record to IndexedDB with new fields
+        const userMsgId = await db.messages.add({
             conversationId: currentConversationId,
             role: 'user',
             content: message,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            parentMsgId: parentMsgIdVal,
+            isActive: true
         });
 
         // Trigger auto-titling if this is the very first message
@@ -652,127 +680,14 @@ document.addEventListener('DOMContentLoaded', () => {
             await autoTitleConversation(currentConversationId, message);
         }
 
-        // Pull full conversation history records to sync with DeepSeek payload
-        const messagesFromDb = await db.messages.where('conversationId').equals(currentConversationId).sortBy('timestamp');
-        
-        const systemContent = getSystemPromptContentSync();
-        const payloadMessages = [
-            { role: 'system', content: systemContent }
-        ];
-        
-        messagesFromDb.forEach(msg => {
-            payloadMessages.push({
-                role: msg.role,
-                content: msg.content
-            });
+        // Stream AI response using shared function
+        await streamApiResponse({
+            conversationId: currentConversationId,
+            parentMsgId: userMsgId
         });
-
-        // Set up abort controller and streaming state
-        abortController = new AbortController();
-        let streamMsgId = null;
-        let fullContent = '';
-        let fullReasoning = '';
-
-        if (stopBtn) stopBtn.classList.remove('hidden');
-        document.getElementById('send-btn').classList.add('hidden');
-        userInput.disabled = true;
-
-        try {
-            const selectedModel = localStorage.getItem(MODEL_STORAGE_KEY) || 'deepseek-v4-pro';
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${activeApiKey}`
-                },
-                signal: abortController.signal,
-                body: JSON.stringify({
-                    model: selectedModel,
-                    messages: payloadMessages,
-                    temperature: 0.7,
-                    stream: true
-                })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                console.error("API Error:", errorData);
-                throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
-            }
-
-            // Create streaming bot message element
-            streamMsgId = addStreamingBotMessage();
-
-            // Read the SSE stream
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || '';
-
-                for (const line of lines) {
-                    const trimmed = line.trim();
-                    if (!trimmed || !trimmed.startsWith('data: ')) continue;
-
-                    const payload = trimmed.slice(6);
-                    if (payload === '[DONE]') continue;
-
-                    try {
-                        const parsed = JSON.parse(payload);
-                        const reasoningDelta = parsed.choices?.[0]?.delta?.reasoning_content;
-                        const delta = parsed.choices?.[0]?.delta?.content;
-                        if (reasoningDelta) {
-                            fullReasoning += reasoningDelta;
-                            updateStreamingReasoning(streamMsgId, fullReasoning);
-                        }
-                        if (delta) {
-                            fullContent += delta;
-                            updateStreamingBotMessage(streamMsgId, fullContent);
-                        }
-                    } catch (e) {
-                        // Skip malformed JSON lines
-                    }
-                }
-            }
-
-            // Stream completed — save and finalize render
-            if (fullContent) {
-                await db.messages.add({
-                    conversationId: currentConversationId,
-                    role: 'assistant',
-                    content: fullContent,
-                    reasoning: fullReasoning || undefined,
-                    timestamp: Date.now()
-                });
-                finalizeStreamingBotMessage(streamMsgId, fullContent, fullReasoning);
-            }
-
-        } catch (error) {
-            if (error.name === 'AbortError') {
-                // Finalize partial content so the blinking cursor stops
-                if (streamMsgId) {
-                    finalizeStreamingBotMessage(streamMsgId, fullContent, fullReasoning);
-                }
-                return;
-            }
-            console.error('Error fetching DeepSeek response:', error);
-            addMessageToUI('bot', 'Sorry, I encountered an error connecting to the server. Please check your API key or try again later.');
-        } finally {
-            abortController = null;
-            if (stopBtn) stopBtn.classList.add('hidden');
-            document.getElementById('send-btn').classList.remove('hidden');
-            userInput.disabled = false;
-            userInput.focus();
-        }
     });
 
-    function addMessageToUI(sender, text, reasoning) {
+    function addMessageToUI(sender, text, reasoning, msgMeta = {}) {
         const container = chatContainer.querySelector('.messages-container');
         if (!container) return;
 
@@ -825,8 +740,19 @@ document.addEventListener('DOMContentLoaded', () => {
             messageDiv.appendChild(contentDiv);
         }
 
+        // Store metadata as data attributes for action buttons
+        if (msgMeta.id != null) {
+            messageDiv.dataset.msgId = msgMeta.id;
+        }
+        if (msgMeta.versionGroupId != null) {
+            messageDiv.dataset.versionGroupId = msgMeta.versionGroupId;
+            messageDiv.dataset.version = msgMeta.version || 1;
+        }
+
         container.appendChild(messageDiv);
+        attachMessageActions(messageDiv, sender, msgMeta);
         scrollToBottom();
+        return messageDiv;
     }
 
     function showTypingIndicator() {
@@ -956,6 +882,498 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function scrollToBottom() {
         chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    // ============================================================
+    // Message Editing — Helper Functions
+    // ============================================================
+
+    async function getDescendantIds(msgId) {
+        const result = [];
+        const queue = [msgId];
+        while (queue.length > 0) {
+            const currentId = queue.shift();
+            const children = await db.messages.where('parentMsgId').equals(currentId).toArray();
+            for (const child of children) {
+                result.push(child.id);
+                queue.push(child.id);
+            }
+        }
+        return result;
+    }
+
+    async function hideDescendants(msgId) {
+        const ids = await getDescendantIds(msgId);
+        for (const id of ids) {
+            await db.messages.update(id, { isActive: false });
+        }
+    }
+
+    async function showDescendants(msgId) {
+        let currentId = msgId;
+        while (true) {
+            const children = await db.messages.where('parentMsgId').equals(currentId).toArray();
+            if (children.length === 0) break;
+            
+            let bestChild = children[0];
+            for (let i = 1; i < children.length; i++) {
+                if (children[i].versionGroupId === bestChild.versionGroupId) {
+                    if ((children[i].version || 1) > (bestChild.version || 1)) {
+                        bestChild = children[i];
+                    }
+                } else {
+                    if (children[i].id > bestChild.id) {
+                        bestChild = children[i];
+                    }
+                }
+            }
+            
+            await db.messages.update(bestChild.id, { isActive: true });
+            currentId = bestChild.id;
+        }
+    }
+
+    async function buildApiPayload(conversationId) {
+        const all = await db.messages.where('conversationId').equals(conversationId).sortBy('timestamp');
+        const active = all.filter(m => m.isActive !== false);
+        const payload = [{ role: 'system', content: getSystemPromptContentSync() }];
+        for (const msg of active) {
+            payload.push({ role: msg.role, content: msg.content });
+        }
+        return payload;
+    }
+
+    async function buildApiPayloadUpTo(conversationId, stopAfterMsgId) {
+        const all = await db.messages.where('conversationId').equals(conversationId).sortBy('timestamp');
+        const active = all.filter(m => m.isActive !== false);
+        const payload = [{ role: 'system', content: getSystemPromptContentSync() }];
+        for (const msg of active) {
+            payload.push({ role: msg.role, content: msg.content });
+            if (msg.id === stopAfterMsgId) break;
+        }
+        return payload;
+    }
+
+    async function checkIsLastActiveAssistant(msgId) {
+        if (!currentConversationId) return false;
+        const all = await db.messages.where('conversationId').equals(currentConversationId).sortBy('timestamp');
+        const activeAssistants = all.filter(m => m.role === 'assistant' && m.isActive !== false);
+        if (activeAssistants.length === 0) return false;
+        return activeAssistants[activeAssistants.length - 1].id === msgId;
+    }
+
+    async function refreshConversationView() {
+        if (currentConversationId !== null) {
+            await switchConversation(currentConversationId);
+        }
+    }
+
+    // ============================================================
+    // Message Editing — streamApiResponse (Shared Streaming Logic)
+    // ============================================================
+
+    async function streamApiResponse({ conversationId, parentMsgId, stopAfterMsgId, versionGroupId, version }) {
+        const activeApiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
+        if (!activeApiKey || activeApiKey.trim() === '') {
+            addMessageToUI('bot', '⚠️ API Key is missing! Please configure your DeepSeek API key in the sidebar under Settings (🔑).');
+            return;
+        }
+
+        const payloadMessages = stopAfterMsgId
+            ? await buildApiPayloadUpTo(conversationId, stopAfterMsgId)
+            : await buildApiPayload(conversationId);
+
+        // Abort any in-flight request before starting a new one
+        if (abortController) {
+            abortController.abort();
+        }
+        abortController = new AbortController();
+        let streamMsgId = null;
+        let fullContent = '';
+        let fullReasoning = '';
+
+        if (stopBtn) stopBtn.classList.remove('hidden');
+        document.getElementById('send-btn').classList.add('hidden');
+        userInput.disabled = true;
+
+        try {
+            const selectedModel = localStorage.getItem(MODEL_STORAGE_KEY) || 'deepseek-v4-pro';
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${activeApiKey}`
+                },
+                signal: abortController.signal,
+                body: JSON.stringify({
+                    model: selectedModel,
+                    messages: payloadMessages,
+                    temperature: 0.7,
+                    stream: true
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error("API Error:", errorData);
+                throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+            }
+
+            streamMsgId = addStreamingBotMessage();
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (!trimmed || !trimmed.startsWith('data: ')) continue;
+
+                    const payload = trimmed.slice(6);
+                    if (payload === '[DONE]') continue;
+
+                    try {
+                        const parsed = JSON.parse(payload);
+                        const reasoningDelta = parsed.choices?.[0]?.delta?.reasoning_content;
+                        const delta = parsed.choices?.[0]?.delta?.content;
+                        if (reasoningDelta) {
+                            fullReasoning += reasoningDelta;
+                            updateStreamingReasoning(streamMsgId, fullReasoning);
+                        }
+                        if (delta) {
+                            fullContent += delta;
+                            updateStreamingBotMessage(streamMsgId, fullContent);
+                        }
+                    } catch (e) {
+                        // Skip malformed JSON lines
+                    }
+                }
+            }
+
+            if (fullContent) {
+                await db.messages.add({
+                    conversationId,
+                    role: 'assistant',
+                    content: fullContent,
+                    reasoning: fullReasoning || undefined,
+                    timestamp: Date.now(),
+                    parentMsgId: parentMsgId || null,
+                    versionGroupId: versionGroupId || null,
+                    version: version || 1,
+                    isActive: true
+                });
+                finalizeStreamingBotMessage(streamMsgId, fullContent, fullReasoning);
+            }
+
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                if (streamMsgId) {
+                    finalizeStreamingBotMessage(streamMsgId, fullContent, fullReasoning);
+                }
+                return;
+            }
+            console.error('Error fetching DeepSeek response:', error);
+            addMessageToUI('bot', 'Sorry, I encountered an error connecting to the server. Please check your API key or try again later.');
+        } finally {
+            abortController = null;
+            if (stopBtn) stopBtn.classList.add('hidden');
+            document.getElementById('send-btn').classList.remove('hidden');
+            userInput.disabled = false;
+            userInput.focus();
+        }
+    }
+
+    // ============================================================
+    // Message Editing — UI Action Buttons
+    // ============================================================
+
+    function attachMessageActions(messageDiv, sender, msgMeta) {
+        const msgId = msgMeta.id;
+        if (!msgId) return;
+
+        const existing = messageDiv.querySelector('.message-action-row');
+        if (existing) existing.remove();
+
+        const actionRow = document.createElement('div');
+        actionRow.className = 'message-action-row';
+
+        // Version navigation
+        if (msgMeta.versionCount && msgMeta.versionCount > 1) {
+            const versionNav = document.createElement('div');
+            versionNav.className = 'version-nav';
+
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'version-nav-btn';
+            prevBtn.innerHTML = '&#9664;';
+            prevBtn.title = 'Previous version';
+            prevBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                navigateVersion(msgMeta.versionGroupId, (msgMeta.version || 1) - 1);
+            });
+
+            const label = document.createElement('span');
+            label.className = 'version-nav-label';
+            label.textContent = `${msgMeta.version || 1}/${msgMeta.versionCount}`;
+
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'version-nav-btn';
+            nextBtn.innerHTML = '&#9654;';
+            nextBtn.title = 'Next version';
+            nextBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                navigateVersion(msgMeta.versionGroupId, (msgMeta.version || 1) + 1);
+            });
+
+            versionNav.appendChild(prevBtn);
+            versionNav.appendChild(label);
+            versionNav.appendChild(nextBtn);
+            actionRow.appendChild(versionNav);
+        }
+
+        // Edit button (user messages only)
+        if (sender === 'user') {
+            const editBtn = document.createElement('button');
+            editBtn.className = 'message-action-btn edit-btn';
+            editBtn.innerHTML = '&#9998;';
+            editBtn.title = 'Edit message';
+            editBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                startInlineEdit(messageDiv, msgId);
+            });
+            actionRow.appendChild(editBtn);
+        }
+
+        // Regenerate button (bot messages only)
+        if (sender === 'bot') {
+            const regenBtn = document.createElement('button');
+            regenBtn.className = 'message-action-btn regen-btn';
+            regenBtn.innerHTML = '&#8635;';
+            regenBtn.title = 'Regenerate response';
+            regenBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                await regenerateResponse(msgId);
+            });
+            actionRow.appendChild(regenBtn);
+        }
+
+        if (actionRow.children.length > 0) {
+            if (sender === 'bot') {
+                const bodyDiv = messageDiv.querySelector('.message-body');
+                if (bodyDiv) bodyDiv.insertBefore(actionRow, bodyDiv.firstChild);
+            } else {
+                const contentDiv = messageDiv.querySelector('.message-content');
+                if (contentDiv) contentDiv.after(actionRow);
+            }
+        }
+    }
+
+    // ============================================================
+    // Message Editing — Inline Edit Flow
+    // ============================================================
+
+    function startInlineEdit(messageDiv, msgId) {
+        const contentDiv = messageDiv.querySelector('.message-content');
+        if (!contentDiv) return;
+
+        const actionRow = messageDiv.querySelector('.message-action-row');
+        if (actionRow) actionRow.style.display = 'none';
+
+        const originalContent = contentDiv.textContent;
+
+        const textarea = document.createElement('textarea');
+        textarea.className = 'inline-edit-textarea';
+        textarea.value = originalContent;
+        textarea.rows = Math.min(originalContent.split('\n').length + 1, 12);
+
+        const editActions = document.createElement('div');
+        editActions.className = 'inline-edit-actions';
+
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'message-action-btn save-btn';
+        saveBtn.textContent = 'Save';
+        saveBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const newText = textarea.value.trim();
+            if (newText && newText !== originalContent) {
+                await editMessageAndRegenerate(msgId, newText, messageDiv);
+            } else {
+                cancelInlineEdit(messageDiv, contentDiv, textarea, editActions, actionRow);
+            }
+        });
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'message-action-btn cancel-btn';
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            cancelInlineEdit(messageDiv, contentDiv, textarea, editActions, actionRow);
+        });
+
+        textarea.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                e.preventDefault();
+                saveBtn.click();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                cancelBtn.click();
+            }
+        });
+
+        editActions.appendChild(saveBtn);
+        editActions.appendChild(cancelBtn);
+
+        contentDiv.replaceWith(textarea);
+        textarea.after(editActions);
+        textarea.focus();
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    }
+
+    function cancelInlineEdit(messageDiv, contentDiv, textarea, editActions, actionRow) {
+        textarea.replaceWith(contentDiv);
+        editActions.remove();
+        if (actionRow) actionRow.style.display = '';
+    }
+
+    async function editMessageAndRegenerate(msgId, newText, messageDiv) {
+        const originalMsg = await db.messages.get(msgId);
+        if (!originalMsg) return;
+
+        const versionGroupId = originalMsg.versionGroupId || originalMsg.id;
+
+        // Mark original message with versionGroupId if first edit
+        if (!originalMsg.versionGroupId) {
+            await db.messages.update(msgId, {
+                versionGroupId: versionGroupId,
+                version: 1,
+            });
+            originalMsg.versionGroupId = versionGroupId;
+            originalMsg.version = 1;
+        }
+
+        const existingVersions = await db.messages
+            .where('versionGroupId').equals(versionGroupId)
+            .toArray();
+        const maxVersion = existingVersions.reduce((max, v) => Math.max(max, v.version || 1), 0);
+        const newVersion = maxVersion + 1;
+
+        // Hide all descendants of old versions
+        for (const v of existingVersions) {
+            await db.messages.update(v.id, { isActive: false });
+            await hideDescendants(v.id);
+        }
+        await db.messages.update(msgId, { isActive: false });
+        await hideDescendants(msgId);
+
+        // Create new version of the edited message
+        const newMsgId = await db.messages.add({
+            conversationId: originalMsg.conversationId,
+            role: 'user',
+            content: newText,
+            timestamp: Date.now(),
+            versionGroupId: versionGroupId,
+            version: newVersion,
+            isActive: true,
+            parentMsgId: originalMsg.parentMsgId || null
+        });
+
+        await refreshConversationView();
+
+        // Regenerate AI response
+        await streamApiResponse({
+            conversationId: originalMsg.conversationId,
+            parentMsgId: newMsgId,
+            stopAfterMsgId: newMsgId
+        });
+
+        await refreshConversationView();
+    }
+
+    // ============================================================
+    // Message Editing — Regenerate Response
+    // ============================================================
+
+    async function regenerateResponse(msgId) {
+        const assistantMsg = await db.messages.get(msgId);
+        if (!assistantMsg || assistantMsg.role !== 'assistant') return;
+
+        const parentUserMsg = assistantMsg.parentMsgId ? await db.messages.get(assistantMsg.parentMsgId) : null;
+        const stopAtId = parentUserMsg ? parentUserMsg.id : msgId;
+
+        const versionGroupId = assistantMsg.versionGroupId || assistantMsg.id;
+
+        // Mark original if first regenerate
+        if (!assistantMsg.versionGroupId) {
+            await db.messages.update(msgId, { versionGroupId, version: 1 });
+            assistantMsg.versionGroupId = versionGroupId;
+            assistantMsg.version = 1;
+        }
+
+        const existingVersions = await db.messages
+            .where('versionGroupId').equals(versionGroupId)
+            .toArray();
+        const maxVersion = existingVersions.reduce((max, v) => Math.max(max, v.version || 1), 0);
+        const newVersion = maxVersion + 1;
+
+        // Hide descendants and deactivate old versions
+        for (const v of existingVersions) {
+            await db.messages.update(v.id, { isActive: false });
+            await hideDescendants(v.id);
+        }
+        await db.messages.update(msgId, { isActive: false });
+        await hideDescendants(msgId);
+
+        await refreshConversationView();
+
+        await streamApiResponse({
+            conversationId: assistantMsg.conversationId,
+            parentMsgId: stopAtId === msgId ? (parentUserMsg?.id || null) : stopAtId,
+            stopAfterMsgId: stopAtId,
+            versionGroupId,
+            version: newVersion
+        });
+
+        await refreshConversationView();
+    }
+
+    // ============================================================
+    // Message Editing — Version Navigation
+    // ============================================================
+
+    async function navigateVersion(versionGroupId, targetVersion) {
+        const versions = await db.messages
+            .where('versionGroupId').equals(versionGroupId)
+            .sortBy('version');
+
+        if (targetVersion < 1 || targetVersion > versions.length) return;
+
+        const targetMsg = versions.find(v => (v.version || 1) === targetVersion);
+        if (!targetMsg) return;
+
+        // Deactivate all versions in this group
+        for (const v of versions) {
+            await db.messages.update(v.id, { isActive: false });
+        }
+
+        // Activate target version then show its descendants
+        await db.messages.update(targetMsg.id, { isActive: true });
+        await showDescendants(targetMsg.id);
+
+        // Hide descendants of non-target versions
+        for (const v of versions) {
+            if (v.id !== targetMsg.id) {
+                await hideDescendants(v.id);
+            }
+        }
+
+        await refreshConversationView();
     }
 
     // App Bootstrapper

@@ -135,7 +135,10 @@ const server = http.createServer((req, res) => {
             return;
         }
         const ext = path.extname(filePath).toLowerCase();
-        res.writeHead(200, { 'Content-Type': getMime(ext) });
+        res.writeHead(200, {
+            'Content-Type': getMime(ext),
+            'Cache-Control': 'no-cache'
+        });
         res.end(data);
     });
 });
