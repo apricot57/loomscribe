@@ -22,24 +22,26 @@ A lightweight, visually gorgeous, and responsive vanilla HTML/CSS/JS frontend fo
 - **Client-Side Key Management**: Input and clear your DeepSeek API key securely through the sidebar settings menu (🔑). Keys persist exclusively in your private browser `localStorage`.
 - **API Connection Indicators**: Tonal pulsing rose warning light turns to a soft green pulsing glow when an API key is saved and active.
 - **IndexedDB Multi-Thread Chat History**: Powered by the lightweight `Dexie.js` wrapper, VibeChat supports unlimited local-first conversation logs, a dynamic sidebar navigation drawer listing recent chats, first-prompt auto-titling, thread-specific model restoration, and clean thread deletion cascade actions.
+- **System Prompt Profiles**: Choose from categorized factory prompts (auto-discovered from `prompt_cards/` subfolders) or create/edit/delete your own through the UI. Per-conversation prompt selection with a footer selector dropdown.
+- **New Chat Dialog**: Click "New Chat" to open a modal where you name the conversation and pick a system prompt before starting.
 
 ---
 
 ## 🚀 Getting Started
 
-Deploy the client workspace locally in seconds:
+### Option A: One-Click Launch (Recommended)
+Double-click `start-vibechat.bat` — it starts the server, opens the app in your browser, and waits for you to press any key to stop.
 
-### 1. Clone or Download the Files
-Ensure you have the following core files in the same directory:
-- `index.html`
-- `style.css`
-- `app.js`
-- `favicon.png`
+### Option B: Manual Server
+```bash
+node server.js
+```
+Then open `http://localhost:3000`. The server enables automatic discovery of factory system prompts from `prompt_cards/` subfolders.
 
-### 2. Open in Your Browser
-Double-click `index.html` in your file explorer, or run it through a local static server like VS Code's *Live Server* or simple `npx http-server`.
+### Option C: Basic Mode (No Server)
+Double-click `index.html` in your file explorer. Works without a server, but factory prompt cards won't be available (user-created prompts and the default prompt still work).
 
-### 3. Enter Your Credentials
+### Enter Your Credentials
 1. In the rounded left sidebar drawer under **Settings**, click on **DeepSeek API Key** (🔑).
 2. Paste your private DeepSeek API Key (e.g., `sk-...`) inside the password-masked modal.
 3. Click **Save Key**. The status indicator dot in the sidebar will immediately turn into a pulsing soft green light!
@@ -52,11 +54,14 @@ Double-click `index.html` in your file explorer, or run it through a local stati
 
 ```
 vibe-api/
-├── index.html           # HTML5 structure, settings sidebar, Outfit fonts, modal templates
-├── style.css            # Material Expressive theme, variables, pill/FAB shapes, transitions, responsive layers
-├── app.js               # Event routing, API key local storage, dynamic V4 model payloads, UI message binding
-├── favicon.png          # High-fidelity custom glowing Material Expressive AI logo asset
-└── README.md            # Modern setup guide and layout documentation
+├── index.html           # HTML5 structure, settings sidebar, Outfit fonts, modals
+├── style.css            # Material Expressive theme, variables, pill/FAB shapes, transitions
+├── app.js               # Event routing, API key storage, model payloads, system prompt profiles
+├── server.js            # Zero-dependency Node.js server (static files + prompt API)
+├── favicon.png          # App icon asset
+├── start-vibechat.bat   # One-click launcher for Windows
+├── prompt_cards/        # Factory system prompts in category subfolders (gitignored)
+└── README.md            # Setup guide and documentation
 ```
 
 ---
@@ -72,4 +77,4 @@ vibe-api/
 - [ ] **Conversation Export**: Download individual chat threads as `.md` or `.json` files for portability.
 - [ ] **Dark / Light Theme Toggle**: Add a Material You light theme variant with a toggle in the sidebar settings.
 - [ ] **Token Usage & Cost Tracker**: Display token counts per message and estimate cost per conversation session.
-- [ ] **System Prompt Customization**: Allow users to set a custom system instruction in settings (e.g. "You are an expert Rust developer").
+- [x] **System Prompt Profiles**: Categorized factory prompts auto-discovered from subfolders, plus user-created prompts via the UI. Per-conversation selection.
