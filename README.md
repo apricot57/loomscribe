@@ -24,6 +24,7 @@ A lightweight, visually gorgeous, and responsive vanilla HTML/CSS/JS frontend fo
 - **IndexedDB Multi-Thread Chat History**: Powered by the lightweight `Dexie.js` wrapper, VibeChat supports unlimited local-first conversation logs, a dynamic sidebar navigation drawer listing recent chats, first-prompt auto-titling, thread-specific model restoration, and clean thread deletion cascade actions.
 - **System Prompt Profiles**: Choose from categorized factory prompts (auto-discovered from `prompt_cards/` subfolders) or create/edit/delete your own through the UI. Per-conversation prompt selection with a footer selector dropdown.
 - **New Chat Dialog**: Click "New Chat" to open a modal where you name the conversation and pick a system prompt before starting.
+- **Markdown Conversation Export**: Download the active path of the conversation thread at any time as a formatted `.md` file, complete with conversation title and the active system prompt, excluding any inactive retries or alternate paths.
 
 ---
 
@@ -74,7 +75,7 @@ vibe-api/
 - [x] **Stop Generation Button**: Cancel an in-progress AI response with an abort signal on the fetch request.
 - [x] **Streaming Responses**: Switch from awaiting the full response to real-time token streaming via the DeepSeek SSE endpoint for a more responsive chat feel.
 - [ ] **Code Syntax Highlighting**: Integrate a lightweight highlighter (e.g. highlight.js) to colorize code blocks within rendered markdown.
-- [ ] **Conversation Export**: Download individual chat threads as `.md` or `.json` files for portability.
+- [x] **Conversation Export**: Download individual chat threads as `.md` files for portability.
 - [ ] **Dark / Light Theme Toggle**: Add a Material You light theme variant with a toggle in the sidebar settings.
 - [ ] **Token Usage & Cost Tracker**: Display token counts per message and estimate cost per conversation session.
 - [x] **System Prompt Profiles**: Categorized factory prompts auto-discovered from subfolders, plus user-created prompts via the UI. Per-conversation selection.
