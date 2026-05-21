@@ -19,9 +19,9 @@ A lightweight, visually gorgeous, and responsive vanilla HTML/CSS/JS frontend fo
   - 🤖 **DeepSeek V4 Pro**: Flagship 1.6T parameter reasoning model optimized for deep coding and complex intelligence.
   - ⚡ **DeepSeek V4 Flash**: High-speed, efficient 284B parameter variant for latency-critical generations.
 - **Dynamic Model Selector Pill**: A cute rounded chip selector floating directly above the bottom chat box. Opens upwards cleanly so it never covers your input fields or clips off-screen.
-- **Client-Side Key Management**: Input and clear your DeepSeek API key securely through the sidebar settings menu (🔑). Keys persist exclusively in your private browser `localStorage`.
+- **Server-Side Secure Key Management**: Input and clear your DeepSeek API key securely through the sidebar settings menu (🔑). The key is stored securely in the server-side database (`data/db.json`) and never exposed back to the client-side JavaScript, protecting your credentials.
 - **API Connection Indicators**: Tonal pulsing rose warning light turns to a soft green pulsing glow when an API key is saved and active.
-- **IndexedDB Multi-Thread Chat History**: Powered by the lightweight `Dexie.js` wrapper, VibeChat supports unlimited local-first conversation logs, a dynamic sidebar navigation drawer listing recent chats, first-prompt auto-titling, thread-specific model restoration, and clean thread deletion cascade actions.
+- **Portable Host-Side JSON Database**: Powered by a robust, lightweight JSON file database (`data/db.json`) running on the server. VibeChat supports unlimited portable conversation logs, a dynamic sidebar navigation drawer listing recent chats, first-prompt auto-titling, thread-specific model restoration, and clean thread deletion cascade actions. No database files or chat histories are lost when clearing browser caches or changing browsers.
 - **System Prompt Profiles**: Choose from categorized factory prompts (auto-discovered from `prompt_cards/` subfolders) or create/edit/delete your own through the UI. Per-conversation prompt selection with a footer selector dropdown.
 - **New Chat Dialog**: Click "New Chat" to open a modal where you name the conversation and pick a system prompt before starting.
 - **Markdown Conversation Export**: Download the active path of the conversation thread at any time as a formatted `.md` file, complete with conversation title and the active system prompt, excluding any inactive retries or alternate paths.
@@ -31,21 +31,19 @@ A lightweight, visually gorgeous, and responsive vanilla HTML/CSS/JS frontend fo
 ## 🚀 Getting Started
 
 ### Option A: One-Click Launch (Recommended)
-Double-click `start-vibechat.bat` — it starts the server, opens the app in your browser, and waits for you to press any key to stop.
+Double-click `start-vibechat.bat` — it boots up the Node.js server, automatically launches VibeChat in your default web browser, and runs the portable application self-contained.
 
-### Option B: Manual Server
+### Option B: Manual Launch
+Run the Node.js server from your terminal:
 ```bash
 node server.js
 ```
-Then open `http://localhost:3000`. The server enables automatic discovery of factory system prompts from `prompt_cards/` subfolders.
-
-### Option C: Basic Mode (No Server)
-Double-click `index.html` in your file explorer. Works without a server, but factory prompt cards won't be available (user-created prompts and the default prompt still work).
+Then open `http://localhost:3000` in your web browser.
 
 ### Enter Your Credentials
 1. In the rounded left sidebar drawer under **Settings**, click on **DeepSeek API Key** (🔑).
 2. Paste your private DeepSeek API Key (e.g., `sk-...`) inside the password-masked modal.
-3. Click **Save Key**. The status indicator dot in the sidebar will immediately turn into a pulsing soft green light!
+3. Click **Save Key**. The key will be written securely to the backend `data/db.json` database. The status indicator dot in the sidebar will immediately turn into a pulsing soft green light!
 4. Select your preferred inference model from the bottom-left dropdown pill (**DeepSeek V4 Pro** or **DeepSeek V4 Flash**).
 5. Message DeepSeek and enjoy the fluid, tactile responses!
 
@@ -69,7 +67,7 @@ vibe-api/
 
 ## 🔮 Future Roadmap
 
-- [ ] **Secure Proxy Backend**: Move client-side `fetch` routines to a lightweight Node.js/Express proxy server to safeguard credentials in public deployments.
+- [x] **Secure Proxy Backend**: Move client-side `fetch` routines to a lightweight Node.js/Express proxy server to safeguard credentials in public deployments.
 - [x] **Markdown Renderer**: Link a lightweight script like `marked.js` to parse bullet lists, bold highlights, and code formatting blocks inside the assistant bubbles.
 - [ ] **Dynamic Prompt Sliders**: Add settings panel sliders to adjust temperature, max tokens, or system-level developer instructions.
 - [x] **Stop Generation Button**: Cancel an in-progress AI response with an abort signal on the fetch request.

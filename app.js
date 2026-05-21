@@ -58,30 +58,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const promptDropdownMenu = document.getElementById('prompt-dropdown-menu');
 
     // Storage Keys & API configurations
-    const API_KEY_STORAGE_KEY = 'vibe_chat_api_key';
-    const MODEL_STORAGE_KEY = 'vibe_chat_model';
-    const API_URL = 'https://api.deepseek.com/chat/completions';
-
-    // Dexie.js Database Initialization
-    const db = new Dexie("VibeChatDatabase");
-    db.version(1).stores({
-        conversations: "++id, title, activeModel, createdAt",
-        messages: "++id, conversationId, role, content, timestamp"
-    });
-    db.version(2).stores({
-        conversations: "++id, title, activeModel, systemPromptId, createdAt",
-        messages: "++id, conversationId, role, content, timestamp"
-    });
-    db.version(3).stores({
-        conversations: "++id, title, activeModel, systemPromptId, createdAt",
-        messages: "++id, conversationId, role, content, timestamp",
-        prompts: "++id, name, category, content, createdAt"
-    });
-    db.version(4).stores({
-        conversations: "++id, title, activeModel, systemPromptId, createdAt",
-        messages: "++id, conversationId, role, content, timestamp, versionGroupId, version, isActive, parentMsgId",
-        prompts: "++id, name, category, content, createdAt"
-    });
+    const API_URL = '/api/chat/completions';
+    let serverConfig = { hasKey: false, activeModel: 'deepseek-v4-pro' };
 
     // Active conversation state tracker
     let currentConversationId = null;
@@ -106,8 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Model Selection UI Logic
     function initializeModelUI() {
-        const storedModel = localStorage.getItem(MODEL_STORAGE_KEY) || 'deepseek-v4-pro';
-        localStorage.setItem(MODEL_STORAGE_KEY, storedModel);
+        const storedModel = serverConfig.activeModel || 'deepseek-v4-pro';
         
         dropdownItems.forEach(item => {
             const itemModel = item.getAttribute('data-model');
@@ -141,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
     dropdownItems.forEach(item => {
         item.addEventListener('click', async () => {
             const modelVal = item.getAttribute('data-model');
-            localStorage.setItem(MODEL_STORAGE_KEY, modelVal);
+            serverConfig.activeModel = modelVal;
             
             // Update header button label
             activeModelName.textContent = item.querySelector('.item-name').textContent;
@@ -154,17 +131,27 @@ document.addEventListener('DOMContentLoaded', () => {
             modelDropdownMenu.classList.add('hidden');
             modelSelectBtn.parentElement.classList.remove('open');
 
+            // Save active model configuration globally on server
+            await fetch('/api/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ activeModel: modelVal })
+            });
+
             // Save active model configuration for current conversation if active
             if (currentConversationId !== null) {
-                await db.conversations.update(currentConversationId, { activeModel: modelVal });
+                await fetch(`/api/conversations/${currentConversationId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ activeModel: modelVal })
+                });
             }
         });
     });
 
     // Update the visual status of the key icon dot
     function updateKeyStatusUI() {
-        const key = localStorage.getItem(API_KEY_STORAGE_KEY);
-        if (key && key.trim() !== '') {
+        if (serverConfig.hasKey) {
             keyStatusDot.classList.add('active');
         } else {
             keyStatusDot.classList.remove('active');
@@ -173,8 +160,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Show API Key Modal
     keyBtn.addEventListener('click', () => {
-        const storedKey = localStorage.getItem(API_KEY_STORAGE_KEY) || '';
-        apiKeyInput.value = storedKey;
+        apiKeyInput.value = '';
+        if (serverConfig.hasKey) {
+            apiKeyInput.placeholder = 'Key is configured (hidden for security)';
+        } else {
+            apiKeyInput.placeholder = 'Paste sk-... key here';
+        }
         apiKeyInput.type = 'password';
         
         // Reset eye icon SVG to default closed state
@@ -228,24 +219,46 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Save key to LocalStorage
-    saveKeyBtn.addEventListener('click', () => {
+    // Save key to Server-side storage
+    saveKeyBtn.addEventListener('click', async () => {
         const keyVal = apiKeyInput.value.trim();
         if (!keyVal) {
             alert('Please enter a valid DeepSeek API key.');
             return;
         }
-        localStorage.setItem(API_KEY_STORAGE_KEY, keyVal);
-        updateKeyStatusUI();
-        closeModal();
+        const res = await fetch('/api/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ apiKey: keyVal })
+        });
+        if (res.ok) {
+            const data = await res.json();
+            serverConfig.hasKey = data.hasKey;
+            serverConfig.activeModel = data.activeModel;
+            updateKeyStatusUI();
+            closeModal();
+        } else {
+            alert('Failed to save API key to server.');
+        }
     });
 
-    // Remove key from LocalStorage
-    deleteKeyBtn.addEventListener('click', () => {
-        localStorage.removeItem(API_KEY_STORAGE_KEY);
-        apiKeyInput.value = '';
-        updateKeyStatusUI();
-        closeModal();
+    // Remove key from Server-side storage
+    deleteKeyBtn.addEventListener('click', async () => {
+        const res = await fetch('/api/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ apiKey: "" })
+        });
+        if (res.ok) {
+            const data = await res.json();
+            serverConfig.hasKey = data.hasKey;
+            serverConfig.activeModel = data.activeModel;
+            apiKeyInput.value = '';
+            updateKeyStatusUI();
+            closeModal();
+        } else {
+            alert('Failed to delete API key from server.');
+        }
     });
 
     // Fetch and render the list of conversations in the sidebar
@@ -253,7 +266,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const chatsList = document.getElementById('chats-list');
         if (!chatsList) return;
 
-        const conversations = await db.conversations.orderBy('createdAt').reverse().toArray();
+        const res = await fetch('/api/conversations');
+        let conversations = [];
+        if (res.ok) {
+            conversations = await res.json();
+        }
+        conversations.sort((a, b) => b.createdAt - a.createdAt);
         chatsList.innerHTML = '';
         
         if (conversations.length === 0) {
@@ -341,9 +359,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Retrieve active model preference for this thread
-        const conv = await db.conversations.get(id);
+        const cRes = await fetch('/api/conversations');
+        const conversations = cRes.ok ? await cRes.json() : [];
+        const conv = conversations.find(c => c.id === id);
+
         if (conv && conv.activeModel) {
-            localStorage.setItem(MODEL_STORAGE_KEY, conv.activeModel);
+            serverConfig.activeModel = conv.activeModel;
             initializeModelUI();
         }
 
@@ -355,7 +376,9 @@ document.addEventListener('DOMContentLoaded', () => {
         updatePromptSelectorDisplay();
 
         // Fetch corresponding messages
-        const allMessages = await db.messages.where('conversationId').equals(id).sortBy('timestamp');
+        const mRes = await fetch(`/api/messages?conversationId=${id}`);
+        const allMessages = mRes.ok ? await mRes.json() : [];
+        allMessages.sort((a, b) => a.timestamp - b.timestamp);
         const activeMessages = allMessages.filter(m => m.isActive !== false);
 
         // Pre-compute version counts per group in one pass
@@ -396,18 +419,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Spawn a new empty conversation
     async function createNewConversation(title = 'New Chat', systemPromptId = null) {
-        const selectedModel = localStorage.getItem(MODEL_STORAGE_KEY) || 'deepseek-v4-pro';
+        const selectedModel = serverConfig.activeModel || 'deepseek-v4-pro';
 
         if (systemPromptId) {
             await fetchPromptContent(systemPromptId);
         }
 
-        const newId = await db.conversations.add({
-            title: title,
-            activeModel: selectedModel,
-            systemPromptId: systemPromptId || null,
-            createdAt: Date.now()
+        const res = await fetch('/api/conversations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title: title,
+                activeModel: selectedModel,
+                systemPromptId: systemPromptId || null
+            })
         });
+
+        let newConv = {};
+        if (res.ok) {
+            newConv = await res.json();
+        }
+        const newId = newConv.id;
 
         currentConversationId = newId;
         currentSystemPromptId = systemPromptId || null;
@@ -432,11 +464,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Delete a conversation thread
     async function deleteConversation(id) {
         if (confirm('Are you sure you want to delete this conversation?')) {
-            await db.conversations.delete(id);
-            await db.messages.where('conversationId').equals(id).delete();
+            await fetch(`/api/conversations/${id}`, {
+                method: 'DELETE'
+            });
             
             if (currentConversationId === id) {
-                const latest = await db.conversations.orderBy('createdAt').reverse().first();
+                const cRes = await fetch('/api/conversations');
+                const conversations = cRes.ok ? await cRes.json() : [];
+                conversations.sort((a, b) => b.createdAt - a.createdAt);
+                const latest = conversations[0];
                 if (latest) {
                     await switchConversation(latest.id);
                 } else {
@@ -487,8 +523,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (deleteBtn) deleteBtn.style.display = '';
                 item.title = newTitle;
                 
-                // Update database in background
-                await db.conversations.update(id, { title: newTitle });
+                // Update database on server
+                await fetch(`/api/conversations/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: newTitle })
+                });
             } else {
                 // Restore original state
                 input.replaceWith(titleSpan);
@@ -525,7 +565,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (title.length > 25) {
             title = title.substring(0, 25) + '...';
         }
-        await db.conversations.update(convId, { title: title });
+        await fetch(`/api/conversations/${convId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: title })
+        });
         await loadConversations();
     }
 
@@ -594,11 +638,15 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Prompt name and content are required.');
             return;
         }
+        const payload = { name, category, content };
         if (editingPromptId) {
-            await db.prompts.update(editingPromptId, { name, category, content });
-        } else {
-            await db.prompts.add({ name, category, content, createdAt: Date.now() });
+            payload.id = editingPromptId;
         }
+        await fetch('/api/user-prompts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
         promptEditorModal.classList.add('hidden');
         promptContentCache.clear();
     });
@@ -662,9 +710,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const message = userInput.value.trim();
         if (!message) return;
 
-        // Retrieve current key from storage
-        const activeApiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
-        if (!activeApiKey || activeApiKey.trim() === '') {
+        // Verify API key configuration on backend
+        if (!serverConfig.hasKey) {
             addMessageToUI('bot', '⚠️ API Key is missing! Please configure your DeepSeek API key in the sidebar under Settings (🔑).');
             return;
         }
@@ -675,30 +722,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Find the previous active message to set parentMsgId
-        const prevMsgs = await db.messages.where('conversationId').equals(currentConversationId).toArray();
+        const mRes = await fetch(`/api/messages?conversationId=${currentConversationId}`);
+        const prevMsgs = mRes.ok ? await mRes.json() : [];
         const lastActive = prevMsgs.filter(m => m.isActive !== false).sort((a, b) => a.timestamp - b.timestamp).pop();
         const parentMsgIdVal = lastActive ? lastActive.id : null;
 
         // Add user message to UI
-        addMessageToUI('user', message);
+        const userMsgDiv = addMessageToUI('user', message);
 
         // Clear input early
         userInput.value = '';
         userInput.style.height = 'auto';
 
-        // Write message record to IndexedDB with new fields
-        const userMsgId = await db.messages.add({
-            conversationId: currentConversationId,
-            role: 'user',
-            content: message,
-            timestamp: Date.now(),
-            parentMsgId: parentMsgIdVal,
-            isActive: true
+        // Write message record to server side DB
+        const addRes = await fetch('/api/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                conversationId: currentConversationId,
+                role: 'user',
+                content: message,
+                timestamp: Date.now(),
+                parentMsgId: parentMsgIdVal,
+                isActive: true
+            })
         });
+        let newMsg = {};
+        if (addRes.ok) {
+            newMsg = await addRes.json();
+        }
+        const userMsgId = newMsg.id;
+
+        // Sync with backend immediately to show edit actions for the user message
+        await refreshConversationView();
 
         // Trigger auto-titling if this is the very first message
-        const count = await db.messages.where('conversationId').equals(currentConversationId).count();
-        if (count === 1) {
+        if (prevMsgs.length === 0) {
             await autoTitleConversation(currentConversationId, message);
         }
 
@@ -707,6 +766,9 @@ document.addEventListener('DOMContentLoaded', () => {
             conversationId: currentConversationId,
             parentMsgId: userMsgId
         });
+
+        // Sync with backend to finalize and show regenerate/retry actions for the bot response
+        await refreshConversationView();
     });
 
     function addMessageToUI(sender, text, reasoning, msgMeta = {}) {
@@ -804,6 +866,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Collapsible streaming thought block
     function addStreamingBotMessage() {
         const container = chatContainer.querySelector('.messages-container');
         if (!container) return null;
@@ -913,9 +976,11 @@ document.addEventListener('DOMContentLoaded', () => {
     async function getDescendantIds(msgId) {
         const result = [];
         const queue = [msgId];
+        const res = await fetch(`/api/messages?conversationId=${currentConversationId}`);
+        const allMessages = res.ok ? await res.json() : [];
         while (queue.length > 0) {
             const currentId = queue.shift();
-            const children = await db.messages.where('parentMsgId').equals(currentId).toArray();
+            const children = allMessages.filter(m => m.parentMsgId === currentId);
             for (const child of children) {
                 result.push(child.id);
                 queue.push(child.id);
@@ -927,14 +992,20 @@ document.addEventListener('DOMContentLoaded', () => {
     async function hideDescendants(msgId) {
         const ids = await getDescendantIds(msgId);
         for (const id of ids) {
-            await db.messages.update(id, { isActive: false });
+            await fetch(`/api/messages/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isActive: false })
+            });
         }
     }
 
     async function showDescendants(msgId) {
+        const res = await fetch(`/api/messages?conversationId=${currentConversationId}`);
+        const allMessages = res.ok ? await res.json() : [];
         let currentId = msgId;
         while (true) {
-            const children = await db.messages.where('parentMsgId').equals(currentId).toArray();
+            const children = allMessages.filter(m => m.parentMsgId === currentId);
             if (children.length === 0) break;
             
             let bestChild = children[0];
@@ -950,13 +1021,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
-            await db.messages.update(bestChild.id, { isActive: true });
+            await fetch(`/api/messages/${bestChild.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isActive: true })
+            });
             currentId = bestChild.id;
         }
     }
 
     async function buildApiPayload(conversationId) {
-        const all = await db.messages.where('conversationId').equals(conversationId).sortBy('timestamp');
+        const mRes = await fetch(`/api/messages?conversationId=${conversationId}`);
+        const all = mRes.ok ? await mRes.json() : [];
+        all.sort((a, b) => a.timestamp - b.timestamp);
         const active = all.filter(m => m.isActive !== false);
         const payload = [{ role: 'system', content: getSystemPromptContentSync() }];
         for (const msg of active) {
@@ -966,7 +1043,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function buildApiPayloadUpTo(conversationId, stopAfterMsgId) {
-        const all = await db.messages.where('conversationId').equals(conversationId).sortBy('timestamp');
+        const mRes = await fetch(`/api/messages?conversationId=${conversationId}`);
+        const all = mRes.ok ? await mRes.json() : [];
+        all.sort((a, b) => a.timestamp - b.timestamp);
         const active = all.filter(m => m.isActive !== false);
         const payload = [{ role: 'system', content: getSystemPromptContentSync() }];
         for (const msg of active) {
@@ -978,7 +1057,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function checkIsLastActiveAssistant(msgId) {
         if (!currentConversationId) return false;
-        const all = await db.messages.where('conversationId').equals(currentConversationId).sortBy('timestamp');
+        const mRes = await fetch(`/api/messages?conversationId=${currentConversationId}`);
+        const all = mRes.ok ? await mRes.json() : [];
+        all.sort((a, b) => a.timestamp - b.timestamp);
         const activeAssistants = all.filter(m => m.role === 'assistant' && m.isActive !== false);
         if (activeAssistants.length === 0) return false;
         return activeAssistants[activeAssistants.length - 1].id === msgId;
@@ -995,8 +1076,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ============================================================
 
     async function streamApiResponse({ conversationId, parentMsgId, stopAfterMsgId, versionGroupId, version }) {
-        const activeApiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
-        if (!activeApiKey || activeApiKey.trim() === '') {
+        if (!serverConfig.hasKey) {
             addMessageToUI('bot', '⚠️ API Key is missing! Please configure your DeepSeek API key in the sidebar under Settings (🔑).');
             return;
         }
@@ -1019,12 +1099,11 @@ document.addEventListener('DOMContentLoaded', () => {
         userInput.disabled = true;
 
         try {
-            const selectedModel = localStorage.getItem(MODEL_STORAGE_KEY) || 'deepseek-v4-pro';
+            const selectedModel = serverConfig.activeModel || 'deepseek-v4-pro';
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${activeApiKey}`
+                    'Content-Type': 'application/json'
                 },
                 signal: abortController.signal,
                 body: JSON.stringify({
@@ -1081,18 +1160,49 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (fullContent) {
-                await db.messages.add({
-                    conversationId,
-                    role: 'assistant',
-                    content: fullContent,
-                    reasoning: fullReasoning || undefined,
-                    timestamp: Date.now(),
-                    parentMsgId: parentMsgId || null,
-                    versionGroupId: versionGroupId || null,
-                    version: version || 1,
-                    isActive: true
+                const saveRes = await fetch('/api/messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        conversationId,
+                        role: 'assistant',
+                        content: fullContent,
+                        reasoning: fullReasoning || undefined,
+                        timestamp: Date.now(),
+                        parentMsgId: parentMsgId || null,
+                        versionGroupId: versionGroupId || null,
+                        version: version || 1,
+                        isActive: true
+                    })
                 });
+                let savedMsg = {};
+                if (saveRes.ok) {
+                    savedMsg = await saveRes.json();
+                }
+
                 finalizeStreamingBotMessage(streamMsgId, fullContent, fullReasoning);
+
+                const streamMsgDiv = document.getElementById(streamMsgId);
+                if (streamMsgDiv && savedMsg.id) {
+                    streamMsgDiv.dataset.msgId = savedMsg.id;
+                    if (savedMsg.versionGroupId) {
+                        streamMsgDiv.dataset.versionGroupId = savedMsg.versionGroupId;
+                        streamMsgDiv.dataset.version = savedMsg.version || 1;
+                    }
+                    
+                    // Fetch version count dynamically to handle retry counts correctly
+                    const vCountRes = await fetch(`/api/messages?conversationId=${conversationId}`);
+                    const allMsgs = vCountRes.ok ? await vCountRes.json() : [];
+                    const vGroup = savedMsg.versionGroupId;
+                    const versionCount = vGroup ? allMsgs.filter(m => m.versionGroupId === vGroup).length : 1;
+
+                    attachMessageActions(streamMsgDiv, 'bot', {
+                        id: savedMsg.id,
+                        versionGroupId: savedMsg.versionGroupId,
+                        version: savedMsg.version || 1,
+                        versionCount: versionCount
+                    });
+                }
             }
 
         } catch (error) {
@@ -1213,7 +1323,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const textarea = document.createElement('textarea');
         textarea.className = 'inline-edit-textarea';
         textarea.value = originalContent;
-        textarea.rows = Math.min(originalContent.split('\n').length + 1, 12);
 
         const editActions = document.createElement('div');
         editActions.className = 'inline-edit-actions';
@@ -1252,59 +1361,103 @@ document.addEventListener('DOMContentLoaded', () => {
         editActions.appendChild(saveBtn);
         editActions.appendChild(cancelBtn);
 
-        contentDiv.replaceWith(textarea);
-        textarea.after(editActions);
+        // Apply editing state class to stretch container width
+        messageDiv.classList.add('editing');
+
+        // Wrap editing elements to stack vertically and expand horizontally
+        const editContainer = document.createElement('div');
+        editContainer.className = 'inline-edit-container';
+        editContainer.appendChild(textarea);
+        editContainer.appendChild(editActions);
+
+        contentDiv.replaceWith(editContainer);
+
+        // Auto-expand textarea to fit large contents beautifully
+        const adjustHeight = () => {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight + 4, 450) + 'px';
+        };
+        textarea.addEventListener('input', adjustHeight);
+        adjustHeight(); // Initial calculation after mounting to DOM
+
         textarea.focus();
         textarea.setSelectionRange(textarea.value.length, textarea.value.length);
     }
 
     function cancelInlineEdit(messageDiv, contentDiv, textarea, editActions, actionRow) {
-        textarea.replaceWith(contentDiv);
-        editActions.remove();
+        messageDiv.classList.remove('editing');
+        const editContainer = messageDiv.querySelector('.inline-edit-container');
+        if (editContainer) {
+            editContainer.replaceWith(contentDiv);
+        } else {
+            textarea.replaceWith(contentDiv);
+            editActions.remove();
+        }
         if (actionRow) actionRow.style.display = '';
     }
 
     async function editMessageAndRegenerate(msgId, newText, messageDiv) {
-        const originalMsg = await db.messages.get(msgId);
+        const mRes = await fetch(`/api/messages?conversationId=${currentConversationId}`);
+        const allMessages = mRes.ok ? await mRes.json() : [];
+        const originalMsg = allMessages.find(m => m.id === msgId);
         if (!originalMsg) return;
 
         const versionGroupId = originalMsg.versionGroupId || originalMsg.id;
 
         // Mark original message with versionGroupId if first edit
         if (!originalMsg.versionGroupId) {
-            await db.messages.update(msgId, {
-                versionGroupId: versionGroupId,
-                version: 1,
+            await fetch(`/api/messages/${msgId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    versionGroupId: versionGroupId,
+                    version: 1
+                })
             });
             originalMsg.versionGroupId = versionGroupId;
             originalMsg.version = 1;
         }
 
-        const existingVersions = await db.messages
-            .where('versionGroupId').equals(versionGroupId)
-            .toArray();
+        const existingVersions = allMessages.filter(m => m.versionGroupId === versionGroupId);
         const maxVersion = existingVersions.reduce((max, v) => Math.max(max, v.version || 1), 0);
         const newVersion = maxVersion + 1;
 
         // Hide all descendants of old versions
         for (const v of existingVersions) {
-            await db.messages.update(v.id, { isActive: false });
+            await fetch(`/api/messages/${v.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isActive: false })
+            });
             await hideDescendants(v.id);
         }
-        await db.messages.update(msgId, { isActive: false });
+        await fetch(`/api/messages/${msgId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isActive: false })
+        });
         await hideDescendants(msgId);
 
         // Create new version of the edited message
-        const newMsgId = await db.messages.add({
-            conversationId: originalMsg.conversationId,
-            role: 'user',
-            content: newText,
-            timestamp: Date.now(),
-            versionGroupId: versionGroupId,
-            version: newVersion,
-            isActive: true,
-            parentMsgId: originalMsg.parentMsgId || null
+        const addRes = await fetch('/api/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                conversationId: originalMsg.conversationId,
+                role: 'user',
+                content: newText,
+                timestamp: Date.now(),
+                versionGroupId: versionGroupId,
+                version: newVersion,
+                isActive: true,
+                parentMsgId: originalMsg.parentMsgId || null
+            })
         });
+        let newMsg = {};
+        if (addRes.ok) {
+            newMsg = await addRes.json();
+        }
+        const newMsgId = newMsg.id;
 
         await refreshConversationView();
 
@@ -1323,33 +1476,45 @@ document.addEventListener('DOMContentLoaded', () => {
     // ============================================================
 
     async function regenerateResponse(msgId) {
-        const assistantMsg = await db.messages.get(msgId);
+        const mRes = await fetch(`/api/messages?conversationId=${currentConversationId}`);
+        const allMessages = mRes.ok ? await mRes.json() : [];
+        const assistantMsg = allMessages.find(m => m.id === msgId);
         if (!assistantMsg || assistantMsg.role !== 'assistant') return;
 
-        const parentUserMsg = assistantMsg.parentMsgId ? await db.messages.get(assistantMsg.parentMsgId) : null;
+        const parentUserMsg = assistantMsg.parentMsgId ? allMessages.find(m => m.id === assistantMsg.parentMsgId) : null;
         const stopAtId = parentUserMsg ? parentUserMsg.id : msgId;
 
         const versionGroupId = assistantMsg.versionGroupId || assistantMsg.id;
 
         // Mark original if first regenerate
         if (!assistantMsg.versionGroupId) {
-            await db.messages.update(msgId, { versionGroupId, version: 1 });
+            await fetch(`/api/messages/${msgId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ versionGroupId, version: 1 })
+            });
             assistantMsg.versionGroupId = versionGroupId;
             assistantMsg.version = 1;
         }
 
-        const existingVersions = await db.messages
-            .where('versionGroupId').equals(versionGroupId)
-            .toArray();
+        const existingVersions = allMessages.filter(m => m.versionGroupId === versionGroupId);
         const maxVersion = existingVersions.reduce((max, v) => Math.max(max, v.version || 1), 0);
         const newVersion = maxVersion + 1;
 
         // Hide descendants and deactivate old versions
         for (const v of existingVersions) {
-            await db.messages.update(v.id, { isActive: false });
+            await fetch(`/api/messages/${v.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isActive: false })
+            });
             await hideDescendants(v.id);
         }
-        await db.messages.update(msgId, { isActive: false });
+        await fetch(`/api/messages/${msgId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isActive: false })
+        });
         await hideDescendants(msgId);
 
         await refreshConversationView();
@@ -1370,9 +1535,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // ============================================================
 
     async function navigateVersion(versionGroupId, targetVersion) {
-        const versions = await db.messages
-            .where('versionGroupId').equals(versionGroupId)
-            .sortBy('version');
+        const mRes = await fetch(`/api/messages?conversationId=${currentConversationId}`);
+        const allMessages = mRes.ok ? await mRes.json() : [];
+        const versions = allMessages.filter(m => m.versionGroupId === versionGroupId);
+        versions.sort((a, b) => (a.version || 1) - (b.version || 1));
 
         if (targetVersion < 1 || targetVersion > versions.length) return;
 
@@ -1381,11 +1547,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Deactivate all versions in this group
         for (const v of versions) {
-            await db.messages.update(v.id, { isActive: false });
+            await fetch(`/api/messages/${v.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isActive: false })
+            });
         }
 
         // Activate target version then show its descendants
-        await db.messages.update(targetMsg.id, { isActive: true });
+        await fetch(`/api/messages/${targetMsg.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isActive: true })
+        });
         await showDescendants(targetMsg.id);
 
         // Hide descendants of non-target versions
@@ -1400,13 +1574,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // App Bootstrapper
     async function initApp() {
+        // Fetch server config first
+        const configRes = await fetch('/api/config');
+        if (configRes.ok) {
+            serverConfig = await configRes.json();
+        }
+
         await loadFactoryPrompts();
         initializeModelUI();
         updateKeyStatusUI();
         await loadConversations();
 
         // Auto select latest thread or create new one if starting clean
-        const latest = await db.conversations.orderBy('createdAt').reverse().first();
+        const cRes = await fetch('/api/conversations');
+        const conversations = cRes.ok ? await cRes.json() : [];
+        conversations.sort((a, b) => b.createdAt - a.createdAt);
+        const latest = conversations[0];
+
         if (latest) {
             await switchConversation(latest.id);
         } else {
@@ -1441,7 +1625,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function getAllUserPrompts() {
-        return await db.prompts.orderBy('createdAt').toArray();
+        const res = await fetch('/api/user-prompts');
+        let userPrompts = [];
+        if (res.ok) {
+            userPrompts = await res.json();
+        }
+        userPrompts.sort((a, b) => a.createdAt - b.createdAt);
+        return userPrompts;
     }
 
     async function getAllPromptCategories() {
@@ -1483,7 +1673,9 @@ document.addEventListener('DOMContentLoaded', () => {
         let content = null;
         if (promptId.startsWith('user/')) {
             const dbId = parseInt(promptId.split('/')[1]);
-            const record = await db.prompts.get(dbId);
+            const res = await fetch('/api/user-prompts');
+            const userPrompts = res.ok ? await res.json() : [];
+            const record = userPrompts.find(p => p.id === dbId);
             content = record?.content;
         } else {
             try {
@@ -1511,7 +1703,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!promptId) return null;
         if (promptId.startsWith('user/')) {
             const dbId = parseInt(promptId.split('/')[1]);
-            const record = await db.prompts.get(dbId);
+            const res = await fetch('/api/user-prompts');
+            const userPrompts = res.ok ? await res.json() : [];
+            const record = userPrompts.find(p => p.id === dbId);
             return record?.name || null;
         }
         if (factoryPromptCategories) {
@@ -1588,7 +1782,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         e.stopPropagation();
                         menuElement.classList.add('hidden');
                         if (confirm('Delete this prompt?')) {
-                            await db.prompts.delete(p.dbId);
+                            await fetch(`/api/user-prompts/${p.dbId}`, {
+                                method: 'DELETE'
+                            });
                             promptContentCache.delete(`user/${p.dbId}`);
                             if (currentSystemPromptId === `user/${p.dbId}`) {
                                 await setSystemPrompt(null);
@@ -1639,7 +1835,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         updatePromptSelectorDisplay();
         if (currentConversationId) {
-            await db.conversations.update(currentConversationId, { systemPromptId: promptId || null });
+            await fetch(`/api/conversations/${currentConversationId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ systemPromptId: promptId || null })
+            });
         }
     }
 
@@ -1677,10 +1877,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const conv = await db.conversations.get(currentConversationId);
+            const cRes = await fetch('/api/conversations');
+            const conversations = cRes.ok ? await cRes.json() : [];
+            const conv = conversations.find(c => c.id === currentConversationId);
             if (!conv) return;
 
-            const allMessages = await db.messages.where('conversationId').equals(currentConversationId).sortBy('timestamp');
+            const mRes = await fetch(`/api/messages?conversationId=${currentConversationId}`);
+            const allMessages = mRes.ok ? await mRes.json() : [];
+            allMessages.sort((a, b) => a.timestamp - b.timestamp);
             const activeMessages = allMessages.filter(m => m.isActive !== false);
 
             if (activeMessages.length === 0) {
