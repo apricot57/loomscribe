@@ -1016,7 +1016,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!contentDiv) return;
         contentDiv.classList.remove('streaming');
         contentDiv.innerHTML = typeof marked !== 'undefined' ? marked.parse(content || '') : (content || '');
-        scrollToBottom();
     }
 
     function scrollToBottom() {
