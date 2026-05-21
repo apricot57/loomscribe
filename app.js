@@ -357,6 +357,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Switch between conversation threads
     async function switchConversation(id) {
         currentConversationId = id;
+        localStorage.setItem('activeConversationId', id);
         
         // Highlight active item in sidebar
         const items = document.querySelectorAll('.chat-list-item');
@@ -454,6 +455,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const newId = newConv.id;
 
         currentConversationId = newId;
+        localStorage.setItem('activeConversationId', newId);
         currentSystemPromptId = systemPromptId || null;
         updatePromptSelectorDisplay();
 
@@ -2040,16 +2042,26 @@ document.addEventListener('DOMContentLoaded', () => {
         updateKeyStatusUI();
         await loadConversations();
 
-        // Auto select latest thread or create new one if starting clean
+        // Restore active conversation from localStorage if valid
+        const savedIdStr = localStorage.getItem('activeConversationId');
+        const savedId = savedIdStr ? parseInt(savedIdStr, 10) : null;
+
         const cRes = await fetch('/api/conversations');
         const conversations = cRes.ok ? await cRes.json() : [];
         conversations.sort((a, b) => b.createdAt - a.createdAt);
-        const latest = conversations[0];
 
-        if (latest) {
-            await switchConversation(latest.id);
+        const hasSavedConv = conversations.some(c => c.id === savedId);
+
+        if (savedId && hasSavedConv) {
+            await switchConversation(savedId);
         } else {
-            await createNewConversation();
+            // Auto select latest thread or create new one if starting clean
+            const latest = conversations[0];
+            if (latest) {
+                await switchConversation(latest.id);
+            } else {
+                await createNewConversation();
+            }
         }
         updatePromptSelectorDisplay();
     }
