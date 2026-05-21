@@ -464,8 +464,16 @@ body {
     letter-spacing: -0.5px;
 }
 
-.header-actions-placeholder {
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     width: 32px;
+    justify-content: flex-end;
+}
+
+.header-btn.visible {
+    display: flex !important;
 }
 
 /* Scrollable Messages Canvas */
