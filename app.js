@@ -64,6 +64,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const activePromptName = document.getElementById('active-prompt-name');
     const promptDropdownMenu = document.getElementById('prompt-dropdown-menu');
 
+    // Continue Button DOM Element
+    const continueBtn = document.getElementById('continue-btn');
+
     // Storage Keys & API configurations
     const API_URL = '/api/chat/completions';
     let serverConfig = { hasKey: false, activeModel: 'deepseek-v4-pro' };
@@ -418,6 +421,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         scrollToBottom();
 
+        await updateContinueButtonVisibility(activeMessages);
+
         // Close sidebar on mobile
         if (window.innerWidth <= 768) {
             sidebar.classList.remove('active');
@@ -460,6 +465,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         scrollToBottom();
+
+        await updateContinueButtonVisibility([]);
 
         if (window.innerWidth <= 768) {
             sidebar.classList.remove('active');
@@ -704,6 +711,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Continue Button Action
+    if (continueBtn) {
+        continueBtn.addEventListener('click', () => {
+            if (userInput && chatForm) {
+                continueBtn.classList.add('hidden');
+                userInput.value = '[continue]';
+                userInput.style.height = 'auto';
+                chatForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+            }
+        });
+    }
+
     // Stop generation button
     if (stopBtn) {
         stopBtn.addEventListener('click', () => {
@@ -721,6 +740,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('send-btn').classList.remove('hidden');
             userInput.disabled = false;
             userInput.focus();
+            updateContinueButtonVisibility();
         });
     }
 
@@ -745,6 +765,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Message submit trigger
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        
+        if (continueBtn) continueBtn.classList.add('hidden');
         
         const message = userInput.value.trim();
         if (!message) return;
@@ -1099,6 +1121,35 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Update continue button visibility dynamically
+    async function updateContinueButtonVisibility(activeMessages = null) {
+        if (!continueBtn) return;
+
+        if (currentConversationId === null || abortController !== null) {
+            continueBtn.classList.add('hidden');
+            return;
+        }
+
+        try {
+            let messages = activeMessages;
+            if (!messages) {
+                const mRes = await fetch(`/api/messages?conversationId=${currentConversationId}`);
+                const allMessages = mRes.ok ? await mRes.json() : [];
+                allMessages.sort((a, b) => a.timestamp - b.timestamp);
+                messages = allMessages.filter(m => m.isActive !== false);
+            }
+
+            if (messages.length > 0 && messages[messages.length - 1].role === 'assistant') {
+                continueBtn.classList.remove('hidden');
+            } else {
+                continueBtn.classList.add('hidden');
+            }
+        } catch (err) {
+            console.error('Error updating continue button visibility:', err);
+            continueBtn.classList.add('hidden');
+        }
+    }
+
     // ============================================================
     // Message Editing — streamApiResponse (Shared Streaming Logic)
     // ============================================================
@@ -1248,6 +1299,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('send-btn').classList.remove('hidden');
             userInput.disabled = false;
             userInput.focus();
+            await updateContinueButtonVisibility();
         }
     }
 
