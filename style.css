@@ -543,6 +543,7 @@ body {
 
 /* Sleek organic User Message card (ChatGPT-style flat symmetric pill bubble) */
 .user-message {
+    flex-direction: row-reverse;
     align-self: flex-end;
     max-width: 90%; /* Widen the bubble to fill the space saved from avatar removal */
 }
