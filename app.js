@@ -415,7 +415,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         versionGroupId: versionGroupId,
                         version: msg.version || 1,
                         versionCount: versionCount
-                    });
+                    }, true);
                 }
             });
         }
@@ -668,6 +668,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const latest = conversations[0];
                 if (latest) {
                     await switchConversation(latest.id);
+                    await loadConversations();
                 } else {
                     await createNewConversation();
                 }
@@ -816,8 +817,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const userMsgId = newMsg.id;
 
-        // Sync with backend immediately to show edit actions for the user message
-        await refreshConversationView();
+        // Attach edit actions directly to the user message div instead of re-rendering
+        if (userMsgDiv && userMsgId) {
+            userMsgDiv.id = userMsgId;
+            userMsgDiv.dataset.msgId = userMsgId;
+            attachMessageActions(userMsgDiv, 'user', { id: userMsgId });
+        }
 
         // Trigger auto-titling if this is the very first message
         if (prevMsgs.length === 0) {
@@ -829,12 +834,9 @@ document.addEventListener('DOMContentLoaded', () => {
             conversationId: currentConversationId,
             parentMsgId: userMsgId
         });
-
-        // Sync with backend to finalize and show regenerate/retry actions for the bot response
-        await refreshConversationView();
     });
 
-    function addMessageToUI(sender, text, reasoning, msgMeta = {}) {
+    function addMessageToUI(sender, text, reasoning, msgMeta = {}, skipScroll = false) {
         const container = chatContainer.querySelector('.messages-container');
         if (!container) return;
 
@@ -893,7 +895,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         container.appendChild(messageDiv);
         attachMessageActions(messageDiv, sender, msgMeta);
-        scrollToBottom();
+        if (!skipScroll) scrollToBottom();
         return messageDiv;
     }
 
@@ -1019,7 +1021,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function scrollToBottom() {
+        const smooth = chatContainer.style.scrollBehavior;
+        chatContainer.style.scrollBehavior = 'auto';
         chatContainer.scrollTop = chatContainer.scrollHeight;
+        chatContainer.style.scrollBehavior = smooth;
     }
 
     // ============================================================
