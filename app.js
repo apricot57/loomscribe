@@ -1353,7 +1353,7 @@ document.addEventListener('DOMContentLoaded', () => {
             actionRow.appendChild(versionNav);
         }
 
-        // Edit button (user messages only)
+        // Edit button (user and bot messages)
         if (sender === 'user') {
             const editBtn = document.createElement('button');
             editBtn.className = 'message-action-btn edit-btn';
@@ -1362,6 +1362,18 @@ document.addEventListener('DOMContentLoaded', () => {
             editBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 startInlineEdit(messageDiv, msgId);
+            });
+            actionRow.appendChild(editBtn);
+        }
+
+        if (sender === 'bot') {
+            const editBtn = document.createElement('button');
+            editBtn.className = 'message-action-btn edit-btn';
+            editBtn.innerHTML = '&#9998;';
+            editBtn.title = 'Edit response';
+            editBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                startBotInlineEdit(messageDiv, msgId);
             });
             actionRow.appendChild(editBtn);
         }
@@ -1477,6 +1489,151 @@ document.addEventListener('DOMContentLoaded', () => {
             editActions.remove();
         }
         if (actionRow) actionRow.style.display = '';
+    }
+
+    async function startBotInlineEdit(messageDiv, msgId) {
+        // Fetch raw markdown content from the database (not rendered HTML)
+        const mRes = await fetch(`/api/messages?conversationId=${currentConversationId}`);
+        const allMessages = mRes.ok ? await mRes.json() : [];
+        const botMsg = allMessages.find(m => String(m.id) === String(msgId));
+        if (!botMsg) return;
+
+        // Target the inner content div inside the body
+        const bodyDiv = messageDiv.querySelector('.message-body');
+        const contentDiv = messageDiv.querySelector('.message-content');
+        if (!contentDiv) return;
+
+        const actionRow = messageDiv.querySelector('.message-action-row');
+        if (actionRow) actionRow.style.display = 'none';
+
+        const originalRaw = botMsg.content;
+
+        const textarea = document.createElement('textarea');
+        textarea.className = 'inline-edit-textarea';
+        textarea.value = originalRaw;
+
+        const editActions = document.createElement('div');
+        editActions.className = 'inline-edit-actions';
+
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'message-action-btn save-btn';
+        saveBtn.textContent = 'Save';
+        saveBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const newText = textarea.value.trim();
+            if (newText && newText !== originalRaw) {
+                await editBotMessageOnly(msgId, newText, messageDiv);
+            } else {
+                cancelBotInlineEdit(messageDiv, contentDiv, editActions, actionRow);
+            }
+        });
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'message-action-btn cancel-btn';
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            cancelBotInlineEdit(messageDiv, contentDiv, editActions, actionRow);
+        });
+
+        textarea.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                e.preventDefault();
+                saveBtn.click();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                cancelBtn.click();
+            }
+        });
+
+        editActions.appendChild(saveBtn);
+        editActions.appendChild(cancelBtn);
+
+        messageDiv.classList.add('editing');
+
+        const editContainer = document.createElement('div');
+        editContainer.className = 'inline-edit-container';
+        editContainer.appendChild(textarea);
+        editContainer.appendChild(editActions);
+
+        contentDiv.replaceWith(editContainer);
+
+        const adjustHeight = () => {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight + 4, 600) + 'px';
+        };
+        textarea.addEventListener('input', adjustHeight);
+        adjustHeight();
+
+        textarea.focus();
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    }
+
+    function cancelBotInlineEdit(messageDiv, contentDiv, editActions, actionRow) {
+        messageDiv.classList.remove('editing');
+        const editContainer = messageDiv.querySelector('.inline-edit-container');
+        if (editContainer) {
+            editContainer.replaceWith(contentDiv);
+        } else {
+            editActions.remove();
+        }
+        if (actionRow) actionRow.style.display = '';
+    }
+
+    async function editBotMessageOnly(msgId, newText, messageDiv) {
+        const mRes = await fetch(`/api/messages?conversationId=${currentConversationId}`);
+        const allMessages = mRes.ok ? await mRes.json() : [];
+        const originalMsg = allMessages.find(m => String(m.id) === String(msgId));
+        if (!originalMsg) return;
+
+        const versionGroupId = originalMsg.versionGroupId || originalMsg.id;
+
+        if (!originalMsg.versionGroupId) {
+            await fetch(`/api/messages/${msgId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ versionGroupId, version: 1 })
+            });
+            originalMsg.versionGroupId = versionGroupId;
+            originalMsg.version = 1;
+        }
+
+        const existingVersions = allMessages.filter(m => m.versionGroupId === versionGroupId);
+        const maxVersion = existingVersions.reduce((max, v) => Math.max(max, v.version || 1), 0);
+        const newVersion = maxVersion + 1;
+
+        // Deactivate all existing versions
+        for (const v of existingVersions) {
+            await fetch(`/api/messages/${v.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isActive: false })
+            });
+        }
+        await fetch(`/api/messages/${msgId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isActive: false })
+        });
+
+        // Save as a new version branch
+        await fetch('/api/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                conversationId: originalMsg.conversationId,
+                role: 'assistant',
+                content: newText,
+                reasoning: originalMsg.reasoning || undefined,
+                timestamp: Date.now(),
+                versionGroupId: versionGroupId,
+                version: newVersion,
+                isActive: true,
+                parentMsgId: originalMsg.parentMsgId || null
+            })
+        });
+
+        await refreshConversationView();
     }
 
     async function editMessageAndRegenerate(msgId, newText, messageDiv) {
