@@ -1615,3 +1615,83 @@ body {
 .message-content h2 { font-size: 1.25rem; }
 .message-content h3 { font-size: 1.15rem; }
 .message-content h4 { font-size: 1.05rem; }
+
+/* ==========================================================================
+   Inline Message Editing Textarea & Action Row
+   ========================================================================== */
+.inline-edit-textarea {
+    width: 100%;
+    min-height: 80px;
+    background-color: var(--bg-input);
+    color: var(--text-primary);
+    border: 1.5px solid var(--border-color);
+    border-radius: 16px;
+    padding: 14px 18px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    line-height: 1.55;
+    resize: vertical;
+    outline: none;
+    transition: var(--transition-m3);
+    margin-bottom: 10px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.inline-edit-textarea:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 14px var(--accent-glow), inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.inline-edit-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+}
+
+.inline-edit-actions .message-action-btn {
+    padding: 6px 16px;
+    border-radius: var(--border-radius-pill);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-m3);
+    border: none;
+}
+
+.inline-edit-actions .save-btn {
+    background-color: var(--accent-color);
+    color: var(--accent-text);
+}
+
+.inline-edit-actions .save-btn:hover {
+    background-color: var(--accent-hover);
+    transform: translateY(-1px);
+}
+
+.inline-edit-actions .cancel-btn {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.inline-edit-actions .cancel-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+/* ==========================================================================
+   Width Adjustment and Container Expansion when Editing
+   ========================================================================== */
+.message.editing {
+    width: 100% !important;
+    max-width: 100% !important;
+    align-self: stretch !important;
+}
+
+.inline-edit-container {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
