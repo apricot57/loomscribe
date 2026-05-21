@@ -716,10 +716,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${sender}-message`;
 
-        const avatarDiv = document.createElement('div');
-        avatarDiv.className = 'avatar';
-        avatarDiv.textContent = sender === 'bot' ? '🤖' : '👤';
-
         if (sender === 'bot') {
             const bodyDiv = document.createElement('div');
             bodyDiv.className = 'message-body';
@@ -752,13 +748,11 @@ document.addEventListener('DOMContentLoaded', () => {
             contentDiv.innerHTML = typeof marked !== 'undefined' ? marked.parse(text) : text;
 
             bodyDiv.appendChild(contentDiv);
-            messageDiv.appendChild(avatarDiv);
             messageDiv.appendChild(bodyDiv);
         } else {
             const contentDiv = document.createElement('div');
             contentDiv.className = 'message-content';
             contentDiv.textContent = text;
-            messageDiv.appendChild(avatarDiv);
             messageDiv.appendChild(contentDiv);
         }
 
@@ -813,10 +807,6 @@ document.addEventListener('DOMContentLoaded', () => {
         messageDiv.className = 'message bot-message';
         messageDiv.id = id;
 
-        const avatarDiv = document.createElement('div');
-        avatarDiv.className = 'avatar';
-        avatarDiv.textContent = '🤖';
-
         const bodyDiv = document.createElement('div');
         bodyDiv.className = 'message-body';
 
@@ -845,7 +835,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         bodyDiv.appendChild(reasoningBlock);
         bodyDiv.appendChild(contentDiv);
-        messageDiv.appendChild(avatarDiv);
         messageDiv.appendChild(bodyDiv);
         container.appendChild(messageDiv);
         scrollToBottom();
