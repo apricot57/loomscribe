@@ -1,51 +1,38 @@
-# 🌌 VibeChat — Material Expressive DeepSeek Workspace
+# 🌌 VibeChat — Premium Creative Writing & Storytelling Workspace
 
-A lightweight, visually gorgeous, and responsive vanilla HTML/CSS/JS frontend for interacting with the DeepSeek API. Fully customized using a premium **Material Design Expressive (Material 3)** system, featuring organic contours, a vibrant Sky Blue & Turquoise expressive dark theme, and fluid transitions. Zero heavy frameworks, zero compilation—pure responsive design.
+VibeChat is a lightweight, responsive, and visually stunning vanilla HTML/CSS/JS frontend specifically tailored for **collaborative storytelling, sensory fiction, and creative writing** powered by the DeepSeek API. 
 
-![VibeChat Header](https://raw.githubusercontent.com/google/material-design-icons/master/png/action/visibility/white/2x/elg_visibility_white_48dp.png) *(Tactile, premium developer-focused chat workspace)*
-
----
-
-## ✨ Features
-
-- **Material Expressive Aesthetics**: Sleek organic dark mode built on deep oceanic obsidian and slate backdrops, styled with dynamic sky blue highlights (`#38bdf8`), vibrant teal/turquoise secondary highlights (`#2dd4bf`), and clean cyan gradients.
-- **Organic Tactile Shapes**: Styled with playfulness and character:
-  - **M3 Sidebar Drawer**: Rounded drawer panel featuring navigation pill settings and connections.
-  - **M3 Squircle Extended FAB**: Fully customized squircle Floating Action Button (`border-radius: 20px`) with vibrant sky-blue/cyan depth for chat resets.
-  - **ChatGPT-style Message Layout**: Flat, borderless, transparent bot rows next to circular avatars, and user message bubbles styled as flat, symmetric pill bubbles in sleek slate grey-blue (`#1e293b`) with no tails.
-  - **Giant Pill Chat Input**: A massive, tactile cozy pill container (`border-radius: 9999px`) floating centered inside the reading viewport.
-- **Outfit Typography**: Features Google Fonts' **Outfit** for all titles, messages, and configurations, offering highly readable and tailored sans-serif geometric lines.
-- **DeepSeek V4 Integration**: Ready for the latest DeepSeek V4 dynamic model endpoints:
-  - 🤖 **DeepSeek V4 Pro**: Flagship 1.6T parameter reasoning model optimized for deep coding and complex intelligence.
-  - ⚡ **DeepSeek V4 Flash**: High-speed, efficient 284B parameter variant for latency-critical generations.
-- **Dynamic Model Selector Pill**: A cute rounded chip selector floating directly above the bottom chat box. Opens upwards cleanly so it never covers your input fields or clips off-screen.
-- **Server-Side Secure Key Management**: Input and clear your DeepSeek API key securely through the sidebar settings menu (🔑). The key is stored securely in the server-side database (`data/db.json`) and never exposed back to the client-side JavaScript, protecting your credentials.
-- **API Connection Indicators**: Tonal pulsing rose warning light turns to a soft green pulsing glow when an API key is saved and active.
-- **Portable Host-Side JSON Database**: Powered by a robust, lightweight JSON file database (`data/db.json`) running on the server. VibeChat supports unlimited portable conversation logs, a dynamic sidebar navigation drawer listing recent chats, first-prompt auto-titling, thread-specific model restoration, and clean thread deletion cascade actions. No database files or chat histories are lost when clearing browser caches or changing browsers.
-- **System Prompt Profiles**: Choose from categorized factory prompts (auto-discovered from `prompt_cards/` subfolders) or create/edit/delete your own through the UI. Per-conversation prompt selection with a footer selector dropdown.
-- **New Chat Dialog**: Click "New Chat" to open a modal where you name the conversation and pick a system prompt before starting.
-- **Markdown Conversation Export**: Download the active path of the conversation thread at any time as a formatted `.md` file, complete with conversation title and the active system prompt, excluding any inactive retries or alternate paths.
+Built on a premium **Material Design Expressive (Material 3)** aesthetic, VibeChat delivers a clean, immersive, and glassmorphic canvas with fluid micro-animations, customizable prompt profiles, and comprehensive timeline branching. Zero heavy frameworks, zero compilation—just pure responsive design.
 
 ---
 
-## 🚀 Getting Started
+## ✨ Primary Creative Features
 
-### Option A: One-Click Launch (Recommended)
-Double-click `start-vibechat.bat` — it boots up the Node.js server, automatically launches VibeChat in your default web browser, and runs the portable application self-contained.
+### 🖋️ 1. Dynamic Story continuation (`[continue]` Button)
+- **One-Click Sequel Triggers**: A premium glassmorphic **"Continue" button** (`#continue-btn`) appears right above the input text field. Clicking it instantly submits `[continue]`, letting you extend scenes, narratives, and story beats without manual typing.
+- **Smart Visibility State**:
+  - **Appears Automatically**: Shows up only when the last message in the thread is from the assistant.
+  - **Suppressed During Generation**: Hides automatically while text is active and streaming.
+  - **Hidden in Empty Chats**: Stays out of the way when starting fresh threads or user-only turns.
 
-### Option B: Manual Launch
-Run the Node.js server from your terminal:
-```bash
-node server.js
-```
-Then open `http://localhost:3000` in your web browser.
+### 🌿 2. Deep Narrative Branching & History Versioning
+- **Timeline Forking**: Edit any past prompt or story segment inline. VibeChat automatically forks the conversation history, creating distinct version groups (`versionGroupId`).
+- **Interactive Pager Indicators**: Toggle back and forth between different story directions, alternate sensory endings, or plot deviations using neat in-message pager buttons.
+- **Lossless History Preservation**: Your older story drafts, deleted pathways, and retries are kept safe in your local timeline database.
 
-### Enter Your Credentials
-1. In the rounded left sidebar drawer under **Settings**, click on **DeepSeek API Key** (🔑).
-2. Paste your private DeepSeek API Key (e.g., `sk-...`) inside the password-masked modal.
-3. Click **Save Key**. The key will be written securely to the backend `data/db.json` database. The status indicator dot in the sidebar will immediately turn into a pulsing soft green light!
-4. Select your preferred inference model from the bottom-left dropdown pill (**DeepSeek V4 Pro** or **DeepSeek V4 Flash**).
-5. Message DeepSeek and enjoy the fluid, tactile responses!
+### 📖 3. Content-First Writing Canvas
+- **Distraction-Free Layout**: Removed distracting person/robot avatars next to conversation blocks.
+- **Widescreen Reading Comfort**: Expanded message containers to utilize the newly recovered space, ensuring paragraphs flow naturally with optimal horizontal rhythm.
+- **Outfit Typography**: Google Fonts' **Outfit** geometric lines styled specifically for comfortable, long-form creative reading.
+
+### 🔒 4. Premium In-App overlays & Privacy
+- **Secure Key Management**: Enter your DeepSeek API key inside a password-masked modal. Keys are saved securely on the server-side database (`data/db.json`) and never exposed to the client-side browser logic.
+- **In-App Custom Confirmation Overlays**: Replaced generic browser alert windows with a cohesive, glassmorphic deletion confirmation overlay (`#delete-confirm-modal`), protecting you from accidental draft deletions while matching the app's dark-slate styling.
+- **Visual API Indicators**: Soft pulsing indicator dots (pulsing rose when keyless, pulsing green when configured) provide instant status updates.
+
+### 📝 5. Prompt & Genre Profiles
+- **System Prompts**: Select pre-set genre cards (e.g. *Creative Writing*) loaded from subfolders, or create, edit, and delete your own system prompts directly in-app.
+- **Active Export**: Formats and exports the active line of your story as a clean Markdown (`.md`) file, stripping out unused branching alternatives and retries.
 
 ---
 
@@ -53,27 +40,46 @@ Then open `http://localhost:3000` in your web browser.
 
 ```
 vibe-api/
-├── index.html           # HTML5 structure, settings sidebar, Outfit fonts, modals
-├── style.css            # Material Expressive theme, variables, pill/FAB shapes, transitions
-├── app.js               # Event routing, API key storage, model payloads, system prompt profiles
-├── server.js            # Zero-dependency Node.js server (static files + prompt API)
-├── favicon.png          # App icon asset
-├── start-vibechat.bat   # One-click launcher for Windows
-├── prompt_cards/        # Factory system prompts in category subfolders (gitignored)
-└── README.md            # Setup guide and documentation
+├── index.html           # HTML5 structure, control bar, settings sidebar, custom modals
+├── style.css            # Material Expressive theme, M3 shapes, custom glassmorphism, animations
+├── app.js               # Logic controller, SSE streaming, branching handlers, API key management
+├── server.js            # Zero-dependency local Node.js server & JSON API manager
+├── favicon.png          # App branding asset
+├── start-vibechat.bat   # One-click launcher for Windows hosts
+├── data/
+│   └── db.json          # Portable local JSON database storing all chats, prompt cards, and settings
+└── README.md            # App documentation & guides
 ```
 
 ---
 
-## 🔮 Future Roadmap
+## 🚀 Quick Start
 
-- [x] **Secure Proxy Backend**: Move client-side `fetch` routines to a lightweight Node.js/Express proxy server to safeguard credentials in public deployments.
-- [x] **Markdown Renderer**: Link a lightweight script like `marked.js` to parse bullet lists, bold highlights, and code formatting blocks inside the assistant bubbles.
-- [ ] **Dynamic Prompt Sliders**: Add settings panel sliders to adjust temperature, max tokens, or system-level developer instructions.
-- [x] **Stop Generation Button**: Cancel an in-progress AI response with an abort signal on the fetch request.
-- [x] **Streaming Responses**: Switch from awaiting the full response to real-time token streaming via the DeepSeek SSE endpoint for a more responsive chat feel.
-- [ ] **Code Syntax Highlighting**: Integrate a lightweight highlighter (e.g. highlight.js) to colorize code blocks within rendered markdown.
-- [x] **Conversation Export**: Download individual chat threads as `.md` files for portability.
-- [ ] **Dark / Light Theme Toggle**: Add a Material You light theme variant with a toggle in the sidebar settings.
-- [ ] **Token Usage & Cost Tracker**: Display token counts per message and estimate cost per conversation session.
-- [x] **System Prompt Profiles**: Categorized factory prompts auto-discovered from subfolders, plus user-created prompts via the UI. Per-conversation selection.
+### Method A: One-Click Launch (Windows)
+Double-click `start-vibechat.bat` inside the workspace. This automatically boots the local Node.js server, initializes your local database, and launches VibeChat directly in your default web browser.
+
+### Method B: Manual Command-Line Launch
+1. Launch the server from your terminal:
+   ```bash
+   node server.js
+   ```
+2. Navigate to `http://localhost:3000` in your web browser.
+
+### Configuring for Narrative Writing
+1. Click **DeepSeek API Key** (🔑) in the sidebar drawer.
+2. Paste your API Key (`sk-...`) and click **Save Key**. The key status indicator will turn green.
+3. Select your model chip above the input box (**DeepSeek V4 Pro** for heavy reasoning, **DeepSeek V4 Flash** for faster narrative sketching).
+4. Click **New Chat** (➕), name your scene, select your custom System Prompt, and start writing!
+
+---
+
+## 🔮 Active Roadmap
+
+- [x] **Secure Backend Proxy**: Kept API keys hidden from client-side network inspectors.
+- [x] **Streaming Generator**: Stream tokens block-by-block with full markdown rendering.
+- [x] **Stop / Abort Signal**: Halt AI text generation instantly.
+- [x] **Interactive Timelines**: Edit history and branch off into new story iterations.
+- [x] **Dynamic Continuation**: Dedicated pill button to instantly trigger story sequels.
+- [x] **In-App Modal Overlays**: Smooth custom alerts replacing browser popup boxes.
+- [ ] **Multi-Author Collaboration**: Export/Import individual branch state databases to collaborate with other writers.
+- [ ] **Dark/Light Expressive Themes**: Add an optional expressive warm vanilla light mode.
