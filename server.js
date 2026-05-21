@@ -124,7 +124,10 @@ const server = http.createServer((req, res) => {
     // --- API: GET /api/prompts ---
     if (pathname === '/api/prompts' && req.method === 'GET') {
         const tree = getPromptTree();
-        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.writeHead(200, { 
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
+        });
         res.end(JSON.stringify(tree));
         return;
     }
@@ -153,7 +156,10 @@ const server = http.createServer((req, res) => {
                 content = lines.join('\n').trim();
             }
             const name = extractNameFromFile(filePath) || filename;
-            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.writeHead(200, { 
+                'Content-Type': 'application/json; charset=utf-8',
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
+            });
             res.end(JSON.stringify({ name, filename, category, content }));
         } catch {
             res.writeHead(404);
@@ -168,7 +174,10 @@ const server = http.createServer((req, res) => {
             const db = readDb();
             const hasKey = !!db.settings?.apiKey;
             const activeModel = db.settings?.activeModel || 'deepseek-v4-pro';
-            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.writeHead(200, { 
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
+            });
             res.end(JSON.stringify({ hasKey, activeModel }));
             return;
         }
@@ -197,7 +206,10 @@ const server = http.createServer((req, res) => {
     if (pathname === '/api/conversations') {
         if (req.method === 'GET') {
             const db = readDb();
-            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.writeHead(200, { 
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
+            });
             res.end(JSON.stringify(db.conversations || []));
             return;
         }
@@ -266,7 +278,10 @@ const server = http.createServer((req, res) => {
             const conversationIdStr = url.searchParams.get('conversationId');
             const conversationId = isNaN(conversationIdStr) ? conversationIdStr : parseInt(conversationIdStr);
             const filtered = (db.messages || []).filter(m => m.conversationId === conversationId);
-            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.writeHead(200, { 
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
+            });
             res.end(JSON.stringify(filtered));
             return;
         }
@@ -338,7 +353,10 @@ const server = http.createServer((req, res) => {
     if (pathname === '/api/user-prompts') {
         if (req.method === 'GET') {
             const db = readDb();
-            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.writeHead(200, { 
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
+            });
             res.end(JSON.stringify(db.prompts || []));
             return;
         }

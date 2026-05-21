@@ -728,7 +728,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const parentMsgIdVal = lastActive ? lastActive.id : null;
 
         // Add user message to UI
-        addMessageToUI('user', message);
+        const userMsgDiv = addMessageToUI('user', message);
 
         // Clear input early
         userInput.value = '';
@@ -753,6 +753,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const userMsgId = newMsg.id;
 
+        // Sync with backend immediately to show edit actions for the user message
+        await refreshConversationView();
+
         // Trigger auto-titling if this is the very first message
         if (prevMsgs.length === 0) {
             await autoTitleConversation(currentConversationId, message);
@@ -763,6 +766,9 @@ document.addEventListener('DOMContentLoaded', () => {
             conversationId: currentConversationId,
             parentMsgId: userMsgId
         });
+
+        // Sync with backend to finalize and show regenerate/retry actions for the bot response
+        await refreshConversationView();
     });
 
     function addMessageToUI(sender, text, reasoning, msgMeta = {}) {
@@ -1154,7 +1160,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (fullContent) {
-                await fetch('/api/messages', {
+                const saveRes = await fetch('/api/messages', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1169,7 +1175,34 @@ document.addEventListener('DOMContentLoaded', () => {
                         isActive: true
                     })
                 });
+                let savedMsg = {};
+                if (saveRes.ok) {
+                    savedMsg = await saveRes.json();
+                }
+
                 finalizeStreamingBotMessage(streamMsgId, fullContent, fullReasoning);
+
+                const streamMsgDiv = document.getElementById(streamMsgId);
+                if (streamMsgDiv && savedMsg.id) {
+                    streamMsgDiv.dataset.msgId = savedMsg.id;
+                    if (savedMsg.versionGroupId) {
+                        streamMsgDiv.dataset.versionGroupId = savedMsg.versionGroupId;
+                        streamMsgDiv.dataset.version = savedMsg.version || 1;
+                    }
+                    
+                    // Fetch version count dynamically to handle retry counts correctly
+                    const vCountRes = await fetch(`/api/messages?conversationId=${conversationId}`);
+                    const allMsgs = vCountRes.ok ? await vCountRes.json() : [];
+                    const vGroup = savedMsg.versionGroupId;
+                    const versionCount = vGroup ? allMsgs.filter(m => m.versionGroupId === vGroup).length : 1;
+
+                    attachMessageActions(streamMsgDiv, 'bot', {
+                        id: savedMsg.id,
+                        versionGroupId: savedMsg.versionGroupId,
+                        version: savedMsg.version || 1,
+                        versionCount: versionCount
+                    });
+                }
             }
 
         } catch (error) {
