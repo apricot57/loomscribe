@@ -988,7 +988,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const contentDiv = msg.querySelector('.message-content');
         if (!contentDiv) return;
         contentDiv.innerHTML = typeof marked !== 'undefined' ? marked.parse(content) : content;
-        scrollToBottom();
     }
 
     function finalizeStreamingBotMessage(id, content, reasoning) {
