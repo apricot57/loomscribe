@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Stop Button DOM Element
     const stopBtn = document.getElementById('stop-btn');
 
+    // Export Button DOM Element
+    const exportChatBtn = document.getElementById('export-chat-btn');
+
     // Model Selector DOM Elements
     const modelSelectBtn = document.getElementById('model-select-btn');
     const modelDropdownMenu = document.getElementById('model-dropdown-menu');
@@ -1664,6 +1667,69 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }
+    }
+
+    // Export Conversation to Markdown Logic
+    if (exportChatBtn) {
+        exportChatBtn.addEventListener('click', async () => {
+            if (currentConversationId === null) {
+                alert('No active conversation to export.');
+                return;
+            }
+
+            const conv = await db.conversations.get(currentConversationId);
+            if (!conv) return;
+
+            const allMessages = await db.messages.where('conversationId').equals(currentConversationId).sortBy('timestamp');
+            const activeMessages = allMessages.filter(m => m.isActive !== false);
+
+            if (activeMessages.length === 0) {
+                alert('This conversation has no messages to export.');
+                return;
+            }
+
+            const title = conv.title || 'Untitled Conversation';
+            const systemPrompt = getSystemPromptContentSync();
+
+            let mdContent = `# ${title}\n\n`;
+            if (systemPrompt) {
+                mdContent += `> **System Prompt:** ${systemPrompt}\n\n`;
+            }
+            mdContent += `---\n\n`;
+
+            activeMessages.forEach(msg => {
+                if (msg.role !== 'system') {
+                    const roleName = msg.role === 'assistant' ? 'Assistant' : 'User';
+                    mdContent += `## ${roleName}\n\n${msg.content}\n\n---\n\n`;
+                }
+            });
+
+            // Clean up trailing separators
+            mdContent = mdContent.trim().replace(/---\s*$/, '').trim() + '\n';
+
+            // Trigger download
+            const slugify = (text) => {
+                return text
+                    .toString()
+                    .toLowerCase()
+                    .replace(/\s+/g, '-')
+                    .replace(/[^\w\-]+/g, '')
+                    .replace(/\-\-+/g, '-')
+                    .replace(/^-+/, '')
+                    .replace(/-+$/, '');
+            };
+
+            const filename = `${slugify(title) || 'conversation'}.md`;
+            const blob = new Blob([mdContent], { type: 'text/markdown;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        });
     }
 
     // Trigger Bootstrapper
