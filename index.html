@@ -223,6 +223,19 @@
                 </div>
             </div>
         </div>
+
+        <!-- Delete Confirmation Modal (In-App custom premium pop-up) -->
+        <div id="delete-confirm-modal" class="modal-overlay hidden">
+            <div class="modal-content">
+                <button id="delete-confirm-close-btn" class="close-btn" aria-label="Close modal">&times;</button>
+                <h2>Delete Chat?</h2>
+                <p class="modal-description">Are you sure you want to delete this conversation? This will permanently remove all messages and version branches inside it. This action cannot be undone.</p>
+                <div class="modal-actions">
+                    <button id="delete-confirm-cancel-btn" class="btn btn-secondary">Cancel</button>
+                    <button id="delete-confirm-btn" class="btn btn-danger">Delete Chat</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>

@@ -52,6 +52,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const savePromptBtn = document.getElementById('save-prompt-btn');
     let editingPromptId = null;
 
+    // Delete Confirmation Modal DOM Elements
+    const deleteConfirmModal = document.getElementById('delete-confirm-modal');
+    const deleteConfirmCloseBtn = document.getElementById('delete-confirm-close-btn');
+    const deleteConfirmCancelBtn = document.getElementById('delete-confirm-cancel-btn');
+    const deleteConfirmBtn = document.getElementById('delete-confirm-btn');
+    let conversationIdToDelete = null;
+
     // Footer Prompt Selector DOM Elements
     const promptSelectBtn = document.getElementById('prompt-select-btn');
     const activePromptName = document.getElementById('active-prompt-name');
@@ -462,25 +469,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Delete a conversation thread
-    async function deleteConversation(id) {
-        if (confirm('Are you sure you want to delete this conversation?')) {
-            await fetch(`/api/conversations/${id}`, {
-                method: 'DELETE'
-            });
-            
-            if (currentConversationId === id) {
-                const cRes = await fetch('/api/conversations');
-                const conversations = cRes.ok ? await cRes.json() : [];
-                conversations.sort((a, b) => b.createdAt - a.createdAt);
-                const latest = conversations[0];
-                if (latest) {
-                    await switchConversation(latest.id);
-                } else {
-                    await createNewConversation();
-                }
-            } else {
-                await loadConversations();
-            }
+    function deleteConversation(id) {
+        conversationIdToDelete = id;
+        if (deleteConfirmModal) {
+            deleteConfirmModal.classList.remove('hidden');
         }
     }
 
@@ -628,6 +620,53 @@ document.addEventListener('DOMContentLoaded', () => {
     promptEditorModal.addEventListener('click', (e) => {
         if (e.target === promptEditorModal) promptEditorModal.classList.add('hidden');
     });
+
+    // Delete Confirmation Modal close
+    function closeDeleteConfirmModal() {
+        if (deleteConfirmModal) {
+            deleteConfirmModal.classList.add('hidden');
+        }
+        conversationIdToDelete = null;
+    }
+
+    if (deleteConfirmCloseBtn) {
+        deleteConfirmCloseBtn.addEventListener('click', closeDeleteConfirmModal);
+    }
+    if (deleteConfirmCancelBtn) {
+        deleteConfirmCancelBtn.addEventListener('click', closeDeleteConfirmModal);
+    }
+    if (deleteConfirmModal) {
+        deleteConfirmModal.addEventListener('click', (e) => {
+            if (e.target === deleteConfirmModal) closeDeleteConfirmModal();
+        });
+    }
+
+    // Delete Confirmation Modal Action
+    if (deleteConfirmBtn) {
+        deleteConfirmBtn.addEventListener('click', async () => {
+            if (conversationIdToDelete === null) return;
+            const id = conversationIdToDelete;
+            closeDeleteConfirmModal();
+
+            await fetch(`/api/conversations/${id}`, {
+                method: 'DELETE'
+            });
+            
+            if (currentConversationId === id) {
+                const cRes = await fetch('/api/conversations');
+                const conversations = cRes.ok ? await cRes.json() : [];
+                conversations.sort((a, b) => b.createdAt - a.createdAt);
+                const latest = conversations[0];
+                if (latest) {
+                    await switchConversation(latest.id);
+                } else {
+                    await createNewConversation();
+                }
+            } else {
+                await loadConversations();
+            }
+        });
+    }
 
     // Save Prompt button
     savePromptBtn.addEventListener('click', async () => {
