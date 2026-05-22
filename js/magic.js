@@ -261,6 +261,7 @@ export async function executeMagicRewrite(msgId, selectedText, instruction) {
             }
         ];
 
+        const thinkingMode = state.serverConfig.thinkingMode || 'enabled';
         const response = await fetch(state.API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -268,7 +269,10 @@ export async function executeMagicRewrite(msgId, selectedText, instruction) {
                 model: selectedModel,
                 messages: rewriteMessages,
                 temperature: 0.7,
-                stream: false
+                stream: false,
+                thinking: {
+                    type: thinkingMode
+                }
             })
         });
 

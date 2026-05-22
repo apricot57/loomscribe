@@ -145,10 +145,14 @@
 }
 
 .model-dropdown-btn {
-    background: var(--bg-input);
-    border: 1px solid var(--border-color);
+    height: 38px;
+    box-sizing: border-box;
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(168, 85, 247, 0.1));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(56, 189, 248, 0.3);
     color: var(--text-primary);
-    padding: 8px 18px;
+    padding: 0 18px;
     border-radius: var(--border-radius-pill); /* Pill shaped buttons */
     font-size: 0.85rem;
     font-weight: 600;
@@ -159,18 +163,25 @@
     transition: var(--transition-m3);
     font-family: inherit;
     outline: none;
-    box-shadow: var(--shadow-m3-low);
+    box-shadow: 0 4px 15px rgba(56, 189, 248, 0.15);
 }
 
 .model-dropdown-btn:hover {
-    background: var(--bg-message-user);
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(168, 85, 247, 0.2));
     color: #ffffff;
-    border-color: rgba(56, 189, 248, 0.3);
+    border-color: rgba(56, 189, 248, 0.6);
+    box-shadow: 0 6px 20px rgba(56, 189, 248, 0.25);
+    transform: translateY(-1px);
 }
 
 .model-dropdown-btn:focus {
     border-color: var(--accent-color);
     box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.model-dropdown-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(56, 189, 248, 0.15);
 }
 
 .dropdown-chevron {
@@ -186,14 +197,18 @@
 }
 
 .prompt-select-btn {
+    height: 38px;
+    box-sizing: border-box;
     display: flex;
     align-items: center;
     gap: 8px;
-    background: var(--bg-input);
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(168, 85, 247, 0.1));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(56, 189, 248, 0.3);
     color: var(--text-primary);
-    border: 1px solid var(--border-color);
     border-radius: var(--border-radius-pill);
-    padding: 8px 18px;
+    padding: 0 18px;
     font-family: inherit;
     font-size: 0.85rem;
     font-weight: 600;
@@ -203,19 +218,26 @@
     max-width: 220px;
     overflow: hidden;
     text-overflow: ellipsis;
-    box-shadow: var(--shadow-m3-low);
+    box-shadow: 0 4px 15px rgba(56, 189, 248, 0.15);
     outline: none;
 }
 
 .prompt-select-btn:hover {
-    background: var(--bg-message-user);
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(168, 85, 247, 0.2));
     color: #ffffff;
-    border-color: rgba(56, 189, 248, 0.3);
+    border-color: rgba(56, 189, 248, 0.6);
+    box-shadow: 0 6px 20px rgba(56, 189, 248, 0.25);
+    transform: translateY(-1px);
 }
 
 .prompt-select-btn:focus {
     border-color: var(--accent-color);
     box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.prompt-select-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(56, 189, 248, 0.15);
 }
 
 .prompt-select-btn #active-prompt-name {
@@ -436,10 +458,14 @@
    Premium Glassmorphic Continue Button
    ========================================================================== */
 .continue-btn {
+    height: 38px;
+    box-sizing: border-box;
     background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(168, 85, 247, 0.1));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(56, 189, 248, 0.3);
     color: var(--text-primary);
-    padding: 8px 18px;
+    padding: 0 18px;
     border-radius: var(--border-radius-pill);
     font-size: 0.85rem;
     font-weight: 600;
@@ -450,7 +476,7 @@
     transition: var(--transition-m3);
     font-family: inherit;
     outline: none;
-    box-shadow: 0 4px 15px rgba(56, 189, 248, 0.1);
+    box-shadow: 0 4px 15px rgba(56, 189, 248, 0.15);
 }
 
 .continue-btn:hover {
@@ -479,3 +505,72 @@
     transform: scale(1.1);
     filter: drop-shadow(0 0 4px var(--accent-glow));
 }
+
+/* Thinking Mode Toggle Button styling */
+.thinking-toggle-btn {
+    height: 38px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(168, 85, 247, 0.1));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: var(--text-primary);
+    border-radius: var(--border-radius-pill);
+    padding: 0 18px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-m3);
+    white-space: nowrap;
+    box-shadow: 0 4px 15px rgba(56, 189, 248, 0.15);
+    outline: none;
+}
+
+.thinking-toggle-btn:hover {
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(168, 85, 247, 0.2));
+    color: #ffffff;
+    border-color: rgba(56, 189, 248, 0.6);
+    box-shadow: 0 6px 20px rgba(56, 189, 248, 0.25);
+    transform: translateY(-1px);
+}
+
+.thinking-toggle-btn:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.thinking-toggle-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(56, 189, 248, 0.15);
+}
+
+.thinking-toggle-btn.active {
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(14, 165, 233, 0.2));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-color: rgba(56, 189, 248, 0.5);
+    color: #38bdf8;
+    box-shadow: 0 4px 15px rgba(56, 189, 248, 0.25);
+}
+
+.thinking-toggle-btn.active:hover {
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.3), rgba(14, 165, 233, 0.3));
+    border-color: rgba(56, 189, 248, 0.75);
+    color: #38bdf8;
+    box-shadow: 0 6px 20px rgba(56, 189, 248, 0.35);
+    transform: translateY(-1px);
+}
+
+.thinking-icon {
+    flex-shrink: 0;
+    opacity: 0.8;
+}
+
+.thinking-toggle-btn.active .thinking-icon {
+    color: #38bdf8;
+}
+

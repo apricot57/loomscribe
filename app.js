@@ -1,6 +1,7 @@
 import { state, getSystemPromptContentSync } from './js/state.js';
 import { loadFactoryPrompts, autoTitleConversation } from './js/api.js';
 import {
+    initializeThinkingUI,
     initializeModelUI,
     updateKeyStatusUI,
     loadConversations,
@@ -146,6 +147,33 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    // Thinking Mode Toggle event handling
+    const thinkingToggleBtn = document.getElementById('thinking-toggle-btn');
+    const thinkingStatusText = document.getElementById('thinking-status-text');
+    if (thinkingToggleBtn) {
+        thinkingToggleBtn.addEventListener('click', async () => {
+            const currentMode = state.serverConfig.thinkingMode || 'enabled';
+            const newMode = currentMode === 'enabled' ? 'disabled' : 'enabled';
+            state.serverConfig.thinkingMode = newMode;
+
+            // Update UI
+            if (newMode === 'enabled') {
+                thinkingToggleBtn.classList.add('active');
+                if (thinkingStatusText) thinkingStatusText.textContent = 'Thinking: On';
+            } else {
+                thinkingToggleBtn.classList.remove('active');
+                if (thinkingStatusText) thinkingStatusText.textContent = 'Thinking: Off';
+            }
+
+            // Save configuration globally on server
+            await fetch('/api/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ thinkingMode: newMode })
+            });
+        });
+    }
 
     // Show API Key Modal
     if (keyBtn) {
@@ -625,6 +653,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         await loadFactoryPrompts();
         initializeModelUI();
+        initializeThinkingUI();
         updateKeyStatusUI();
         await loadConversations();
 

@@ -13,6 +13,21 @@ import {
 } from './api.js';
 
 // Model Selection UI Logic
+export function initializeThinkingUI() {
+    const thinkingBtn = document.getElementById('thinking-toggle-btn');
+    const thinkingStatusText = document.getElementById('thinking-status-text');
+    if (!thinkingBtn) return;
+
+    const mode = state.serverConfig.thinkingMode || 'enabled';
+    if (mode === 'enabled') {
+        thinkingBtn.classList.add('active');
+        if (thinkingStatusText) thinkingStatusText.textContent = 'Thinking: On';
+    } else {
+        thinkingBtn.classList.remove('active');
+        if (thinkingStatusText) thinkingStatusText.textContent = 'Thinking: Off';
+    }
+}
+
 export function initializeModelUI() {
     const activeModelName = document.getElementById('active-model-name');
     const dropdownItems = document.querySelectorAll('.dropdown-item');
@@ -1237,6 +1252,7 @@ export async function streamApiResponse({ conversationId, parentMsgId, stopAfter
 
     try {
         const selectedModel = state.serverConfig.activeModel || 'deepseek-v4-pro';
+        const thinkingMode = state.serverConfig.thinkingMode || 'enabled';
         const response = await fetch(state.API_URL, {
             method: 'POST',
             headers: {
@@ -1247,7 +1263,10 @@ export async function streamApiResponse({ conversationId, parentMsgId, stopAfter
                 model: selectedModel,
                 messages: payloadMessages,
                 temperature: 0.7,
-                stream: true
+                stream: true,
+                thinking: {
+                    type: thinkingMode
+                }
             })
         });
 
