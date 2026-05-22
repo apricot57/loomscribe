@@ -4,18 +4,40 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-VibeChat is a vanilla HTML/CSS/JS single-page chat app that talks to the DeepSeek API via a Node.js backend proxy. No build tools, no framework. The server is required — the app no longer works when opened via `file://`.
+VibeChat is a vanilla HTML/CSS/JS single-page chat app that talks to the DeepSeek API via a Node.js backend proxy. No bundlers or build steps are used. It leverages native ES6 modules (`type="module"`) on the frontend, standard `@import` rules in CSS, and a modular, zero-dependency Node.js server. The server is required — the app no longer works when opened via `file://`.
 
-### Key Files
+### File Structure & Architecture
 
-- `index.html` — HTML structure, sidebar, modals, CDN-loaded scripts (marked.js only)
-- `style.css` — Sky-blue Material 3 dark theme via CSS custom properties, responsive layout
-- `app.js` — All application logic in one file, wrapped in `DOMContentLoaded`
-- `server.js` — Node.js server: static files + full REST API + DeepSeek API proxy
-- `favicon.png` — App icon asset
-- `prompt_cards/` — System prompt markdown files organized into category subfolders
-- `data/db.json` — Server-side JSON file database (all persistent state)
-- `start-vibechat.bat` — Double-click to start server + open browser, press any key to stop
+```
+vibe-api/
+│
+├── css/                     <-- Modular CSS stylesheets
+│   ├── variables.css        <-- Design tokens, themes, global layout reset, helper utilities
+│   ├── layout.css           <-- Sidebar drawer, main container header & footer frames
+│   ├── messages.css         <-- Chat content, message bubbles, collapsible thoughts, edit inputs
+│   ├── input.css            <-- Bottom chat input form, dropdown pill wrappers
+│   ├── modals.css           <-- Centered dialog overlays (API Keys, prompts, deletion warnings)
+│   └── magic.css            <-- Magic Wand floating coordinates, Glowing loader animations
+│
+├── js/                      <-- Modular ES6 Frontend logic files
+│   ├── state.js             <-- Client-side read-write shared state objects and setters
+│   ├── api.js               <-- Dedicated interface for REST API communication & AI stream proxy
+│   ├── ui.js                <-- DOM references lookup, dynamic renderers, and custom animation triggers
+│   └── magic.js             <-- Drag-selection hooks, wand coordinates, and magic inline rewrites
+│
+├── src/
+│   └── server/              <-- Modular Backend logic files
+│       ├── db.js            <-- Low-level filesystem read/write helpers for data/db.json
+│       ├── prompts.js       <-- System prompt auto-discovery & markdown header parsing
+│       └── routes.js        <-- REST API routes & DeepSeek server-sent events (SSE) stream proxy
+│
+├── server.js                <-- HTTP Server entrypoint (serves static assets, routes API calls)
+├── app.js                   <-- Frontend entrypoint (binds global click listeners and starts app)
+├── style.css                <-- Global CSS entrypoint (aggregates modular sheets using @import)
+├── index.html               <-- App markup structure and script linking (loads app.js as type="module")
+├── prompt_cards/            <-- Read-only markdown files grouped by categories
+└── data/db.json             <-- Persistent server-side JSON database
+```
 
 ## Development Commands
 
@@ -28,86 +50,35 @@ node server.js
 
 Or double-click `start-vibechat.bat`.
 
-## Architecture
+## Architecture & Data Flow
 
-### Data Flow
-1. User types message → `chatForm submit` event
-2. Message saved to server DB (`POST /api/messages`), rendered to UI
-3. Full conversation history fetched from server (`GET /api/messages`), sent via proxy to DeepSeek API (`POST /api/chat/completions`)
-4. Response streamed to UI as SSE chunks, saved to server DB on completion
+1. **User interaction**: User submits input → `chatForm` event fires in `app.js`.
+2. **Database Logging**: Message saved to backend database (`POST /api/messages`), and visually appended via `addMessageToUI()` in `js/ui.js`.
+3. **AI Generation Proxy**: Server-side routes query DeepSeek's API. Response is piped back to the browser using Server-Sent Events (SSE).
+4. **Markdown Rendering**: Real-time token streaming captures delta thoughts (`reasoning_content`) and content, renders it using `marked.js` library, and commits final text to database on streaming end.
 
-### Storage
-- **Server-side (data/db.json)**: Everything — conversations, messages, user prompts, API key, model preference
-- **localStorage**: Only `activeConversationId` (to restore the last active conversation on reload)
+### Storage & State Management
+- **Server-side (data/db.json)**: Stores active conversations, full message version logs, user-created prompts, active model preference, and API key.
+- **Client-side State (`js/state.js`)**: Exports a synchronized `state` object. Standardizes caching of system prompts, AbortControllers for cancelling calls, and tracks current conversation/message selection references.
+- **localStorage**: Caches the last selected `activeConversationId` to auto-restore conversation history on browser reload.
 
-### Server API Endpoints
-- `GET /api/config` — Get server config (hasKey, activeModel)
-- `POST /api/config` — Save API key and/or active model
-- `GET|POST /api/conversations` — List all conversations or create new
-- `PUT|DELETE /api/conversations/:id` — Update or delete a conversation (cascade deletes messages)
-- `GET|POST /api/messages?conversationId=` — Get or create messages
-- `PUT /api/messages/:id` — Update a message (edit content, toggle isActive, set versionGroupId)
-- `DELETE /api/messages?conversationId=` — Delete all messages in a conversation
-- `GET|POST /api/user-prompts` — List or create/update user-created system prompts
-- `DELETE /api/user-prompts/:id` — Delete a user prompt
-- `GET /api/prompts` — List factory prompt cards from `prompt_cards/` subfolders
-- `GET /api/prompts/:category/:filename` — Get a specific factory prompt content
-- `POST /api/chat/completions` — Proxies to DeepSeek API (key stays server-side)
+## Coding Conventions
 
-### System Prompt Profiles
-- **Factory prompts**: Read-only prompts from `prompt_cards/` subfolders, auto-discovered via `GET /api/prompts`. Drop `.md` files into a subfolder, restart server, they appear.
-- **User prompts**: Created/edited/deleted through the app UI, stored in server DB. Persist across restarts.
-- Both sources merged at runtime in the prompt selector dropdown
-- `systemPromptId` stored on each conversation: `"category/filename"` for factory prompts, `"user/id"` for user prompts
+### JS Conventions (Native ES6 Modules)
+- Import paths MUST use absolute relative paths with the `.js` extension (e.g. `import { state } from './state.js';`).
+- State variables must be accessed and modified via the shared `state` object in `js/state.js`.
+- DOM references must be retrieved dynamically or mapped to clean helper functions inside `js/ui.js`.
+- The `js/magic.js` module automatically self-initializes by registering top-level window and document drag event listeners upon loading.
+- Asynchronous API queries are grouped cleanly inside `js/api.js`.
 
 ### CSS Conventions
-- Design tokens as CSS custom properties in `:root` (prefixes: `--bg-`, `--accent-`, `--text-`, `--border-radius-`, `--shadow-m3-`, `--transition-`)
-- Organized into section blocks delimited by `/* ====== */` comments
-- Mobile breakpoint at 768px (sidebar becomes overlay)
-- Classes use kebab-case. IDs used for unique interactive elements.
+- Design tokens reside as CSS custom properties under `:root` inside `css/variables.css`.
+- Main `style.css` acts only as a loader/aggregator of modular sheets using `@import url(...)` rules.
+- Maintain Material 3 aesthetics with frosted glassmorphism overlays (`backdrop-filter`), smooth hover transitions, and glowing visual states.
+- Mobile layout activates at `768px` media query width where the sidebar shifts to a toggleable collapsible menu.
 
-### JS Conventions
-- All code inside a single `DOMContentLoaded` listener
-- DOM element references collected at the top, then event listeners, then function definitions
-- State variables: `currentConversationId`, `abortController`, `serverConfig`, `currentSystemPromptId`, `factoryPromptCategories`, `promptContentCache`, `modalSelectedPromptId`, `editingPromptId`, `conversationIdToDelete`
-- Functions: `async/await` for server API and API calls
-- API calls use `fetch` with `AbortController` for cancellation
-- Only CDN dependency: `marked.js` (loaded via `<script>`, checked via `typeof marked`)
-
-### API Integration
-- API calls proxied through the server: `POST /api/chat/completions` → `https://api.deepseek.com/chat/completions`
-- API key is stored server-side only (never sent to the browser)
-- Models: `deepseek-v4-pro` (default), `deepseek-v4-flash`
-- System prompt: Selected per-conversation. Falls back to "You are a helpful and concise AI assistant."
-- Temperature: 0.7
-
-## Features
-
-### Message Editing
-- **User messages**: Inline edit via textarea, saving creates a new version and regenerates the AI response
-- **Bot messages**: Inline edit via textarea (raw markdown), saving creates a new version (no regeneration)
-- **Regenerate**: Bot messages can be regenerated, creating a new version branch
-- **Version navigation**: Messages with multiple versions show prev/next controls to switch between them
-- **Magic Rewrite**: Select text in a bot message, click the "Magic Rewrite" button, enter an instruction, and the AI rewrites just that section
-
-### Conversation Management
-- `switchConversation(id)` — Switch active conversation, restore messages and model
-- `createNewConversation(title, systemPromptId)` — Create conversation via server API
-- `deleteConversation(id)` — Shows confirmation modal, then deletes via server API (cascade)
-- **Inline rename**: Conversations renamed via `startInlineRename()` which swaps the title span for an input
-- **Auto-titling**: First user message auto-titles the conversation (truncated to 25 chars)
-
-### Other
-- **Continue button**: Appears when last active message is an assistant response — sends `[continue]` as the next user message
-- **Export to Markdown**: Downloads the active conversation as a `.md` file
-- **Streaming response**: Real-time token streaming with "Thinking..." reasoning block (collapsible)
-
-## Working with the Code
-
-- **New features**: Add interactive elements to `index.html` first, then style in `style.css`, then logic in `app.js`
-- **Styling patterns**: Buttons use `--border-radius-pill` (9999px). User bubbles use `--bg-input`, bot messages are transparent with full-width layout.
-- **Abort pattern**: `abortController` is the global state for fetch cancellation; the stop button calls `abortController.abort()`
-- **Server-side storage**: All persistent state goes into `server.js` via `data/db.json`. Add new API endpoints to `server.js` and call them from `app.js`.
-- **Reasoning content**: Streaming responses parse `reasoning_content` from DeepSeek's delta. Displayed in a collapsible "Thought" block.
-- **System prompts**: Add a `.md` file to any subfolder in `prompt_cards/`, restart the server, and it appears in the prompt selector. Or create/edit/delete via the app UI (stored in server DB).
-- **Server**: `server.js` auto-scans `prompt_cards/` subfolders. First line of each `.md` file (H1 with "System Prompt: Name" format) is used as the display name. Subfolder names become category labels.
+### Working with the Code
+- **Adding new styles**: Place them in the relevant CSS stylesheet inside `css/` rather than adding inline styles or polluting `style.css` directly.
+- **Modifying UI rendering**: Edit `js/ui.js` to change how dynamic DOM components are generated.
+- **Extending Server API**: Keep `server.js` clean; place additional API endpoint pathways or proxy handlers inside `src/server/routes.js` and call database methods from `src/server/db.js`.
+- **Reasoning thought panels**: Collapsible sections (`<div class="reasoning-block collapsed">` with a `.reasoning-header` toggle) display streamed deep reasoning before regular assistant responses. Keep their styling intact under `css/messages.css`.

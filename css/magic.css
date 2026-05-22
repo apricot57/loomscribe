@@ -1,0 +1,149 @@
+/* ==========================================================================
+   Magic Wand Selection Rewrite Styles
+   ========================================================================== */
+
+/* Floating Magic Wand Button */
+.magic-wand-btn {
+    position: absolute;
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.95), rgba(56, 189, 248, 0.95));
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    padding: 6px 14px;
+    border-radius: var(--border-radius-pill);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 1000;
+    box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4);
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    user-select: none;
+}
+
+.magic-wand-btn svg {
+    stroke: #ffffff;
+}
+
+.magic-wand-btn:hover {
+    transform: translate(-50%, -100%) scale(1.05);
+    box-shadow: 0 6px 20px rgba(168, 85, 247, 0.6);
+}
+
+.magic-wand-btn.hidden {
+    display: none !important;
+}
+
+/* Glassmorphic Rewrite Input Dialog Bubble */
+.magic-rewrite-dialog {
+    position: absolute;
+    z-index: 1001;
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(168, 85, 247, 0.4);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5), 0 0 15px rgba(168, 85, 247, 0.1);
+    border-radius: 16px;
+    padding: 14px;
+    width: 320px;
+    color: var(--text-primary);
+    font-family: inherit;
+    transition: opacity 0.2s ease;
+}
+
+.magic-rewrite-dialog.hidden {
+    display: none !important;
+}
+
+.rewrite-dialog-header {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--accent-color);
+    margin-bottom: 8px;
+}
+
+.rewrite-snippet-preview {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-style: italic;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 6px 10px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    border-left: 3px solid var(--accent-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rewrite-input-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+#rewrite-instruction-input {
+    flex: 1;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-pill);
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    outline: none;
+    transition: var(--transition-m3);
+}
+
+#rewrite-instruction-input:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.rewrite-btn {
+    background: var(--accent-color);
+    color: var(--accent-text);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition-m3);
+    flex-shrink: 0;
+}
+
+.rewrite-btn:hover {
+    background: var(--accent-hover);
+    transform: scale(1.05);
+}
+
+.rewrite-cancel-btn {
+    background: transparent;
+    color: var(--text-secondary);
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0 4px;
+    flex-shrink: 0;
+    transition: color 0.2s;
+}
+
+.rewrite-cancel-btn:hover {
+    color: var(--text-primary);
+}
+
+/* Glowing Magic Rewrite Loader state on the message card */
+.message.rewriting {
+    position: relative;
+    border: 1px solid rgba(168, 85, 247, 0.4);
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.2);
+    animation: rewrite-glow 2s infinite ease-in-out;
+}
+
+@keyframes rewrite-glow {
+    0%, 100% { border-color: rgba(168, 85, 247, 0.4); box-shadow: 0 0 20px rgba(168, 85, 247, 0.2); }
+    50% { border-color: rgba(56, 189, 248, 0.6); box-shadow: 0 0 25px rgba(56, 189, 248, 0.3); }
+}
