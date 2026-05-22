@@ -1,0 +1,59 @@
+:root {
+    /* ==========================================================================
+       Material Design 3 Expressive Dark Palette Tokens — Sky Blue Expressive
+       ========================================================================== */
+    --bg-main: #0b0f19;                 /* Deep oceanic obsidian background */
+    --bg-sidebar: #111827;              /* Slate-grey/blue elegant sidebar drawer */
+    --bg-header: rgba(11, 15, 25, 0.85);
+    --bg-input: #1e293b;                /* Surface container (mid input depth) */
+    --bg-message-user: #0284c7;         /* Primary container for user bubble (vibrant sky blue) */
+    --border-color: rgba(255, 255, 255, 0.08);
+    
+    /* Expressive Dynamic Highlight Palettes */
+    --accent-color: #38bdf8;            /* Pastel sky blue primary brand */
+    --accent-hover: #7dd3fc;            /* Lighter sky blue for dynamic hover */
+    --accent-glow: rgba(56, 189, 248, 0.25);
+    --accent-dim: rgba(56, 189, 248, 0.12);
+    --accent-text: #032541;             /* High contrast dark navy text on primary */
+    
+    --accent-secondary: #2dd4bf;        /* Warm turquoise/teal accent */
+    --accent-secondary-dim: rgba(45, 212, 191, 0.15);
+    --accent-tertiary: #a5f3fc;         /* Light cyan highlight */
+    
+    --accent-danger: #f43f5e;           /* Modern soft crimson danger/warning */
+    --accent-danger-dim: rgba(244, 63, 94, 0.15);
+    
+    --text-primary: #f1f5f9;            /* Soft ice-white readable text */
+    --text-secondary: #94a3b8;          /* Neutral mid slate-grey text */
+    --text-muted: #64748b;              /* Muted tonal slate grey */
+    
+    /* Material 3 Expressive Structural Tokens */
+    --border-radius-xl: 28px;           /* Organic corners for drawers, cards, modals */
+    --border-radius-pill: 9999px;       /* Interactive chips, FABs, pill buttons, search bars */
+    --border-radius-m: 16px;            /* Medium rounds for message bubbles/typing indicators */
+    
+    --transition-m3: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    --shadow-m3-low: 0 4px 12px rgba(0, 0, 0, 0.15);
+    --shadow-m3-mid: 0 10px 30px rgba(0, 0, 0, 0.3);
+    --shadow-m3-high: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+.hidden {
+    display: none !important;
+}
+
+body {
+    font-family: 'Outfit', sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+}

@@ -1,0 +1,263 @@
+/* ==========================================================================
+   API Key & Settings Modals (M3 Elevated Overlay)
+   ========================================================================== */
+.modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(11, 15, 25, 0.85); /* Tonal backdrop overlay */
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 200;
+    opacity: 1;
+    transition: opacity 0.25s ease-out;
+}
+
+.modal-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.modal-content {
+    background: var(--bg-sidebar); /* Unified dark slate/blue surface */
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-xl); /* XL Rounded corners */
+    padding: 36px;
+    width: 90%;
+    max-width: 440px;
+    position: relative;
+    box-shadow: var(--shadow-m3-high);
+    transform: scale(1) translateY(0);
+    transition: var(--transition-m3);
+}
+
+.modal-overlay.hidden .modal-content {
+    transform: scale(0.95) translateY(12px);
+}
+
+.close-btn {
+    position: absolute;
+    top: 20px;
+    right: 22px;
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    line-height: 1;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.close-btn:hover {
+    color: var(--text-primary);
+}
+
+.modal-content h2 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #ffffff;
+    letter-spacing: -0.5px;
+}
+
+.modal-description {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 24px;
+}
+
+.input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 2px;
+    margin-bottom: 24px;
+    transition: var(--transition-m3);
+}
+
+.input-wrapper:focus-within {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.input-wrapper input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-size: 0.92rem;
+    padding: 12px 14px;
+    font-family: inherit;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.input-wrapper input::placeholder {
+    color: var(--text-muted);
+}
+
+#api-key-input {
+    font-family: monospace;
+}
+
+.visibility-btn {
+    background: transparent;
+    border: none;
+    padding: 8px 12px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: color 0.2s ease;
+    outline: none;
+}
+
+.visibility-btn:hover {
+    color: var(--text-primary);
+}
+
+.eye-icon {
+    width: 20px;
+    height: 20px;
+}
+
+/* Modal Action Buttons */
+.modal-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.btn {
+    flex: 1;
+    border: none;
+    padding: 14px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border-radius: var(--border-radius-pill); /* Pill shapes */
+    cursor: pointer;
+    font-family: inherit;
+    transition: var(--transition-m3);
+    outline: none;
+}
+
+.btn:active {
+    transform: scale(0.97);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-secondary) 100%);
+    color: var(--accent-text);
+    box-shadow: 0 4px 12px rgba(56, 189, 248, 0.25);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent-secondary) 100%);
+    box-shadow: 0 6px 18px rgba(56, 189, 248, 0.4);
+}
+
+.btn-danger {
+    background-color: var(--accent-danger-dim);
+    color: var(--accent-danger);
+    border: 1px solid rgba(244, 63, 94, 0.2);
+}
+
+.btn-danger:hover {
+    background-color: rgba(244, 63, 94, 0.25);
+    border-color: rgba(244, 63, 94, 0.4);
+}
+
+.btn-secondary {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+/* Tonal Pulsing Dots animations for Sidebar indicators */
+@keyframes statusPulseRose {
+    0% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.4); }
+    70% { box-shadow: 0 0 0 6px rgba(244, 63, 94, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); }
+}
+
+@keyframes statusPulseGreen {
+    0% { box-shadow: 0 0 0 0 rgba(92, 230, 156, 0.4); }
+    70% { box-shadow: 0 0 0 6px rgba(92, 230, 156, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(92, 230, 156, 0); }
+}
+
+/* Modal System Prompt Selector (opens downward) */
+.modal-prompt-select-wrapper {
+    position: relative;
+    margin-top: 12px;
+    margin-bottom: 24px;
+}
+
+.modal-prompt-select-wrapper .prompt-dropdown-menu {
+    bottom: auto;
+    top: calc(100% + 8px);
+    min-width: 100%;
+    max-height: 300px;
+    left: 0;
+}
+
+.modal-field-label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.modal-prompt-select-wrapper .prompt-select-btn {
+    width: 100%;
+    max-width: none;
+    justify-content: space-between;
+}
+
+/* Prompt Editor Modal textarea */
+#prompt-content-input {
+    width: 100%;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 12px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.88rem;
+    resize: vertical;
+    min-height: 120px;
+    line-height: 1.6;
+    transition: var(--transition-m3);
+    outline: none;
+}
+
+#prompt-content-input:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 10px var(--accent-glow);
+}
+
+/* Override input-wrapper inside prompt editor for textarea */
+#prompt-editor-modal .input-wrapper {
+    align-items: stretch;
+    padding: 0;
+}
+
+#prompt-editor-modal .input-wrapper:last-of-type {
+    margin-bottom: 24px;
+}
