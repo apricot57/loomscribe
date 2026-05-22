@@ -1,22 +1,49 @@
-# VibeChat
+# 🌌 VibeChat
 
-A lightweight, single-page chat interface for collaborative fiction writing with DeepSeek models. Vanilla HTML/CSS/JS — no build tools, no frameworks, no package managers. The frontend uses native ES6 modules, CSS is organized into modular `@import` sheets, and the backend is split into focused CommonJS modules.
+A premium single-page chat interface for collaborative fiction writing with DeepSeek models. Vanilla HTML/CSS/JS — no build tools, no frameworks, no bundlers. Runs as a **desktop web app** (Node.js backend) or as a standalone **serverless Android APK**.
 
-## Features
+[![Download APK](https://img.shields.io/badge/Download-VibeChat.apk-blue?style=for-the-badge&logo=android)](https://github.com/apricot57/vibe-api/releases/latest)
+[![Android Branch](https://img.shields.io/badge/Branch-Android%20Port-green?style=for-the-badge&logo=git)](https://github.com/apricot57/vibe-api/tree/feature/android-serverless-port)
 
+---
+
+## 📱 Android APK
+
+A fully standalone, serverless Android build is available — no Node.js, no server, nothing to install.
+
+**[⬇ Download VibeChat.apk from Releases](https://github.com/apricot57/vibe-api/releases/latest)**
+
+- API key and all chat history stored on-device in IndexedDB
+- Streams directly from DeepSeek — no proxy, no middleman
+- Collapsible settings drawer for comfortable one-handed mobile use
+
+See the [`feature/android-serverless-port`](https://github.com/apricot57/vibe-api/tree/feature/android-serverless-port) branch for the full Android implementation details.
+
+---
+
+## ✨ Features
+
+### Core
 - **Streaming responses** — Real-time token streaming with markdown rendering and collapsible reasoning blocks
-- **System prompt profiles** — Factory prompts from `prompt_cards/` subfolders, plus user-created prompts editable in-app
+- **Thinking mode** — Toggle DeepSeek chain-of-thought reasoning on or off per session
+- **Model selection** — Switch between DeepSeek V4 Pro and V4 Flash
+
+### Writing Tools
+- **System prompt profiles** — Curated factory prompts for fiction genres and world-building, plus user-created prompts editable in-app
 - **Message editing** — Inline edit any message (user or AI). Editing a user message triggers regeneration; editing an AI message saves the rewrite in-place
-- **Version navigation** — Edited and regenerated messages are tracked as version groups. Navigate between versions with prev/next controls
+- **Version navigation** — Edited and regenerated messages are tracked as version groups with prev/next navigation controls
 - **Regenerate** — Re-roll any AI response, creating a new version branch
-- **Magic Rewrite** — Select text within an AI response and rewrite just that section via instruction
+- **Magic Rewrite** — Select text within an AI response and rewrite *just that section* via a floating instruction dialog
 - **Continue** — One-click button to continue the last AI response without typing
-- **Conversation management** — Create, rename, delete conversations. Conversations persist across sessions
-- **Export to Markdown** — Download the active conversation as a `.md` file
-- **Model selection** — Switch between DeepSeek V4 Pro and V4 Flash per-conversation
+
+### Management
+- **Conversation management** — Create, rename, and delete conversations with persistent history
+- **Export to Markdown** — Download any conversation as a `.md` file
 - **Abort** — Stop generation mid-stream
 
-## Quick Start
+---
+
+## 🚀 Desktop Quick Start
 
 Prerequisites: [Node.js](https://nodejs.org/) (any recent version).
 
@@ -26,81 +53,94 @@ node server.js
 
 Open http://localhost:3000 in your browser.
 
-Or on Windows, double-click `start-vibechat.bat` — it starts the server, opens the browser, and shuts down the server when you press any key.
+On Windows, double-click `start-vibechat.bat` — it starts the server, opens the browser, and shuts down when you press any key.
 
 ### First-time setup
 
 1. Click **DeepSeek API Key** in the sidebar
-2. Paste your API key (`sk-...`) and click **Save Key**
-3. Click **New Chat**, optionally name the conversation and select a system prompt, then start writing
+2. Paste your `sk-...` key and click **Save Key**
+3. Click **New Chat**, optionally select a system prompt, then start writing
 
-Your API key is stored server-side in `data/db.json` and is never exposed to the browser. All API calls are proxied through the server, so the key stays off the client.
+Your API key is stored server-side in `data/db.json` and is never exposed to the browser. All DeepSeek API calls are proxied through the server.
 
-## Project Structure
+---
+
+## 🌿 Branches
+
+| Branch | Description |
+|---|---|
+| [`main`](https://github.com/apricot57/vibe-api/tree/main) | Desktop app — Node.js backend, `data/db.json` persistence |
+| [`feature/android-serverless-port`](https://github.com/apricot57/vibe-api/tree/feature/android-serverless-port) | Standalone Android APK — Capacitor + IndexedDB, zero backend |
+
+---
+
+## 📁 Project Structure
 
 ```
 vibe-api/
-├── index.html              App markup and modals
-├── app.js                  Frontend entrypoint (imports and orchestrates js/* modules)
-├── style.css               CSS entrypoint (aggregates css/* sheets via @import)
-├── server.js               Node.js server entrypoint (static files + REST API + DeepSeek proxy)
-├── start-vibechat.bat      Windows launcher
-├── favicon.png             App icon
+├── www/                        Frontend (served by Node in desktop mode)
+│   ├── index.html              App markup and modals
+│   ├── app.js                  Frontend entrypoint
+│   ├── style.css               CSS entrypoint (aggregates css/* via @import)
+│   ├── css/
+│   │   ├── variables.css       Design tokens, dark theme, global reset
+│   │   ├── layout.css          Sidebar drawer, header & footer frames
+│   │   ├── messages.css        Chat bubbles, reasoning blocks, message actions
+│   │   ├── input.css           Input form, model/prompt dropdowns, continue button
+│   │   ├── modals.css          Dialog overlays (API key, prompts, deletion)
+│   │   └── magic.css           Magic Rewrite floating wand and dialog
+│   └── js/
+│       ├── state.js            Shared client-side state and helpers
+│       ├── api.js              REST API helpers and prompt management
+│       ├── ui.js               DOM renderers, streaming UI, conversation management
+│       └── magic.js            Text selection, floating wand, inline rewrite logic
 │
-├── css/                    Modular CSS stylesheets
-│   ├── variables.css       Design tokens, dark theme, global reset, helper utilities
-│   ├── layout.css          Sidebar drawer, main content header & footer frames
-│   ├── messages.css        Chat bubbles, collapsible reasoning, message actions, edit inputs
-│   ├── input.css           Bottom input form, model/prompt dropdowns, continue button
-│   ├── modals.css          Dialog overlays (API keys, prompts, deletion warnings)
-│   └── magic.css           Magic Rewrite floating wand, rewrite dialog, glow animations
-│
-├── js/                     Modular ES6 frontend modules
-│   ├── state.js            Shared client-side state object and helpers
-│   ├── api.js              REST API communication helpers and prompt management
-│   ├── ui.js               DOM renderers, message actions, streaming UI, conversation mgmt
-│   └── magic.js            Text selection hooks, floating wand, inline rewrite logic
-│
+├── server.js                   Node.js server entrypoint (static files + REST API + DeepSeek proxy)
+├── start-vibechat.bat          Windows one-click launcher
 ├── src/
-│   └── server/             Modular backend logic
-│       ├── db.js           Low-level read/write helpers for data/db.json
-│       ├── prompts.js      System prompt auto-discovery from prompt_cards/
-│       └── routes.js       REST API route handlers and DeepSeek SSE proxy
+│   └── server/
+│       ├── db.js               Read/write helpers for data/db.json
+│       ├── prompts.js          Factory prompt auto-discovery from prompt_cards/
+│       └── routes.js           REST API route handlers and DeepSeek SSE proxy
 │
 ├── data/
-│   └── db.json             Server-side JSON database (conversations, messages, prompts, config)
-├── prompt_cards/           System prompt markdown files organized into category subfolders
-│   ├── story-writing/      Fiction genre prompts
-│   └── generators/         Premise and world-building generators
+│   └── db.json                 Server-side JSON database
+├── prompt_cards/               System prompt markdown files by category
+│   ├── story-writing/
+│   └── generators/
 └── README.md
 ```
 
-## How It Works
+---
 
-The server provides a REST API and proxies requests to the DeepSeek API:
+## ⚙️ How It Works
 
-- `GET /api/config` — Server config (API key status, active model)
-- `POST /api/config` — Save API key and/or model preference
-- `GET|POST /api/conversations` — List or create conversations
-- `PUT|DELETE /api/conversations/:id` — Update or delete a conversation
-- `GET|POST /api/messages?conversationId=` — Get or create messages
-- `PUT /api/messages/:id` — Update a message (edit content, toggle active state, set versioning)
-- `GET|POST /api/user-prompts` — List or create/update user-created prompts
-- `DELETE /api/user-prompts/:id` — Delete a user prompt
-- `GET /api/prompts` — List factory prompts from `prompt_cards/`
-- `GET /api/prompts/:category/:filename` — Get a specific factory prompt
-- `POST /api/chat/completions` — Proxies to `api.deepseek.com/chat/completions` with your stored key
+The server provides a REST API and proxies requests to DeepSeek:
 
-The data flow on each message:
+| Endpoint | Description |
+|---|---|
+| `GET/POST /api/config` | API key status, active model, thinking mode |
+| `GET/POST /api/conversations` | List or create conversations |
+| `PUT/DELETE /api/conversations/:id` | Update or delete a conversation |
+| `GET/POST /api/messages` | Get or create messages (by `conversationId`) |
+| `PUT /api/messages/:id` | Update content, active state, or versioning |
+| `GET/POST /api/user-prompts` | List or upsert user-created prompts |
+| `DELETE /api/user-prompts/:id` | Delete a user prompt |
+| `GET /api/prompts` | List factory prompts from `prompt_cards/` |
+| `GET /api/prompts/:category/:file` | Fetch a specific factory prompt's content |
+| `POST /api/chat/completions` | Proxy to `api.deepseek.com` with stored API key |
 
-1. Your message is saved to the server DB and rendered in the UI
-2. Full conversation history is fetched from the server and sent through the proxy to DeepSeek
-3. The response streams back as tokens, rendered in real time with markdown
-4. On completion, the full response is saved to the server DB
+**Data flow per message:**
+1. Your message is saved to `db.json` and rendered in the UI
+2. Full conversation history is sent through the proxy to DeepSeek
+3. The response streams back as SSE tokens, rendered in real time with markdown
+4. On completion, the full response is saved to `db.json`
 
-## System Prompts
+---
 
-Factory prompts are loaded from `prompt_cards/` subfolders. Drop a `.md` file into any subfolder, restart the server, and it appears in the prompt selector. The first line of each file should be formatted as:
+## 📝 System Prompts
+
+Factory prompts load from `prompt_cards/` subfolders. Drop a `.md` file into any subfolder, restart the server, and it appears in the prompt selector. The first line should be:
 
 ```markdown
 # System Prompt: Your Display Name
@@ -108,12 +148,19 @@ Factory prompts are loaded from `prompt_cards/` subfolders. Drop a `.md` file in
 
 The subfolder name becomes the category label. Files starting with `.` are ignored.
 
-User-created prompts are stored in the server DB and can be created, edited, and deleted through the app UI.
+User-created prompts are stored in `db.json` and managed entirely through the app UI.
 
-## Models
+---
 
-DeepSeek V4 Pro (default) and V4 Flash. The selected model is stored per-conversation on the server.
+## 🤖 Models
 
-## Data
+- **DeepSeek V4 Pro** — Maximum reasoning and intelligence (default)
+- **DeepSeek V4 Flash** — High-speed, efficient generation
 
-All persistent data lives in `data/db.json`. This includes conversations, messages, user prompts, API key, and model preferences. The file is human-readable JSON.
+Toggle **Thinking Mode** (chain-of-thought reasoning) on or off via the brain icon in the input area.
+
+---
+
+## 💾 Data
+
+All persistent data lives in `data/db.json` — conversations, messages, user prompts, API key, and model preferences. Human-readable JSON, easy to back up or inspect.
