@@ -60,11 +60,12 @@ function handleApiRoutes(req, res, pathname, url) {
             const db = readDb();
             const hasKey = !!db.settings?.apiKey;
             const activeModel = db.settings?.activeModel || 'deepseek-v4-pro';
+            const thinkingMode = db.settings?.thinkingMode || 'enabled';
             res.writeHead(200, { 
                 'Content-Type': 'application/json',
                 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
             });
-            res.end(JSON.stringify({ hasKey, activeModel }));
+            res.end(JSON.stringify({ hasKey, activeModel, thinkingMode }));
             return true;
         }
         if (req.method === 'POST') {
@@ -77,9 +78,17 @@ function handleApiRoutes(req, res, pathname, url) {
                 if (body.activeModel !== undefined) {
                     db.settings.activeModel = body.activeModel;
                 }
+                if (body.thinkingMode !== undefined) {
+                    db.settings.thinkingMode = body.thinkingMode;
+                }
                 writeDb(db);
                 res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ success: true, hasKey: !!db.settings.apiKey, activeModel: db.settings.activeModel }));
+                res.end(JSON.stringify({ 
+                    success: true, 
+                    hasKey: !!db.settings.apiKey, 
+                    activeModel: db.settings.activeModel,
+                    thinkingMode: db.settings.thinkingMode || 'enabled'
+                }));
             }).catch(() => {
                 res.writeHead(400);
                 res.end('Bad Request');

@@ -1,5 +1,5 @@
 export const state = {
-    serverConfig: { hasKey: false, activeModel: 'deepseek-v4-pro' },
+    serverConfig: { hasKey: false, activeModel: 'deepseek-v4-pro', thinkingMode: 'enabled' },
     currentConversationId: null,
     abortController: null,
     currentSystemPromptId: null,
