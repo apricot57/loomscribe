@@ -81,4 +81,4 @@ Or double-click `start-vibechat.bat`.
 - **Adding new styles**: Place them in the relevant CSS stylesheet inside `css/` rather than adding inline styles or polluting `style.css` directly.
 - **Modifying UI rendering**: Edit `js/ui.js` to change how dynamic DOM components are generated.
 - **Extending Server API**: Keep `server.js` clean; place additional API endpoint pathways or proxy handlers inside `src/server/routes.js` and call database methods from `src/server/db.js`.
-- **Reasoning thought panels**: Collapsible sections showing `<details class="thought-block">` represent streamed deep reasoning before regular assistant responses. Keep their styling intact under `css/messages.css`.
+- **Reasoning thought panels**: Collapsible sections (`<div class="reasoning-block collapsed">` with a `.reasoning-header` toggle) display streamed deep reasoning before regular assistant responses. Keep their styling intact under `css/messages.css`.

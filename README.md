@@ -1,6 +1,6 @@
 # VibeChat
 
-A lightweight, single-page chat interface for collaborative fiction writing with DeepSeek models. Vanilla HTML/CSS/JS — no build tools, no frameworks, no package managers.
+A lightweight, single-page chat interface for collaborative fiction writing with DeepSeek models. Vanilla HTML/CSS/JS — no build tools, no frameworks, no package managers. The frontend uses native ES6 modules, CSS is organized into modular `@import` sheets, and the backend is split into focused CommonJS modules.
 
 ## Features
 
@@ -40,17 +40,38 @@ Your API key is stored server-side in `data/db.json` and is never exposed to the
 
 ```
 vibe-api/
-├── index.html            HTML structure, sidebar, modals
-├── style.css             Dark theme via CSS custom properties
-├── app.js                All application logic
-├── server.js             Node.js server (static files + REST API + DeepSeek proxy)
-├── favicon.png           App icon
-├── start-vibechat.bat    Windows launcher
+├── index.html              App markup and modals
+├── app.js                  Frontend entrypoint (imports and orchestrates js/* modules)
+├── style.css               CSS entrypoint (aggregates css/* sheets via @import)
+├── server.js               Node.js server entrypoint (static files + REST API + DeepSeek proxy)
+├── start-vibechat.bat      Windows launcher
+├── favicon.png             App icon
+│
+├── css/                    Modular CSS stylesheets
+│   ├── variables.css       Design tokens, dark theme, global reset, helper utilities
+│   ├── layout.css          Sidebar drawer, main content header & footer frames
+│   ├── messages.css        Chat bubbles, collapsible reasoning, message actions, edit inputs
+│   ├── input.css           Bottom input form, model/prompt dropdowns, continue button
+│   ├── modals.css          Dialog overlays (API keys, prompts, deletion warnings)
+│   └── magic.css           Magic Rewrite floating wand, rewrite dialog, glow animations
+│
+├── js/                     Modular ES6 frontend modules
+│   ├── state.js            Shared client-side state object and helpers
+│   ├── api.js              REST API communication helpers and prompt management
+│   ├── ui.js               DOM renderers, message actions, streaming UI, conversation mgmt
+│   └── magic.js            Text selection hooks, floating wand, inline rewrite logic
+│
+├── src/
+│   └── server/             Modular backend logic
+│       ├── db.js           Low-level read/write helpers for data/db.json
+│       ├── prompts.js      System prompt auto-discovery from prompt_cards/
+│       └── routes.js       REST API route handlers and DeepSeek SSE proxy
+│
 ├── data/
-│   └── db.json           Server-side JSON database (conversations, messages, prompts, config)
-├── prompt_cards/         System prompt markdown files organized into category subfolders
-│   ├── story-writing/    Fiction genre prompts
-│   └── generators/       Premise and world-building generators
+│   └── db.json             Server-side JSON database (conversations, messages, prompts, config)
+├── prompt_cards/           System prompt markdown files organized into category subfolders
+│   ├── story-writing/      Fiction genre prompts
+│   └── generators/         Premise and world-building generators
 └── README.md
 ```
 
