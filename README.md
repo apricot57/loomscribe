@@ -1,8 +1,8 @@
-# 🌌 VibeChat
+# 🌌 LoomScribe
 
 A premium single-page chat interface for collaborative fiction writing with DeepSeek models. Vanilla HTML/CSS/JS — no build tools, no frameworks, no bundlers. Runs as a **desktop web app** (Node.js backend) or as a standalone **serverless Android APK**.
 
-[![Download APK](https://img.shields.io/badge/Download-VibeChat.apk-blue?style=for-the-badge&logo=android)](https://github.com/apricot57/vibe-api/releases/latest)
+[![Download APK](https://img.shields.io/badge/Download-LoomScribe.apk-blue?style=for-the-badge&logo=android)](https://github.com/apricot57/vibe-api/releases/latest)
 [![Android Branch](https://img.shields.io/badge/Branch-Android%20Port-green?style=for-the-badge&logo=git)](https://github.com/apricot57/vibe-api/tree/feature/android-serverless-port)
 
 ---
@@ -11,7 +11,7 @@ A premium single-page chat interface for collaborative fiction writing with Deep
 
 A fully standalone, serverless Android build is available — no Node.js, no server, nothing to install.
 
-**[⬇ Download VibeChat.apk from Releases](https://github.com/apricot57/vibe-api/releases/latest)**
+**[⬇ Download LoomScribe.apk from Releases](https://github.com/apricot57/vibe-api/releases/latest)**
 
 - API key and all chat history stored on-device in IndexedDB
 - Streams directly from DeepSeek — no proxy, no middleman
@@ -53,7 +53,7 @@ node server.js
 
 Open http://localhost:3000 in your browser.
 
-On Windows, double-click `start-vibechat.bat` — it starts the server, opens the browser, and shuts down when you press any key.
+On Windows, double-click `start-loomscribe.bat` — it starts the server, opens the browser, and shuts down when you press any key.
 
 ### First-time setup
 
@@ -96,7 +96,7 @@ vibe-api/
 │       └── magic.js            Text selection, floating wand, inline rewrite logic
 │
 ├── server.js                   Node.js server entrypoint (static files + REST API + DeepSeek proxy)
-├── start-vibechat.bat          Windows one-click launcher
+├── start-loomscribe.bat        Windows one-click launcher
 ├── src/
 │   └── server/
 │       ├── db.js               Read/write helpers for data/db.json

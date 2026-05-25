@@ -61,5 +61,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-    console.log(`VibeChat server running at http://localhost:${PORT}`);
+    console.log(`LoomScribe server running at http://localhost:${PORT}`);
 });
