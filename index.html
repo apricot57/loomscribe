@@ -237,6 +237,11 @@
                 <div class="input-wrapper">
                     <textarea id="prompt-content-input" placeholder="System prompt content..." rows="8"></textarea>
                 </div>
+                <div class="import-prompt-wrapper" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                    <label class="modal-field-label" style="display: block; margin-bottom: 8px; color: rgba(255, 255, 255, 0.6); font-size: 0.85rem;">Or import from a markdown/ZIP file:</label>
+                    <input type="file" id="prompt-import-file" accept=".md,.txt,.zip" style="display: none;">
+                    <button type="button" id="prompt-import-btn" class="btn btn-secondary" style="width: 100%; border: 1px dashed rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.05); color: #fff;">📁 Import MD (.md) or ZIP (.zip)</button>
+                </div>
                 <div class="modal-actions">
                     <button id="save-prompt-btn" class="btn btn-primary">Save Prompt</button>
                 </div>
@@ -257,6 +262,7 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script type="module" src="app.js"></script>
 </body>

@@ -433,6 +433,137 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Prompt Import button and input
+    const promptImportBtn = document.getElementById('prompt-import-btn');
+    const promptImportFile = document.getElementById('prompt-import-file');
+
+    if (promptImportBtn && promptImportFile) {
+        promptImportBtn.addEventListener('click', () => {
+            promptImportFile.click();
+        });
+
+        promptImportFile.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Handle ZIP Import
+            if (file.name.toLowerCase().endsWith('.zip')) {
+                if (typeof JSZip === 'undefined') {
+                    alert('JSZip library is not loaded. Please reload the page.');
+                    return;
+                }
+                const originalText = promptImportBtn.textContent;
+                promptImportBtn.textContent = '⏳ Parsing ZIP...';
+                promptImportBtn.disabled = true;
+
+                try {
+                    const zip = await JSZip.loadAsync(file);
+                    const filePromises = [];
+                    const categoriesSet = new Set();
+                    let fileCount = 0;
+
+                    zip.forEach((relativePath, zipEntry) => {
+                        // Skip directories and non-markdown/non-text files
+                        if (zipEntry.dir || (!relativePath.endsWith('.md') && !relativePath.endsWith('.txt'))) {
+                            return;
+                        }
+
+                        // Determine category from folder structure inside the zip
+                        const parts = relativePath.split('/');
+                        let category = 'General';
+                        if (parts.length > 1) {
+                            category = parts.slice(0, -1)
+                                .map(p => p.replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))
+                                .join(' / ');
+                        }
+                        categoriesSet.add(category);
+                        fileCount++;
+
+                        const promise = zipEntry.async('string').then(async (text) => {
+                            const firstLine = text.split('\n')[0].trim();
+                            const nameMatch = firstLine.match(/^#\s+System Prompt:\s+(.+)/i) || firstLine.match(/^#\s+(.+)/);
+                            
+                            let extractedName = parts[parts.length - 1]
+                                .replace(/\.[^/.]+$/, "")
+                                .replace(/_sys_prompt$/, "")
+                                .replace(/[_-]/g, " ")
+                                .replace(/\b\w/g, c => c.toUpperCase());
+                                
+                            if (nameMatch) {
+                                extractedName = nameMatch[1].trim();
+                            }
+
+                            let content = text.trim();
+                            const lines = content.split('\n');
+                            if (lines.length > 0 && lines[0].trim().startsWith('# ')) {
+                                lines.shift();
+                                if (lines[0] && lines[0].trim() === '---') lines.shift();
+                                if (lines[0] && lines[0].trim() === '') lines.shift();
+                                content = lines.join('\n').trim();
+                            }
+
+                            const payload = { name: extractedName, category, content };
+                            await fetch('/api/user-prompts', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            });
+                        });
+                        filePromises.push(promise);
+                    });
+
+                    if (filePromises.length === 0) {
+                        alert('No valid .md or .txt prompt cards found inside the ZIP.');
+                    } else {
+                        await Promise.all(filePromises);
+                        alert(`Successfully imported ${fileCount} prompt cards across ${categoriesSet.size} categories!`);
+                        promptEditorModal?.classList.add('hidden');
+                        state.promptContentCache.clear();
+                    }
+                } catch (err) {
+                    console.error("ZIP import error:", err);
+                    alert('Error parsing ZIP file: ' + err.message);
+                } finally {
+                    promptImportBtn.textContent = originalText;
+                    promptImportBtn.disabled = false;
+                    promptImportFile.value = '';
+                }
+                return;
+            }
+
+            // Handle Single File Import (.md or .txt)
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const text = event.target.result;
+                const firstLine = text.split('\n')[0].trim();
+                const nameMatch = firstLine.match(/^#\s+System Prompt:\s+(.+)/i) || firstLine.match(/^#\s+(.+)/);
+                
+                let extractedName = file.name.replace(/\.[^/.]+$/, "").replace(/_sys_prompt$/, "").replace(/[_-]/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+                if (nameMatch) {
+                    extractedName = nameMatch[1].trim();
+                }
+
+                let extractedCategory = 'Story Writing';
+                
+                let content = text.trim();
+                const lines = content.split('\n');
+                if (lines.length > 0 && lines[0].trim().startsWith('# ')) {
+                    lines.shift();
+                    if (lines[0] && lines[0].trim() === '---') lines.shift();
+                    if (lines[0] && lines[0].trim() === '') lines.shift();
+                    content = lines.join('\n').trim();
+                }
+
+                if (promptNameInput) promptNameInput.value = extractedName;
+                if (promptCategoryInput) promptCategoryInput.value = extractedCategory;
+                if (promptContentInput) promptContentInput.value = content;
+                
+                promptImportFile.value = '';
+            };
+            reader.readAsText(file);
+        });
+    }
+
     // Footer prompt selector toggle
     if (promptSelectBtn && promptDropdownMenu) {
         promptSelectBtn.addEventListener('click', (e) => {
