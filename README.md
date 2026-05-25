@@ -29,7 +29,7 @@ See the [`feature/android-serverless-port`](https://github.com/apricot57/vibe-ap
 - **Model selection** — Switch between DeepSeek V4 Pro and V4 Flash
 
 ### Writing Tools
-- **System prompt profiles** — Curated factory prompts for fiction genres and world-building, plus user-created prompts editable in-app
+- **System prompt profiles** — Curated factory prompts for fiction genres and world-building, plus user-created prompts editable in-app. See **[PROMPT_CARDS.md](PROMPT_CARDS.md)** for a full formatting and usage guide.
 - **Message editing** — Inline edit any message (user or AI). Editing a user message triggers regeneration; editing an AI message saves the rewrite in-place
 - **Version navigation** — Edited and regenerated messages are tracked as version groups with prev/next navigation controls
 - **Regenerate** — Re-roll any AI response, creating a new version branch
@@ -140,15 +140,13 @@ The server provides a REST API and proxies requests to DeepSeek:
 
 ## 📝 System Prompts
 
-Factory prompts load from `prompt_cards/` subfolders. Drop a `.md` file into any subfolder, restart the server, and it appears in the prompt selector. The first line should be:
+LoomScribe system storyteller profiles are driven by modular plain-text Markdown (.md) cards.
 
-```markdown
-# System Prompt: Your Display Name
-```
-
-The subfolder name becomes the category label. Files starting with `.` are ignored.
-
-User-created prompts are stored in `db.json` and managed entirely through the app UI.
+See the dedicated **[PROMPT_CARDS.md](PROMPT_CARDS.md)** guide to learn:
+- How to structure category folders on Desktop.
+- How to format cards with the `# System Prompt:` header rule.
+- How to perform single file and bulk ZIP card imports on Android.
+- Best practices for prompting narrative and tone anti-goals.
 
 ---
 
