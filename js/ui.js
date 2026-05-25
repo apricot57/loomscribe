@@ -1053,10 +1053,45 @@ export async function populatePromptDropdown(menuElement, currentSelectionId, on
     menuElement.appendChild(divider);
 
     for (const [categoryLabel, prompts] of categories) {
+        const section = document.createElement('div');
+        section.className = 'dropdown-category-section';
+
         const header = document.createElement('div');
         header.className = 'dropdown-category-header';
-        header.textContent = categoryLabel;
-        menuElement.appendChild(header);
+        
+        const labelSpan = document.createElement('span');
+        labelSpan.textContent = categoryLabel;
+        header.appendChild(labelSpan);
+
+        const chevron = document.createElement('span');
+        chevron.className = 'dropdown-category-chevron';
+        header.appendChild(chevron);
+        
+        section.appendChild(header);
+
+        const itemsContainer = document.createElement('div');
+        itemsContainer.className = 'dropdown-category-items';
+
+        // Check if this category contains the currently selected prompt
+        const hasSelectedPrompt = prompts.some(p => p.promptId === currentSelectionId);
+        
+        // Determine initial collapsed state
+        const storedCollapsedState = localStorage.getItem('collapsed_cat_' + categoryLabel);
+        const initiallyCollapsed = (storedCollapsedState === 'true') && !hasSelectedPrompt;
+
+        if (initiallyCollapsed) {
+            itemsContainer.classList.add('collapsed');
+            chevron.textContent = '▶';
+        } else {
+            chevron.textContent = '▼';
+        }
+
+        header.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isCollapsed = itemsContainer.classList.toggle('collapsed');
+            chevron.textContent = isCollapsed ? '▶' : '▼';
+            localStorage.setItem('collapsed_cat_' + categoryLabel, isCollapsed ? 'true' : 'false');
+        });
 
         for (const p of prompts) {
             if (p.source === 'user') {
@@ -1127,7 +1162,7 @@ export async function populatePromptDropdown(menuElement, currentSelectionId, on
 
                 wrapper.appendChild(nameSpan);
                 wrapper.appendChild(actions);
-                menuElement.appendChild(wrapper);
+                itemsContainer.appendChild(wrapper);
             } else {
                 const btn = document.createElement('button');
                 btn.className = 'dropdown-item' + (currentSelectionId === p.promptId ? ' selected' : '');
@@ -1137,9 +1172,11 @@ export async function populatePromptDropdown(menuElement, currentSelectionId, on
                     onSelect(p.promptId);
                     menuElement.classList.add('hidden');
                 });
-                menuElement.appendChild(btn);
+                itemsContainer.appendChild(btn);
             }
         }
+        section.appendChild(itemsContainer);
+        menuElement.appendChild(section);
     }
 
     const createDiv = document.createElement('div');
