@@ -269,7 +269,7 @@ function handleApiRoutes(req, res, pathname, url) {
                 } else {
                     // Add
                     pRecord = {
-                        id: Date.now(),
+                        id: Date.now() * 1000 + Math.floor(Math.random() * 1000),
                         name: body.name,
                         category: body.category,
                         content: body.content,
