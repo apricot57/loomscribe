@@ -384,7 +384,7 @@ export function addMessageToUI(sender, text, reasoning, msgMeta = {}, skipScroll
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
         contentDiv.innerHTML = typeof marked !== 'undefined' ? marked.parse(text) : text;
-        contentDiv.dataset.rawContent = text;
+        contentDiv.setAttribute('data-raw-content', text);
 
         bodyDiv.appendChild(contentDiv);
         messageDiv.appendChild(bodyDiv);
@@ -392,7 +392,7 @@ export function addMessageToUI(sender, text, reasoning, msgMeta = {}, skipScroll
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
         contentDiv.textContent = text;
-        contentDiv.dataset.rawContent = text;
+        contentDiv.setAttribute('data-raw-content', text);
         messageDiv.appendChild(contentDiv);
     }
 
@@ -1108,7 +1108,7 @@ export function populateCategoryDatalist() {
 export function updateMessageNodeInPlace(node, msg) {
     const contentDiv = node.querySelector('.message-content');
     if (contentDiv) {
-        contentDiv.dataset.rawContent = msg.content;
+        contentDiv.setAttribute('data-raw-content', msg.content);
         if (msg.role === 'assistant') {
             contentDiv.innerHTML = typeof marked !== 'undefined' ? marked.parse(msg.content) : msg.content;
         } else {
@@ -1215,7 +1215,7 @@ export function reconcileMessages(activeMessages) {
             updateMessageNodeInPlace(node, msg);
         } else {
             const contentDiv = node.querySelector('.message-content');
-            if (contentDiv && contentDiv.dataset.rawContent !== msg.content) {
+            if (contentDiv && contentDiv.getAttribute('data-raw-content') !== msg.content) {
                 updateMessageNodeInPlace(node, msg);
             }
         }
