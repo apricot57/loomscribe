@@ -474,7 +474,10 @@ export function addStreamingBotMessage() {
     const contentDiv = document.createElement('div');
     contentDiv.className = 'message-content streaming';
 
-    bodyDiv.appendChild(reasoningBlock);
+    const isThinkingEnabled = state.serverConfig?.thinkingMode !== 'disabled';
+    if (isThinkingEnabled) {
+        bodyDiv.appendChild(reasoningBlock);
+    }
     bodyDiv.appendChild(contentDiv);
     messageDiv.appendChild(bodyDiv);
     container.appendChild(messageDiv);
@@ -498,7 +501,7 @@ export function updateStreamingBotMessage(id, content) {
     if (!msg) return;
     const contentDiv = msg.querySelector('.message-content');
     if (!contentDiv) return;
-    contentDiv.textContent = content;
+    contentDiv.innerHTML = typeof marked !== 'undefined' ? marked.parse(content || '') : (content || '');
 }
 
 export function finalizeStreamingBotMessage(id, content, reasoning) {
