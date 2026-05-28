@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify({ activeModel: modelVal })
                 });
             }
-        });
+        }));
     });
 
     // Thinking Mode Toggle event handling
@@ -180,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ thinkingMode: newMode })
             });
-        });
+        }));
     }
 
     // Show API Key Modal
@@ -279,7 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 alert('Failed to save API key to server.');
             }
-        });
+        }));
     }
 
     // Remove key from Server-side storage
@@ -300,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 alert('Failed to delete API key from server.');
             }
-        });
+        }));
     }
 
     // New Chat button — shows modal instead of immediate creation
@@ -363,7 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const title = newChatTitleInput?.value.trim() || 'New Chat';
             await createNewConversation(title, state.modalSelectedPromptId);
             newChatModal?.classList.add('hidden');
-        });
+        }));
     }
 
     // Prompt Editor Modal close
@@ -414,7 +414,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 await loadConversations();
             }
-        });
+        }));
     }
 
     // Save Prompt button
@@ -438,7 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             promptEditorModal?.classList.add('hidden');
             state.promptContentCache.clear();
-        });
+        }));
     }
 
     // Prompt Import button and input
@@ -569,7 +569,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 promptImportFile.value = '';
             };
             reader.readAsText(file);
-        });
+        }));
     }
 
     // Footer prompt selector toggle
@@ -712,7 +712,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 conversationId: state.currentConversationId,
                 parentMsgId: userMsgId
             });
-        });
+        }));
     }
 
     // Export Conversation to Markdown Logic
@@ -779,7 +779,7 @@ document.addEventListener('DOMContentLoaded', () => {
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
-        });
+        }));
     }
 
     // App Bootstrapper
