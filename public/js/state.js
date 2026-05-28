@@ -26,8 +26,14 @@ export const stateEvents = {
     }
 };
 
+const proxyCache = new WeakMap();
+
 function makeObservable(obj, path = '') {
-    return new Proxy(obj, {
+    if (proxyCache.has(obj)) {
+        return proxyCache.get(obj);
+    }
+
+    const proxy = new Proxy(obj, {
         set(target, prop, val) {
             const prev = target[prop];
             if (prev === val) return true;
@@ -49,12 +55,16 @@ function makeObservable(obj, path = '') {
         },
         get(target, prop) {
             const val = target[prop];
-            if (val && typeof val === 'object' && !(val instanceof Map)) {
+            // Only deeply observe plain JSON objects, avoiding native/host/Array types
+            if (val && typeof val === 'object' && Object.prototype.toString.call(val) === '[object Object]') {
                 return makeObservable(val, path ? `${path}.${prop}` : prop);
             }
             return val;
         }
     });
+
+    proxyCache.set(obj, proxy);
+    return proxy;
 }
 
 export const state = makeObservable(rawState);
