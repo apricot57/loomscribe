@@ -4,7 +4,7 @@ const path = require('path');
 const { handleApiRoutes } = require('./src/server/routes');
 
 const PORT = process.env.PORT || 3000;
-const ROOT = __dirname;
+const ROOT = path.join(__dirname, 'public');
 
 const MIME = {
     '.html': 'text/html; charset=utf-8',
@@ -34,7 +34,8 @@ const server = http.createServer((req, res) => {
     let filePath = path.join(ROOT, pathname === '/' ? 'index.html' : pathname);
 
     // Safety check to prevent directory traversal
-    if (!filePath.startsWith(ROOT)) {
+    const safeRoot = ROOT.endsWith(path.sep) ? ROOT : ROOT + path.sep;
+    if (!filePath.startsWith(safeRoot) && filePath !== ROOT) {
         res.writeHead(403);
         res.end('Forbidden');
         return;
