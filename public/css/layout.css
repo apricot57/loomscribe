@@ -20,8 +20,8 @@
     flex-shrink: 0;
     transition: var(--transition-m3);
     z-index: 100;
-    /* Elevated organic drawer shape on desktop */
-    border-radius: 0 var(--border-radius-xl) var(--border-radius-xl) 0;
+    /* Flat square drawer shape on desktop */
+    border-radius: 0;
 }
 
 .sidebar-header {

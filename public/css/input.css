@@ -25,7 +25,7 @@
     gap: 12px;
     background-color: var(--bg-input);
     padding: 10px 12px 10px 24px;
-    border-radius: var(--border-radius-pill); /* Full M3 Pill Input */
+    border-radius: 12px; /* Rectangle with curved corners */
     border: 1px solid var(--border-color);
     transition: var(--transition-m3);
     width: 100%;
@@ -64,7 +64,7 @@
     border: none;
     width: 40px;
     height: 40px;
-    border-radius: var(--border-radius-pill);
+    border-radius: 8px; /* Curved corner square to match chatbox */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -96,7 +96,7 @@
     border: none;
     width: 40px;
     height: 40px;
-    border-radius: var(--border-radius-pill);
+    border-radius: 8px; /* Curved corner square to match chatbox */
     display: flex;
     justify-content: center;
     align-items: center;
