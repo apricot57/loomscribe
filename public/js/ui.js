@@ -384,6 +384,7 @@ export function addMessageToUI(sender, text, reasoning, msgMeta = {}, skipScroll
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
         contentDiv.innerHTML = typeof marked !== 'undefined' ? marked.parse(text) : text;
+        contentDiv.dataset.rawContent = text;
 
         bodyDiv.appendChild(contentDiv);
         messageDiv.appendChild(bodyDiv);
@@ -391,6 +392,7 @@ export function addMessageToUI(sender, text, reasoning, msgMeta = {}, skipScroll
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
         contentDiv.textContent = text;
+        contentDiv.dataset.rawContent = text;
         messageDiv.appendChild(contentDiv);
     }
 
@@ -1103,6 +1105,123 @@ export function populateCategoryDatalist() {
     }
 }
 
+export function updateMessageNodeInPlace(node, msg) {
+    const contentDiv = node.querySelector('.message-content');
+    if (contentDiv) {
+        contentDiv.dataset.rawContent = msg.content;
+        if (msg.role === 'assistant') {
+            contentDiv.innerHTML = typeof marked !== 'undefined' ? marked.parse(msg.content) : msg.content;
+        } else {
+            contentDiv.textContent = msg.content;
+        }
+    }
+
+    let reasoningBlock = node.querySelector('.reasoning-block');
+    if (msg.reasoning) {
+        if (!reasoningBlock) {
+            reasoningBlock = document.createElement('div');
+            reasoningBlock.className = 'reasoning-block collapsed';
+            const reasoningHeader = document.createElement('div');
+            reasoningHeader.className = 'reasoning-header';
+            reasoningHeader.innerHTML = `
+                <svg class="reasoning-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+                <span>Thought</span>
+            `;
+            const reasoningContent = document.createElement('div');
+            reasoningContent.className = 'reasoning-content';
+            reasoningContent.textContent = msg.reasoning;
+            reasoningBlock.appendChild(reasoningHeader);
+            reasoningBlock.appendChild(reasoningContent);
+            reasoningHeader.addEventListener('click', () => {
+                reasoningBlock.classList.toggle('collapsed');
+            });
+            const bodyDiv = node.querySelector('.message-body');
+            if (bodyDiv) bodyDiv.insertBefore(reasoningBlock, bodyDiv.firstChild);
+        } else {
+            const content = reasoningBlock.querySelector('.reasoning-content');
+            if (content) content.textContent = msg.reasoning;
+        }
+    } else if (reasoningBlock) {
+        reasoningBlock.remove();
+    }
+
+    node.dataset.version = msg.version || 1;
+    if (msg.id != null) {
+        node.dataset.msgId = msg.id;
+        node.id = msg.id;
+    }
+
+    const sender = msg.role === 'assistant' ? 'bot' : 'user';
+    attachMessageActions(node, sender, {
+        id: msg.id,
+        versionGroupId: msg.versionGroupId,
+        version: msg.version || 1,
+        versionCount: msg.versionCount || 1
+    });
+}
+
+export function reconcileMessages(activeMessages) {
+    const chatContainer = document.getElementById('chat-container');
+    const container = chatContainer ? chatContainer.querySelector('.messages-container') : null;
+    if (!container) return;
+
+    const currentNodes = Array.from(container.children);
+    const maxLength = Math.max(activeMessages.length, currentNodes.length);
+
+    for (let i = 0; i < maxLength; i++) {
+        const msg = activeMessages[i];
+        const node = currentNodes[i];
+
+        if (!msg) {
+            if (node) node.remove();
+            continue;
+        }
+
+        if (!node) {
+            const sender = msg.role === 'assistant' ? 'bot' : 'user';
+            addMessageToUI(sender, msg.content, msg.reasoning, {
+                id: msg.id,
+                versionGroupId: msg.versionGroupId,
+                version: msg.version || 1,
+                versionCount: msg.versionCount || 1
+            }, true);
+            continue;
+        }
+
+        const nodeId = node.dataset.msgId || node.id;
+
+        if (String(nodeId) !== String(msg.id)) {
+            while (container.children.length > i) {
+                container.lastChild.remove();
+            }
+
+            for (let j = i; j < activeMessages.length; j++) {
+                const m = activeMessages[j];
+                const sender = m.role === 'assistant' ? 'bot' : 'user';
+                addMessageToUI(sender, m.content, m.reasoning, {
+                    id: m.id,
+                    versionGroupId: m.versionGroupId,
+                    version: m.version || 1,
+                    versionCount: m.versionCount || 1
+                }, true);
+            }
+            break;
+        }
+
+        const nodeVersion = node.dataset.version;
+        if (nodeVersion && String(nodeVersion) !== String(msg.version)) {
+            updateMessageNodeInPlace(node, msg);
+        } else {
+            const contentDiv = node.querySelector('.message-content');
+            if (contentDiv && contentDiv.dataset.rawContent !== msg.content) {
+                updateMessageNodeInPlace(node, msg);
+            }
+        }
+    }
+}
+
 export async function refreshConversationMessages() {
     if (state.currentConversationId === null) return;
     
@@ -1119,25 +1238,11 @@ export async function refreshConversationMessages() {
         }
     }
 
-    const chatContainer = document.getElementById('chat-container');
-    const container = chatContainer ? chatContainer.querySelector('.messages-container') : null;
-    if (container) {
-        container.innerHTML = '';
+    activeMessages.forEach(msg => {
+        msg.versionCount = msg.versionGroupId ? (versionCounts.get(msg.versionGroupId) || 1) : 1;
+    });
 
-        activeMessages.forEach(msg => {
-            if (msg.role !== 'system') {
-                const sender = msg.role === 'assistant' ? 'bot' : 'user';
-                const versionGroupId = msg.versionGroupId;
-                const versionCount = versionGroupId ? (versionCounts.get(versionGroupId) || 1) : 1;
-                addMessageToUI(sender, msg.content, msg.reasoning, {
-                    id: msg.id,
-                    versionGroupId: versionGroupId,
-                    version: msg.version || 1,
-                    versionCount: versionCount
-                }, true);
-            }
-        });
-    }
+    reconcileMessages(activeMessages);
     
     scrollToBottom();
     await updateContinueButtonVisibility(activeMessages);
