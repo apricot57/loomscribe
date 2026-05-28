@@ -22,6 +22,14 @@ import {
 // Load Magic module which automatically binds its selection & click listeners
 import './js/magic.js';
 
+function safeAsync(fn) {
+    return function (...args) {
+        Promise.resolve(fn(...args)).catch((err) => {
+            console.error("Unhandled async error caught by safeAsync boundary:", err);
+        });
+    };
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const chatForm = document.getElementById('chat-form');
     const userInput = document.getElementById('user-input');
@@ -110,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Select model event handling
     dropdownItems.forEach(item => {
-        item.addEventListener('click', async () => {
+        item.addEventListener('click', safeAsync(async () => {
             const modelVal = item.getAttribute('data-model');
             state.serverConfig.activeModel = modelVal;
             
@@ -152,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const thinkingToggleBtn = document.getElementById('thinking-toggle-btn');
     const thinkingStatusText = document.getElementById('thinking-status-text');
     if (thinkingToggleBtn) {
-        thinkingToggleBtn.addEventListener('click', async () => {
+        thinkingToggleBtn.addEventListener('click', safeAsync(async () => {
             const currentMode = state.serverConfig.thinkingMode || 'enabled';
             const newMode = currentMode === 'enabled' ? 'disabled' : 'enabled';
             state.serverConfig.thinkingMode = newMode;
@@ -251,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Save key to Server-side storage
     if (saveKeyBtn) {
-        saveKeyBtn.addEventListener('click', async () => {
+        saveKeyBtn.addEventListener('click', safeAsync(async () => {
             const keyVal = apiKeyInput?.value.trim();
             if (!keyVal) {
                 alert('Please enter a valid DeepSeek API key.');
@@ -276,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Remove key from Server-side storage
     if (deleteKeyBtn) {
-        deleteKeyBtn.addEventListener('click', async () => {
+        deleteKeyBtn.addEventListener('click', safeAsync(async () => {
             const res = await fetch('/api/config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -351,7 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Start Chat button in modal
     if (startChatBtn) {
-        startChatBtn.addEventListener('click', async () => {
+        startChatBtn.addEventListener('click', safeAsync(async () => {
             const title = newChatTitleInput?.value.trim() || 'New Chat';
             await createNewConversation(title, state.modalSelectedPromptId);
             newChatModal?.classList.add('hidden');
@@ -383,7 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Delete Confirmation Modal Action
     if (deleteConfirmBtn) {
-        deleteConfirmBtn.addEventListener('click', async () => {
+        deleteConfirmBtn.addEventListener('click', safeAsync(async () => {
             if (state.conversationIdToDelete === null) return;
             const id = state.conversationIdToDelete;
             closeDeleteConfirmModal();
@@ -411,7 +419,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Save Prompt button
     if (savePromptBtn) {
-        savePromptBtn.addEventListener('click', async () => {
+        savePromptBtn.addEventListener('click', safeAsync(async () => {
             const name = promptNameInput?.value.trim();
             const category = promptCategoryInput?.value.trim();
             const content = promptContentInput?.value.trim();
@@ -442,7 +450,7 @@ document.addEventListener('DOMContentLoaded', () => {
             promptImportFile.click();
         });
 
-        promptImportFile.addEventListener('change', async (e) => {
+        promptImportFile.addEventListener('change', safeAsync(async (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
@@ -636,7 +644,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Message submit trigger
     if (chatForm) {
-        chatForm.addEventListener('submit', async (e) => {
+        chatForm.addEventListener('submit', safeAsync(async (e) => {
             e.preventDefault();
             
             if (continueBtn) continueBtn.classList.add('hidden');
@@ -709,7 +717,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Export Conversation to Markdown Logic
     if (exportChatBtn) {
-        exportChatBtn.addEventListener('click', async () => {
+        exportChatBtn.addEventListener('click', safeAsync(async () => {
             if (state.currentConversationId === null) {
                 alert('No active conversation to export.');
                 return;
@@ -813,5 +821,5 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Trigger Bootstrapper
-    initApp();
+    initApp().catch(err => console.error("Unhandled error during app initialization:", err));
 });

@@ -3,9 +3,18 @@ const { getPromptTree, getPromptContent } = require('./prompts');
 const https = require('https');
 
 function getRequestBody(req) {
+    const MAX_SIZE = 5 * 1024 * 1024; // 5MB limit
     return new Promise((resolve, reject) => {
         let body = '';
-        req.on('data', chunk => { body += chunk; });
+        let size = 0;
+        req.on('data', chunk => {
+            body += chunk;
+            size += chunk.length;
+            if (size > MAX_SIZE) {
+                req.destroy();
+                reject(new Error('Payload Too Large'));
+            }
+        });
         req.on('end', () => {
             try {
                 resolve(body ? JSON.parse(body) : {});
@@ -15,6 +24,14 @@ function getRequestBody(req) {
         });
         req.on('error', err => reject(err));
     });
+}
+
+function generateUniqueId(db, table) {
+    while (true) {
+        const id = Date.now() * 1000 + Math.floor(Math.random() * 1000);
+        const exists = (db[table] || []).some(item => item.id === id);
+        if (!exists) return id;
+    }
 }
 
 function deactivateMessageTree(db, msgId) {
@@ -133,9 +150,14 @@ function handleApiRoutes(req, res, pathname, url) {
                     activeModel: db.settings.activeModel,
                     thinkingMode: db.settings.thinkingMode || 'enabled'
                 }));
-            }).catch(() => {
-                res.writeHead(400);
-                res.end('Bad Request');
+            }).catch((err) => {
+                if (err && err.message === 'Payload Too Large') {
+                    res.writeHead(413);
+                    res.end('Payload Too Large');
+                } else {
+                    res.writeHead(400);
+                    res.end('Bad Request');
+                }
             });
             return true;
         }
@@ -157,7 +179,7 @@ function handleApiRoutes(req, res, pathname, url) {
                 const db = readDb();
                 if (!db.conversations) db.conversations = [];
                 const newConv = {
-                    id: Date.now(), // Generate numeric ID
+                    id: generateUniqueId(db, 'conversations'),
                     title: body.title || 'New Chat',
                     activeModel: body.activeModel || 'deepseek-v4-pro',
                     systemPromptId: body.systemPromptId || null,
@@ -167,9 +189,14 @@ function handleApiRoutes(req, res, pathname, url) {
                 writeDb(db);
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify(newConv));
-            }).catch(() => {
-                res.writeHead(400);
-                res.end('Bad Request');
+            }).catch((err) => {
+                if (err && err.message === 'Payload Too Large') {
+                    res.writeHead(413);
+                    res.end('Payload Too Large');
+                } else {
+                    res.writeHead(400);
+                    res.end('Bad Request');
+                }
             });
             return true;
         }
@@ -200,7 +227,12 @@ function handleApiRoutes(req, res, pathname, url) {
                 const db = readDb();
                 const idx = db.conversations.findIndex(c => c.id === id);
                 if (idx !== -1) {
-                    db.conversations[idx] = { ...db.conversations[idx], ...body };
+                    const { title, activeModel, systemPromptId } = body;
+                    const updateObj = {};
+                    if (title !== undefined) updateObj.title = title;
+                    if (activeModel !== undefined) updateObj.activeModel = activeModel;
+                    if (systemPromptId !== undefined) updateObj.systemPromptId = systemPromptId;
+                    db.conversations[idx] = { ...db.conversations[idx], ...updateObj };
                     writeDb(db);
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify(db.conversations[idx]));
@@ -208,9 +240,14 @@ function handleApiRoutes(req, res, pathname, url) {
                     res.writeHead(404);
                     res.end('Not Found');
                 }
-            }).catch(() => {
-                res.writeHead(400);
-                res.end('Bad Request');
+            }).catch((err) => {
+                if (err && err.message === 'Payload Too Large') {
+                    res.writeHead(413);
+                    res.end('Payload Too Large');
+                } else {
+                    res.writeHead(400);
+                    res.end('Bad Request');
+                }
             });
             return true;
         }
@@ -245,7 +282,7 @@ function handleApiRoutes(req, res, pathname, url) {
                 const db = readDb();
                 if (!db.messages) db.messages = [];
                 const newMsg = {
-                    id: Date.now() + Math.floor(Math.random() * 1000), // Random/Unique dynamic ID
+                    id: generateUniqueId(db, 'messages'),
                     conversationId: body.conversationId,
                     role: body.role,
                     content: body.content,
@@ -260,9 +297,14 @@ function handleApiRoutes(req, res, pathname, url) {
                 writeDb(db);
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify(newMsg));
-            }).catch(() => {
-                res.writeHead(400);
-                res.end('Bad Request');
+            }).catch((err) => {
+                if (err && err.message === 'Payload Too Large') {
+                    res.writeHead(413);
+                    res.end('Payload Too Large');
+                } else {
+                    res.writeHead(400);
+                    res.end('Bad Request');
+                }
             });
             return true;
         }
@@ -306,7 +348,7 @@ function handleApiRoutes(req, res, pathname, url) {
                 deactivateVersionGroupAndDescendants(db, versionGroupId);
 
                 const newMsg = {
-                    id: Date.now() + Math.floor(Math.random() * 1000),
+                    id: generateUniqueId(db, 'messages'),
                     conversationId: originalMsg.conversationId,
                     role: body.role || originalMsg.role,
                     content: body.content,
@@ -323,9 +365,14 @@ function handleApiRoutes(req, res, pathname, url) {
 
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify(newMsg));
-            }).catch((e) => {
-                res.writeHead(400);
-                res.end('Bad Request');
+            }).catch((err) => {
+                if (err && err.message === 'Payload Too Large') {
+                    res.writeHead(413);
+                    res.end('Payload Too Large');
+                } else {
+                    res.writeHead(400);
+                    res.end('Bad Request');
+                }
             });
             return true;
         }
@@ -413,7 +460,14 @@ function handleApiRoutes(req, res, pathname, url) {
                 const db = readDb();
                 const idx = db.messages.findIndex(m => m.id === id);
                 if (idx !== -1) {
-                    db.messages[idx] = { ...db.messages[idx], ...body };
+                    const { isActive, versionGroupId, version, content, reasoning } = body;
+                    const updateObj = {};
+                    if (isActive !== undefined) updateObj.isActive = isActive;
+                    if (versionGroupId !== undefined) updateObj.versionGroupId = versionGroupId;
+                    if (version !== undefined) updateObj.version = version;
+                    if (content !== undefined) updateObj.content = content;
+                    if (reasoning !== undefined) updateObj.reasoning = reasoning;
+                    db.messages[idx] = { ...db.messages[idx], ...updateObj };
                     writeDb(db);
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify(db.messages[idx]));
@@ -421,9 +475,14 @@ function handleApiRoutes(req, res, pathname, url) {
                     res.writeHead(404);
                     res.end('Not Found');
                 }
-            }).catch(() => {
-                res.writeHead(400);
-                res.end('Bad Request');
+            }).catch((err) => {
+                if (err && err.message === 'Payload Too Large') {
+                    res.writeHead(413);
+                    res.end('Payload Too Large');
+                } else {
+                    res.writeHead(400);
+                    res.end('Bad Request');
+                }
             });
             return true;
         }
@@ -449,13 +508,18 @@ function handleApiRoutes(req, res, pathname, url) {
                     // Update
                     const idx = db.prompts.findIndex(p => p.id === body.id);
                     if (idx !== -1) {
-                        db.prompts[idx] = { ...db.prompts[idx], ...body };
+                        const { name, category, content } = body;
+                        const updateObj = {};
+                        if (name !== undefined) updateObj.name = name;
+                        if (category !== undefined) updateObj.category = category;
+                        if (content !== undefined) updateObj.content = content;
+                        db.prompts[idx] = { ...db.prompts[idx], ...updateObj };
                         pRecord = db.prompts[idx];
                     }
                 } else {
                     // Add
                     pRecord = {
-                        id: Date.now() * 1000 + Math.floor(Math.random() * 1000),
+                        id: generateUniqueId(db, 'prompts'),
                         name: body.name,
                         category: body.category,
                         content: body.content,
@@ -466,9 +530,14 @@ function handleApiRoutes(req, res, pathname, url) {
                 writeDb(db);
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify(pRecord));
-            }).catch(() => {
-                res.writeHead(400);
-                res.end('Bad Request');
+            }).catch((err) => {
+                if (err && err.message === 'Payload Too Large') {
+                    res.writeHead(413);
+                    res.end('Payload Too Large');
+                } else {
+                    res.writeHead(400);
+                    res.end('Bad Request');
+                }
             });
             return true;
         }
@@ -528,8 +597,13 @@ function handleApiRoutes(req, res, pathname, url) {
             proxyReq.write(JSON.stringify(body));
             proxyReq.end();
         }).catch((err) => {
-            res.writeHead(400);
-            res.end('Bad Request');
+            if (err && err.message === 'Payload Too Large') {
+                res.writeHead(413);
+                res.end('Payload Too Large');
+            } else {
+                res.writeHead(400);
+                res.end('Bad Request');
+            }
         });
         return true;
     }

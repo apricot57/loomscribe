@@ -17,8 +17,12 @@ export async function fetchPromptContent(promptId) {
             if (res.ok) {
                 const data = await res.json();
                 content = data.content;
+            } else {
+                console.warn(`Failed to fetch prompt content: ${res.status} ${res.statusText}`);
             }
-        } catch {}
+        } catch (err) {
+            console.error("Error fetching prompt content:", err);
+        }
     }
 
     if (content) {
@@ -94,9 +98,11 @@ export async function loadFactoryPrompts() {
         const res = await fetch('/api/prompts');
         if (res.ok) {
             state.factoryPromptCategories = await res.json();
+        } else {
+            console.warn(`Failed to load factory prompts: ${res.status} ${res.statusText}`);
         }
-    } catch {
-        // Server not available
+    } catch (err) {
+        console.error("Error loading factory prompts from server:", err);
     }
 }
 

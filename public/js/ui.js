@@ -498,7 +498,7 @@ export function updateStreamingBotMessage(id, content) {
     if (!msg) return;
     const contentDiv = msg.querySelector('.message-content');
     if (!contentDiv) return;
-    contentDiv.innerHTML = typeof marked !== 'undefined' ? marked.parse(content) : content;
+    contentDiv.textContent = content;
 }
 
 export function finalizeStreamingBotMessage(id, content, reasoning) {
@@ -522,15 +522,24 @@ export function finalizeStreamingBotMessage(id, content, reasoning) {
     if (!contentDiv) return;
     contentDiv.classList.remove('streaming');
     contentDiv.innerHTML = typeof marked !== 'undefined' ? marked.parse(content || '') : (content || '');
+    contentDiv.setAttribute('data-raw-content', content || '');
 }
 
+let scrollPending = false;
+
 export function scrollToBottom() {
-    const chatContainer = document.getElementById('chat-container');
-    if (!chatContainer) return;
-    const smooth = chatContainer.style.scrollBehavior;
-    chatContainer.style.scrollBehavior = 'auto';
-    chatContainer.scrollTop = chatContainer.scrollHeight;
-    chatContainer.style.scrollBehavior = smooth;
+    if (scrollPending) return;
+    scrollPending = true;
+    requestAnimationFrame(() => {
+        const chatContainer = document.getElementById('chat-container');
+        if (chatContainer) {
+            const smooth = chatContainer.style.scrollBehavior;
+            chatContainer.style.scrollBehavior = 'auto';
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            chatContainer.style.scrollBehavior = smooth;
+        }
+        scrollPending = false;
+    });
 }
 
 export async function updateContinueButtonVisibility(activeMessages = null) {
