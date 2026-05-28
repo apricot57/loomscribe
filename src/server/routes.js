@@ -82,12 +82,7 @@ function handleApiRoutes(req, res, pathname, url) {
     // --- API: GET /api/health ---
     if (pathname === '/api/health' && req.method === 'GET') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-            status: 'ok',
-            timestamp: Date.now(),
-            uptime: process.uptime(),
-            nodeVersion: process.version
-        }));
+        res.end(JSON.stringify({ status: 'OK', uptime: process.uptime() }));
         return true;
     }
 
