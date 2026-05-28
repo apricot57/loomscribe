@@ -16,7 +16,8 @@ import {
     updateContinueButtonVisibility,
     closeModal,
     updatePromptSelectorDisplay,
-    streamApiResponse
+    streamApiResponse,
+    showToast
 } from './js/ui.js';
 
 // Load Magic module which automatically binds its selection & click listeners
@@ -262,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
         saveKeyBtn.addEventListener('click', safeAsync(async () => {
             const keyVal = apiKeyInput?.value.trim();
             if (!keyVal) {
-                alert('Please enter a valid DeepSeek API key.');
+                showToast('Please enter a valid DeepSeek API key.', 'warning');
                 return;
             }
             const res = await fetch('/api/config', {
@@ -277,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateKeyStatusUI();
                 closeModal();
             } else {
-                alert('Failed to save API key to server.');
+                showToast('Failed to save API key to server.', 'error');
             }
         }));
     }
@@ -298,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateKeyStatusUI();
                 closeModal();
             } else {
-                alert('Failed to delete API key from server.');
+                showToast('Failed to delete API key from server.', 'error');
             }
         }));
     }
@@ -424,7 +425,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const category = promptCategoryInput?.value.trim();
             const content = promptContentInput?.value.trim();
             if (!name || !content) {
-                alert('Prompt name and content are required.');
+                showToast('Prompt name and content are required.', 'warning');
                 return;
             }
             const payload = { name, category, content };
@@ -457,7 +458,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Handle ZIP Import
             if (file.name.toLowerCase().endsWith('.zip')) {
                 if (typeof JSZip === 'undefined') {
-                    alert('JSZip library is not loaded. Please reload the page.');
+                    showToast('JSZip library is not loaded. Please reload the page.', 'error');
                     return;
                 }
                 const originalText = promptImportBtn.textContent;
@@ -521,16 +522,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
 
                     if (filePromises.length === 0) {
-                        alert('No valid .md or .txt prompt cards found inside the ZIP.');
+                        showToast('No valid .md or .txt prompt cards found inside the ZIP.', 'warning');
                     } else {
                         await Promise.all(filePromises);
-                        alert(`Successfully imported ${fileCount} prompt cards across ${categoriesSet.size} categories!`);
+                        showToast(`Successfully imported ${fileCount} prompt cards across ${categoriesSet.size} categories!`, 'success');
                         promptEditorModal?.classList.add('hidden');
                         state.promptContentCache.clear();
                     }
                 } catch (err) {
                     console.error("ZIP import error:", err);
-                    alert('Error parsing ZIP file: ' + err.message);
+                    showToast('Error parsing ZIP file: ' + err.message, 'error');
                 } finally {
                     promptImportBtn.textContent = originalText;
                     promptImportBtn.disabled = false;
@@ -719,7 +720,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (exportChatBtn) {
         exportChatBtn.addEventListener('click', safeAsync(async () => {
             if (state.currentConversationId === null) {
-                alert('No active conversation to export.');
+                showToast('No active conversation to export.', 'warning');
                 return;
             }
 
@@ -734,7 +735,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const activeMessages = allMessages.filter(m => m.isActive !== false);
 
             if (activeMessages.length === 0) {
-                alert('This conversation has no messages to export.');
+                showToast('This conversation has no messages to export.', 'warning');
                 return;
             }
 

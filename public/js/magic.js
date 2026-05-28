@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { refreshConversationView } from './ui.js';
+import { refreshConversationView, showToast } from './ui.js';
 
 // 1. Listen for Selection Changes on Document
 document.addEventListener('selectionchange', () => {
@@ -222,7 +222,7 @@ export function findMarkdownSubstringRange(fullText, selectedText) {
 
 export async function executeMagicRewrite(msgId, selectedText, instruction) {
     if (!state.serverConfig.hasKey) {
-        alert('⚠️ API Key is missing! Please configure your DeepSeek API key in the sidebar settings.');
+        showToast('API Key is missing! Please configure your DeepSeek API key in the sidebar settings.', 'warning');
         return;
     }
 
@@ -328,7 +328,7 @@ export async function executeMagicRewrite(msgId, selectedText, instruction) {
 
     } catch (err) {
         console.error("Magic Rewrite Error:", err);
-        alert("Sorry, could not complete rewrite: " + err.message);
+        showToast("Sorry, could not complete rewrite: " + err.message, 'error');
     } finally {
         if (messageDiv) messageDiv.classList.remove('rewriting');
     }

@@ -79,6 +79,18 @@ function showDescendants(db, msgId) {
 }
 
 function handleApiRoutes(req, res, pathname, url) {
+    // --- API: GET /api/health ---
+    if (pathname === '/api/health' && req.method === 'GET') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+            status: 'ok',
+            timestamp: Date.now(),
+            uptime: process.uptime(),
+            nodeVersion: process.version
+        }));
+        return true;
+    }
+
     // --- API: GET /api/prompts ---
     if (pathname === '/api/prompts' && req.method === 'GET') {
         const tree = getPromptTree();

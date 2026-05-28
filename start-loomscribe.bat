@@ -42,5 +42,12 @@ pause >nul
 
 :: Stop the Node.js server
 echo Stopping server...
-taskkill /f /im node.exe >nul 2>&1
+if exist server.pid (
+    for /f "usebackq tokens=*" %%A in ("server.pid") do (
+        taskkill /f /pid %%A >nul 2>&1
+    )
+    del server.pid >nul 2>&1
+) else (
+    taskkill /f /im node.exe >nul 2>&1
+)
 echo Server stopped.

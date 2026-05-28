@@ -1,4 +1,4 @@
-export const state = {
+const rawState = {
     serverConfig: { hasKey: false, activeModel: 'deepseek-v4-pro', thinkingMode: 'enabled' },
     currentConversationId: null,
     abortController: null,
@@ -11,6 +11,53 @@ export const state = {
     DEFAULT_SYSTEM_PROMPT: 'You are a helpful and concise AI assistant.',
     API_URL: '/api/chat/completions'
 };
+
+const subscribers = new Set();
+
+export const stateEvents = {
+    subscribe(callback) {
+        subscribers.add(callback);
+        return () => subscribers.delete(callback);
+    },
+    emit(property, value, prevValue) {
+        for (const cb of subscribers) {
+            try { cb(property, value, prevValue); } catch (e) { console.error("stateEvents subscription error:", e); }
+        }
+    }
+};
+
+function makeObservable(obj, path = '') {
+    return new Proxy(obj, {
+        set(target, prop, val) {
+            const prev = target[prop];
+            if (prev === val) return true;
+            
+            const fullPath = path ? `${path}.${prop}` : prop;
+            
+            // Enforce state invariants: sync activeConversationId to localStorage
+            if (fullPath === 'currentConversationId') {
+                if (val !== null) {
+                    localStorage.setItem('activeConversationId', val);
+                } else {
+                    localStorage.removeItem('activeConversationId');
+                }
+            }
+            
+            target[prop] = val;
+            stateEvents.emit(fullPath, val, prev);
+            return true;
+        },
+        get(target, prop) {
+            const val = target[prop];
+            if (val && typeof val === 'object' && !(val instanceof Map)) {
+                return makeObservable(val, path ? `${path}.${prop}` : prop);
+            }
+            return val;
+        }
+    });
+}
+
+export const state = makeObservable(rawState);
 
 export function getSystemPromptContentSync() {
     if (!state.currentSystemPromptId) return state.DEFAULT_SYSTEM_PROMPT;
