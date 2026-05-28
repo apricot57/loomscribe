@@ -1,5 +1,4 @@
 import { state } from './state.js';
-import { hideDescendants } from './api.js';
 import { refreshConversationView } from './ui.js';
 
 // 1. Listen for Selection Changes on Document
@@ -311,57 +310,21 @@ export async function executeMagicRewrite(msgId, selectedText, instruction) {
             newContent = assistantMsg.content.replace(selectedText, cleanedText);
         }
 
-        // Establish or preserve Version Group ID
-        const versionGroupId = assistantMsg.versionGroupId || assistantMsg.id;
-
-        if (!assistantMsg.versionGroupId) {
-            await fetch(`/api/messages/${msgId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ versionGroupId, version: 1 })
-            });
-            assistantMsg.versionGroupId = versionGroupId;
-            assistantMsg.version = 1;
-        }
-
-        const existingVersions = allMessages.filter(m => m.versionGroupId === versionGroupId);
-        const maxVersion = existingVersions.reduce((max, v) => Math.max(max, v.version || 1), 0);
-        const newVersion = maxVersion + 1;
-
-        // Deactivate older version references
-        for (const v of existingVersions) {
-            await fetch(`/api/messages/${v.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ isActive: false })
-            });
-            await hideDescendants(v.id);
-        }
-        await fetch(`/api/messages/${msgId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ isActive: false })
-        });
-        await hideDescendants(msgId);
-
-        // Save new rewritten branch version!
-        await fetch('/api/messages', {
+        const res = await fetch(`/api/messages/${msgId}/version`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                conversationId: assistantMsg.conversationId,
-                role: 'assistant',
                 content: newContent,
-                reasoning: assistantMsg.reasoning || undefined,
-                timestamp: Date.now(),
-                versionGroupId: versionGroupId,
-                version: newVersion,
-                isActive: true,
-                parentMsgId: assistantMsg.parentMsgId || null
+                role: 'assistant',
+                reasoning: assistantMsg.reasoning || undefined
             })
         });
 
-        await refreshConversationView();
+        if (res.ok) {
+            await refreshConversationView();
+        } else {
+            throw new Error("Failed to save rewrite version on the server");
+        }
 
     } catch (err) {
         console.error("Magic Rewrite Error:", err);

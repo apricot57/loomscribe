@@ -4,9 +4,6 @@ import {
     getAllUserPrompts,
     getAllPromptCategories,
     lookupPromptName,
-    getDescendantIds,
-    hideDescendants,
-    showDescendants,
     buildApiPayload,
     buildApiPayloadUpTo,
     autoTitleConversation
@@ -163,9 +160,8 @@ export async function switchConversation(id) {
         }
     });
 
-    const cRes = await fetch('/api/conversations');
-    const conversations = cRes.ok ? await cRes.json() : [];
-    const conv = conversations.find(c => c.id === id);
+    const cRes = await fetch(`/api/conversations/${id}`);
+    const conv = cRes.ok ? await cRes.json() : null;
 
     if (conv && conv.activeModel) {
         state.serverConfig.activeModel = conv.activeModel;
@@ -822,216 +818,68 @@ export function cancelBotInlineEdit(messageDiv, contentDiv, editActions, actionR
 }
 
 export async function editBotMessageOnly(msgId, newText, messageDiv) {
-    const mRes = await fetch(`/api/messages?conversationId=${state.currentConversationId}`);
-    const allMessages = mRes.ok ? await mRes.json() : [];
-    const originalMsg = allMessages.find(m => String(m.id) === String(msgId));
-    if (!originalMsg) return;
-
-    const versionGroupId = originalMsg.versionGroupId || originalMsg.id;
-
-    if (!originalMsg.versionGroupId) {
-        await fetch(`/api/messages/${msgId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ versionGroupId, version: 1 })
-        });
-        originalMsg.versionGroupId = versionGroupId;
-        originalMsg.version = 1;
-    }
-
-    const existingVersions = allMessages.filter(m => m.versionGroupId === versionGroupId);
-    const maxVersion = existingVersions.reduce((max, v) => Math.max(max, v.version || 1), 0);
-    const newVersion = maxVersion + 1;
-
-    for (const v of existingVersions) {
-        await fetch(`/api/messages/${v.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ isActive: false })
-        });
-    }
-    await fetch(`/api/messages/${msgId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive: false })
-    });
-
-    await fetch('/api/messages', {
+    const res = await fetch(`/api/messages/${msgId}/version`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            conversationId: originalMsg.conversationId,
-            role: 'assistant',
-            content: newText,
-            reasoning: originalMsg.reasoning || undefined,
-            timestamp: Date.now(),
-            versionGroupId: versionGroupId,
-            version: newVersion,
-            isActive: true,
-            parentMsgId: originalMsg.parentMsgId || null
-        })
+        body: JSON.stringify({ content: newText, role: 'assistant' })
     });
-
-    await refreshConversationView();
+    if (res.ok) {
+        await refreshConversationView();
+    }
 }
 
 export async function editMessageAndRegenerate(msgId, newText, messageDiv) {
-    const mRes = await fetch(`/api/messages?conversationId=${state.currentConversationId}`);
-    const allMessages = mRes.ok ? await mRes.json() : [];
-    const originalMsg = allMessages.find(m => m.id === msgId);
-    if (!originalMsg) return;
-
-    const versionGroupId = originalMsg.versionGroupId || originalMsg.id;
-
-    if (!originalMsg.versionGroupId) {
-        await fetch(`/api/messages/${msgId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                versionGroupId: versionGroupId,
-                version: 1
-            })
-        });
-        originalMsg.versionGroupId = versionGroupId;
-        originalMsg.version = 1;
-    }
-
-    const existingVersions = allMessages.filter(m => m.versionGroupId === versionGroupId);
-    const maxVersion = existingVersions.reduce((max, v) => Math.max(max, v.version || 1), 0);
-    const newVersion = maxVersion + 1;
-
-    for (const v of existingVersions) {
-        await fetch(`/api/messages/${v.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ isActive: false })
-        });
-        await hideDescendants(v.id);
-    }
-    await fetch(`/api/messages/${msgId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive: false })
-    });
-    await hideDescendants(msgId);
-
-    const addRes = await fetch('/api/messages', {
+    const res = await fetch(`/api/messages/${msgId}/version`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            conversationId: originalMsg.conversationId,
-            role: 'user',
-            content: newText,
-            timestamp: Date.now(),
-            versionGroupId: versionGroupId,
-            version: newVersion,
-            isActive: true,
-            parentMsgId: originalMsg.parentMsgId || null
-        })
+        body: JSON.stringify({ content: newText, role: 'user' })
     });
-    let newMsg = {};
-    if (addRes.ok) {
-        newMsg = await addRes.json();
+    if (res.ok) {
+        const newMsg = await res.json();
+        await refreshConversationView();
+        await streamApiResponse({
+            conversationId: newMsg.conversationId,
+            parentMsgId: newMsg.id,
+            stopAfterMsgId: newMsg.id
+        });
+        await refreshConversationView();
     }
-    const newMsgId = newMsg.id;
-
-    await refreshConversationView();
-
-    await streamApiResponse({
-        conversationId: originalMsg.conversationId,
-        parentMsgId: newMsgId,
-        stopAfterMsgId: newMsgId
-    });
-
-    await refreshConversationView();
 }
 
 export async function regenerateResponse(msgId) {
-    const mRes = await fetch(`/api/messages?conversationId=${state.currentConversationId}`);
-    const allMessages = mRes.ok ? await mRes.json() : [];
-    const assistantMsg = allMessages.find(m => m.id === msgId);
-    if (!assistantMsg || assistantMsg.role !== 'assistant') return;
-
-    const parentUserMsg = assistantMsg.parentMsgId ? allMessages.find(m => m.id === assistantMsg.parentMsgId) : null;
-    const stopAtId = parentUserMsg ? parentUserMsg.id : msgId;
-
-    const versionGroupId = assistantMsg.versionGroupId || assistantMsg.id;
-
-    if (!assistantMsg.versionGroupId) {
-        await fetch(`/api/messages/${msgId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ versionGroupId, version: 1 })
-        });
-        assistantMsg.versionGroupId = versionGroupId;
-        assistantMsg.version = 1;
-    }
-
-    const existingVersions = allMessages.filter(m => m.versionGroupId === versionGroupId);
-    const maxVersion = existingVersions.reduce((max, v) => Math.max(max, v.version || 1), 0);
-    const newVersion = maxVersion + 1;
-
-    for (const v of existingVersions) {
-        await fetch(`/api/messages/${v.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ isActive: false })
-        });
-        await hideDescendants(v.id);
-    }
-    await fetch(`/api/messages/${msgId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive: false })
+    const res = await fetch(`/api/messages/${msgId}/deactivate-tree`, {
+        method: 'POST'
     });
-    await hideDescendants(msgId);
+    if (res.ok) {
+        const data = await res.json();
+        
+        const mRes = await fetch(`/api/messages?conversationId=${state.currentConversationId}`);
+        const allMessages = mRes.ok ? await mRes.json() : [];
+        const assistantMsg = allMessages.find(m => String(m.id) === String(msgId));
+        const parentUserMsg = assistantMsg && assistantMsg.parentMsgId ? allMessages.find(m => m.id === assistantMsg.parentMsgId) : null;
+        const stopAtId = parentUserMsg ? parentUserMsg.id : msgId;
 
-    await refreshConversationView();
+        await refreshConversationView();
 
-    await streamApiResponse({
-        conversationId: assistantMsg.conversationId,
-        parentMsgId: stopAtId === msgId ? (parentUserMsg?.id || null) : stopAtId,
-        stopAfterMsgId: stopAtId,
-        versionGroupId,
-        version: newVersion
-    });
+        await streamApiResponse({
+            conversationId: state.currentConversationId,
+            parentMsgId: stopAtId === msgId ? (parentUserMsg?.id || null) : stopAtId,
+            stopAfterMsgId: stopAtId,
+            versionGroupId: data.versionGroupId,
+            version: data.nextVersion
+        });
 
-    await refreshConversationView();
+        await refreshConversationView();
+    }
 }
 
 export async function navigateVersion(versionGroupId, targetVersion) {
-    const mRes = await fetch(`/api/messages?conversationId=${state.currentConversationId}`);
-    const allMessages = mRes.ok ? await mRes.json() : [];
-    const versions = allMessages.filter(m => m.versionGroupId === versionGroupId);
-    versions.sort((a, b) => (a.version || 1) - (b.version || 1));
-
-    if (targetVersion < 1 || targetVersion > versions.length) return;
-
-    const targetMsg = versions.find(v => (v.version || 1) === targetVersion);
-    if (!targetMsg) return;
-
-    for (const v of versions) {
-        await fetch(`/api/messages/${v.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ isActive: false })
-        });
-    }
-
-    await fetch(`/api/messages/${targetMsg.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive: true })
+    const res = await fetch(`/api/messages/${versionGroupId}/navigate?version=${targetVersion}`, {
+        method: 'POST'
     });
-    await showDescendants(targetMsg.id);
-
-    for (const v of versions) {
-        if (v.id !== targetMsg.id) {
-            await hideDescendants(v.id);
-        }
+    if (res.ok) {
+        await refreshConversationView();
     }
-
-    await refreshConversationView();
 }
 
 export async function populatePromptDropdown(menuElement, currentSelectionId, onSelect) {
@@ -1255,10 +1103,48 @@ export function populateCategoryDatalist() {
     }
 }
 
-export async function refreshConversationView() {
-    if (state.currentConversationId !== null) {
-        await switchConversation(state.currentConversationId);
+export async function refreshConversationMessages() {
+    if (state.currentConversationId === null) return;
+    
+    const id = state.currentConversationId;
+    const mRes = await fetch(`/api/messages?conversationId=${id}`);
+    const allMessages = mRes.ok ? await mRes.json() : [];
+    allMessages.sort((a, b) => a.timestamp - b.timestamp);
+    const activeMessages = allMessages.filter(m => m.isActive !== false);
+
+    const versionCounts = new Map();
+    for (const msg of allMessages) {
+        if (msg.versionGroupId) {
+            versionCounts.set(msg.versionGroupId, (versionCounts.get(msg.versionGroupId) || 0) + 1);
+        }
     }
+
+    const chatContainer = document.getElementById('chat-container');
+    const container = chatContainer ? chatContainer.querySelector('.messages-container') : null;
+    if (container) {
+        container.innerHTML = '';
+
+        activeMessages.forEach(msg => {
+            if (msg.role !== 'system') {
+                const sender = msg.role === 'assistant' ? 'bot' : 'user';
+                const versionGroupId = msg.versionGroupId;
+                const versionCount = versionGroupId ? (versionCounts.get(versionGroupId) || 1) : 1;
+                addMessageToUI(sender, msg.content, msg.reasoning, {
+                    id: msg.id,
+                    versionGroupId: versionGroupId,
+                    version: msg.version || 1,
+                    versionCount: versionCount
+                }, true);
+            }
+        });
+    }
+    
+    scrollToBottom();
+    await updateContinueButtonVisibility(activeMessages);
+}
+
+export async function refreshConversationView() {
+    await refreshConversationMessages();
 }
 
 export async function streamApiResponse({ conversationId, parentMsgId, stopAfterMsgId, versionGroupId, version }) {

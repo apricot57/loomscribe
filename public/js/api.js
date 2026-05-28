@@ -100,62 +100,6 @@ export async function loadFactoryPrompts() {
     }
 }
 
-export async function getDescendantIds(msgId) {
-    const result = [];
-    const queue = [msgId];
-    const res = await fetch(`/api/messages?conversationId=${state.currentConversationId}`);
-    const allMessages = res.ok ? await res.json() : [];
-    while (queue.length > 0) {
-        const currentId = queue.shift();
-        const children = allMessages.filter(m => m.parentMsgId != null && String(m.parentMsgId) === String(currentId));
-        for (const child of children) {
-            result.push(child.id);
-            queue.push(child.id);
-        }
-    }
-    return result;
-}
-
-export async function hideDescendants(msgId) {
-    const ids = await getDescendantIds(msgId);
-    for (const id of ids) {
-        await fetch(`/api/messages/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ isActive: false })
-        });
-    }
-}
-
-export async function showDescendants(msgId) {
-    const res = await fetch(`/api/messages?conversationId=${state.currentConversationId}`);
-    const allMessages = res.ok ? await res.json() : [];
-    let currentId = msgId;
-    while (true) {
-        const children = allMessages.filter(m => m.parentMsgId === currentId);
-        if (children.length === 0) break;
-        
-        let bestChild = children[0];
-        for (let i = 1; i < children.length; i++) {
-            if (children[i].versionGroupId === bestChild.versionGroupId) {
-                if ((children[i].version || 1) > (bestChild.version || 1)) {
-                    bestChild = children[i];
-                }
-            } else {
-                if (children[i].id > bestChild.id) {
-                    bestChild = children[i];
-                }
-            }
-        }
-        
-        await fetch(`/api/messages/${bestChild.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ isActive: true })
-        });
-        currentId = bestChild.id;
-    }
-}
 
 export async function buildApiPayload(conversationId) {
     const mRes = await fetch(`/api/messages?conversationId=${conversationId}`);

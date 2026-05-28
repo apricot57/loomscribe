@@ -17,6 +17,50 @@ function getRequestBody(req) {
     });
 }
 
+function deactivateMessageTree(db, msgId) {
+    const queue = [msgId];
+    while (queue.length > 0) {
+        const currentId = queue.shift();
+        const descendants = (db.messages || []).filter(m => m.parentMsgId != null && String(m.parentMsgId) === String(currentId));
+        for (const child of descendants) {
+            child.isActive = false;
+            queue.push(child.id);
+        }
+    }
+}
+
+function deactivateVersionGroupAndDescendants(db, versionGroupId) {
+    const versions = (db.messages || []).filter(m => m.versionGroupId === versionGroupId || m.id === versionGroupId);
+    for (const v of versions) {
+        v.isActive = false;
+        deactivateMessageTree(db, v.id);
+    }
+}
+
+function showDescendants(db, msgId) {
+    let currentId = msgId;
+    while (true) {
+        const children = (db.messages || []).filter(m => m.parentMsgId != null && String(m.parentMsgId) === String(currentId));
+        if (children.length === 0) break;
+        
+        let bestChild = children[0];
+        for (let i = 1; i < children.length; i++) {
+            if (children[i].versionGroupId === bestChild.versionGroupId) {
+                if ((children[i].version || 1) > (bestChild.version || 1)) {
+                    bestChild = children[i];
+                }
+            } else {
+                if (children[i].id > bestChild.id) {
+                    bestChild = children[i];
+                }
+            }
+        }
+        
+        bestChild.isActive = true;
+        currentId = bestChild.id;
+    }
+}
+
 function handleApiRoutes(req, res, pathname, url) {
     // --- API: GET /api/prompts ---
     if (pathname === '/api/prompts' && req.method === 'GET') {
@@ -135,6 +179,22 @@ function handleApiRoutes(req, res, pathname, url) {
         const idStr = pathname.slice('/api/conversations/'.length);
         const id = isNaN(idStr) ? idStr : parseInt(idStr);
 
+        if (req.method === 'GET') {
+            const db = readDb();
+            const conv = (db.conversations || []).find(c => c.id === id);
+            if (conv) {
+                res.writeHead(200, { 
+                    'Content-Type': 'application/json',
+                    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
+                });
+                res.end(JSON.stringify(conv));
+            } else {
+                res.writeHead(404);
+                res.end('Not Found');
+            }
+            return true;
+        }
+
         if (req.method === 'PUT') {
             getRequestBody(req).then((body) => {
                 const db = readDb();
@@ -219,6 +279,132 @@ function handleApiRoutes(req, res, pathname, url) {
     }
 
     if (pathname.startsWith('/api/messages/')) {
+        // Sub-route: /api/messages/:id/version
+        const matchVersion = pathname.match(/^\/api\/messages\/([^/]+)\/version$/);
+        if (matchVersion && req.method === 'POST') {
+            const msgId = isNaN(matchVersion[1]) ? matchVersion[1] : parseInt(matchVersion[1]);
+            getRequestBody(req).then((body) => {
+                const db = readDb();
+                const idx = db.messages.findIndex(m => m.id === msgId);
+                if (idx === -1) {
+                    res.writeHead(404);
+                    res.end('Message Not Found');
+                    return;
+                }
+                const originalMsg = db.messages[idx];
+                const versionGroupId = originalMsg.versionGroupId || originalMsg.id;
+
+                if (!originalMsg.versionGroupId) {
+                    originalMsg.versionGroupId = versionGroupId;
+                    originalMsg.version = 1;
+                }
+
+                const existingVersions = db.messages.filter(m => m.versionGroupId === versionGroupId);
+                const maxVersion = existingVersions.reduce((max, v) => Math.max(max, v.version || 1), 0);
+                const newVersion = maxVersion + 1;
+
+                deactivateVersionGroupAndDescendants(db, versionGroupId);
+
+                const newMsg = {
+                    id: Date.now() + Math.floor(Math.random() * 1000),
+                    conversationId: originalMsg.conversationId,
+                    role: body.role || originalMsg.role,
+                    content: body.content,
+                    reasoning: body.reasoning || undefined,
+                    timestamp: Date.now(),
+                    parentMsgId: originalMsg.parentMsgId,
+                    versionGroupId: versionGroupId,
+                    version: newVersion,
+                    isActive: true
+                };
+
+                db.messages.push(newMsg);
+                writeDb(db);
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(newMsg));
+            }).catch((e) => {
+                res.writeHead(400);
+                res.end('Bad Request');
+            });
+            return true;
+        }
+
+        // Sub-route: /api/messages/:id/deactivate-tree
+        const matchDeactivate = pathname.match(/^\/api\/messages\/([^/]+)\/deactivate-tree$/);
+        if (matchDeactivate && req.method === 'POST') {
+            const msgId = isNaN(matchDeactivate[1]) ? matchDeactivate[1] : parseInt(matchDeactivate[1]);
+            const db = readDb();
+            const idx = db.messages.findIndex(m => m.id === msgId);
+            if (idx === -1) {
+                res.writeHead(404);
+                res.end('Message Not Found');
+                return true;
+            }
+            const originalMsg = db.messages[idx];
+            const versionGroupId = originalMsg.versionGroupId || originalMsg.id;
+
+            if (!originalMsg.versionGroupId) {
+                originalMsg.versionGroupId = versionGroupId;
+                originalMsg.version = 1;
+            }
+
+            const existingVersions = db.messages.filter(m => m.versionGroupId === versionGroupId);
+            const maxVersion = existingVersions.reduce((max, v) => Math.max(max, v.version || 1), 0);
+            const nextVersion = maxVersion + 1;
+
+            deactivateVersionGroupAndDescendants(db, versionGroupId);
+            writeDb(db);
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ versionGroupId, nextVersion }));
+            return true;
+        }
+
+        // Sub-route: /api/messages/:versionGroupId/navigate
+        const matchNavigate = pathname.match(/^\/api\/messages\/([^/]+)\/navigate$/);
+        if (matchNavigate && req.method === 'POST') {
+            const versionGroupId = isNaN(matchNavigate[1]) ? matchNavigate[1] : parseInt(matchNavigate[1]);
+            const targetVersionStr = url.searchParams.get('version');
+            const targetVersion = targetVersionStr ? parseInt(targetVersionStr) : null;
+
+            if (targetVersion === null || isNaN(targetVersion)) {
+                res.writeHead(400);
+                res.end('Invalid version parameter');
+                return true;
+            }
+
+            const db = readDb();
+            const versions = db.messages.filter(m => m.versionGroupId === versionGroupId);
+            const targetMsg = versions.find(v => (v.version || 1) === targetVersion);
+
+            if (!targetMsg) {
+                res.writeHead(404);
+                res.end('Version Not Found');
+                return true;
+            }
+
+            for (const v of versions) {
+                v.isActive = false;
+            }
+
+            targetMsg.isActive = true;
+            showDescendants(db, targetMsg.id);
+
+            for (const v of versions) {
+                if (v.id !== targetMsg.id) {
+                    deactivateMessageTree(db, v.id);
+                }
+            }
+
+            writeDb(db);
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true }));
+            return true;
+        }
+
+        // Base route: /api/messages/:id (PUT)
         const idStr = pathname.slice('/api/messages/'.length);
         const id = isNaN(idStr) ? idStr : parseInt(idStr);
 
