@@ -9,6 +9,8 @@ import {
     autoTitleConversation
 } from './api.js';
 
+const ASSISTANT_DRAFT_STORAGE_PREFIX = 'loomscribe:assistant-drafts:';
+
 // Model Selection UI Logic
 export function initializeThinkingUI() {
     const thinkingBtn = document.getElementById('thinking-toggle-btn');
@@ -204,6 +206,8 @@ export async function switchConversation(id) {
                 }, true);
             }
         });
+
+        renderAssistantDrafts(id);
     }
     
     scrollToBottom();
@@ -418,6 +422,10 @@ export function addMessageToUI(sender, text, reasoning, msgMeta = {}, skipScroll
     if (msgMeta.versionGroupId != null) {
         messageDiv.dataset.versionGroupId = msgMeta.versionGroupId;
         messageDiv.dataset.version = msgMeta.version || 1;
+    }
+    if (msgMeta.unsaved) {
+        messageDiv.dataset.unsaved = 'true';
+        messageDiv.title = 'Draft message not saved to the server yet.';
     }
 
     container.appendChild(messageDiv);
@@ -1279,6 +1287,78 @@ export async function refreshConversationView() {
     await refreshConversationMessages();
 }
 
+function getAssistantDraftStorageKey(conversationId) {
+    return `${ASSISTANT_DRAFT_STORAGE_PREFIX}${conversationId}`;
+}
+
+function loadAssistantDrafts(conversationId) {
+    if (conversationId == null) return [];
+    try {
+        const raw = localStorage.getItem(getAssistantDraftStorageKey(conversationId));
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveAssistantDraft(conversationId, draft) {
+    if (conversationId == null || !draft?.tempId) return;
+    const drafts = loadAssistantDrafts(conversationId).filter(item => item.tempId !== draft.tempId);
+    drafts.push(draft);
+    localStorage.setItem(getAssistantDraftStorageKey(conversationId), JSON.stringify(drafts));
+}
+
+function removeAssistantDraft(conversationId, tempId) {
+    if (conversationId == null || !tempId) return;
+    const drafts = loadAssistantDrafts(conversationId).filter(item => item.tempId !== tempId);
+    if (drafts.length === 0) {
+        localStorage.removeItem(getAssistantDraftStorageKey(conversationId));
+    } else {
+        localStorage.setItem(getAssistantDraftStorageKey(conversationId), JSON.stringify(drafts));
+    }
+}
+
+function renderAssistantDrafts(conversationId) {
+    const drafts = loadAssistantDrafts(conversationId);
+    if (drafts.length === 0) return;
+
+    for (const draft of drafts) {
+        addMessageToUI('bot', draft.content || '', draft.reasoning || '', {
+            id: draft.serverId || draft.tempId,
+            versionGroupId: draft.versionGroupId || null,
+            version: draft.version || 1,
+            versionCount: draft.versionCount || 1,
+            unsaved: true
+        }, true);
+    }
+}
+
+async function persistAssistantMessage(payload, conversationId, tempId) {
+    const saveRes = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+
+    if (!saveRes.ok) {
+        saveAssistantDraft(conversationId, {
+            tempId,
+            content: payload.content,
+            reasoning: payload.reasoning || '',
+            parentMsgId: payload.parentMsgId || null,
+            versionGroupId: payload.versionGroupId || null,
+            version: payload.version || 1,
+            timestamp: payload.timestamp || Date.now()
+        });
+        return null;
+    }
+
+    removeAssistantDraft(conversationId, tempId);
+    return saveRes.json();
+}
+
 export async function streamApiResponse({ conversationId, parentMsgId, stopAfterMsgId, versionGroupId, version }) {
     if (!state.serverConfig.hasKey) {
         addMessageToUI('bot', '⚠️ API Key is missing! Please configure your DeepSeek API key in the sidebar under Settings (🔑).');
@@ -1371,25 +1451,17 @@ export async function streamApiResponse({ conversationId, parentMsgId, stopAfter
         }
 
         if (fullContent) {
-            const saveRes = await fetch('/api/messages', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    conversationId,
-                    role: 'assistant',
-                    content: fullContent,
-                    reasoning: fullReasoning || undefined,
-                    timestamp: Date.now(),
-                    parentMsgId: parentMsgId || null,
-                    versionGroupId: versionGroupId || null,
-                    version: version || 1,
-                    isActive: true
-                })
-            });
-            let savedMsg = {};
-            if (saveRes.ok) {
-                savedMsg = await saveRes.json();
-            }
+            const savedMsg = await persistAssistantMessage({
+                conversationId,
+                role: 'assistant',
+                content: fullContent,
+                reasoning: fullReasoning || undefined,
+                timestamp: Date.now(),
+                parentMsgId: parentMsgId || null,
+                versionGroupId: versionGroupId || null,
+                version: version || 1,
+                isActive: true
+            }, conversationId, streamMsgId);
 
             finalizeStreamingBotMessage(streamMsgId, fullContent, fullReasoning);
 
@@ -1412,27 +1484,27 @@ export async function streamApiResponse({ conversationId, parentMsgId, stopAfter
                     version: savedMsg.version || 1,
                     versionCount: versionCount
                 });
+            } else if (streamMsgDiv && !savedMsg) {
+                streamMsgDiv.dataset.unsaved = 'true';
+                streamMsgDiv.title = 'Draft message not saved to the server yet.';
+                showToast('Assistant response was saved locally because the server save failed.', 'warning');
             }
         }
 
     } catch (error) {
         if (error.name === 'AbortError') {
             if (fullContent && conversationId) {
-                await fetch('/api/messages', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        conversationId,
-                        role: 'assistant',
-                        content: fullContent,
-                        reasoning: fullReasoning || undefined,
-                        timestamp: Date.now(),
-                        parentMsgId: parentMsgId || null,
-                        versionGroupId: versionGroupId || null,
-                        version: version || 1,
-                        isActive: true
-                    })
-                });
+                await persistAssistantMessage({
+                    conversationId,
+                    role: 'assistant',
+                    content: fullContent,
+                    reasoning: fullReasoning || undefined,
+                    timestamp: Date.now(),
+                    parentMsgId: parentMsgId || null,
+                    versionGroupId: versionGroupId || null,
+                    version: version || 1,
+                    isActive: true
+                }, conversationId, streamMsgId);
             }
             if (streamMsgId) {
                 finalizeStreamingBotMessage(streamMsgId, fullContent, fullReasoning);
