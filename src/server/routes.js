@@ -514,15 +514,19 @@ function handleApiRoutes(req, res, pathname, url) {
                 if (body.id) {
                     // Update
                     const idx = db.prompts.findIndex(p => p.id === body.id);
-                    if (idx !== -1) {
-                        const { name, category, content } = body;
-                        const updateObj = {};
-                        if (name !== undefined) updateObj.name = name;
-                        if (category !== undefined) updateObj.category = category;
-                        if (content !== undefined) updateObj.content = content;
-                        db.prompts[idx] = { ...db.prompts[idx], ...updateObj };
-                        pRecord = db.prompts[idx];
+                    if (idx === -1) {
+                        res.writeHead(404);
+                        res.end('Not Found');
+                        return;
                     }
+
+                    const { name, category, content } = body;
+                    const updateObj = {};
+                    if (name !== undefined) updateObj.name = name;
+                    if (category !== undefined) updateObj.category = category;
+                    if (content !== undefined) updateObj.content = content;
+                    db.prompts[idx] = { ...db.prompts[idx], ...updateObj };
+                    pRecord = db.prompts[idx];
                 } else {
                     // Add
                     pRecord = {
