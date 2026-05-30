@@ -234,11 +234,26 @@ export async function createNewConversation(title = 'New Chat', systemPromptId =
         })
     });
 
-    let newConv = {};
-    if (res.ok) {
-        newConv = await res.json();
+    if (!res.ok) {
+        let errorMessage = `Failed to create conversation (${res.status})`;
+        try {
+            const errorData = await res.json();
+            errorMessage = errorData?.error?.message || errorMessage;
+        } catch {
+            // Fall back to the HTTP status message.
+        }
+        showToast(errorMessage, 'error');
+        throw new Error(errorMessage);
     }
+
+    const newConv = await res.json();
     const newId = newConv.id;
+
+    if (newId == null) {
+        const errorMessage = 'Conversation creation returned an invalid id.';
+        showToast(errorMessage, 'error');
+        throw new Error(errorMessage);
+    }
 
     state.currentConversationId = newId;
     localStorage.setItem('activeConversationId', newId);
