@@ -3,6 +3,7 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '../../');
 const PROMPTS_DIR = path.join(ROOT, 'prompt_cards');
+const PROMPTS_DIR_RESOLVED = path.resolve(PROMPTS_DIR);
 
 function extractNameFromFile(filePath) {
     try {
@@ -54,10 +55,11 @@ function getPromptTree() {
 }
 
 function getPromptContent(category, filename) {
-    const filePath = path.join(PROMPTS_DIR, category, filename);
+    const filePath = path.resolve(PROMPTS_DIR, category, filename);
 
     // Safety check to prevent directory traversal
-    if (!filePath.startsWith(PROMPTS_DIR)) {
+    const relativePath = path.relative(PROMPTS_DIR_RESOLVED, filePath);
+    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
         throw new Error('Forbidden');
     }
 
