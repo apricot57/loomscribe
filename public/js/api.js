@@ -143,13 +143,120 @@ export async function checkIsLastActiveAssistant(msgId) {
 }
 
 export async function autoTitleConversation(convId, promptText) {
-    let title = promptText.trim();
-    if (title.length > 25) {
-        title = title.substring(0, 25) + '...';
+    const title = buildAutoTitle(promptText);
+    if (!title) return;
+
+    try {
+        const convRes = await fetch(`/api/conversations/${convId}`);
+        if (convRes.ok) {
+            const conv = await convRes.json();
+            const currentTitle = (conv?.title || '').trim();
+            if (currentTitle && currentTitle !== 'New Chat') {
+                return;
+            }
+        }
+    } catch (err) {
+        console.warn('Skipping auto-title check because conversation lookup failed:', err);
     }
+
     await fetch(`/api/conversations/${convId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: title })
+        body: JSON.stringify({ title })
     });
+
+    syncConversationTitleInUI(convId, title);
+}
+
+function buildAutoTitle(promptText) {
+    if (!promptText) return null;
+
+    const cleaned = promptText
+        .replace(/\[[^\]]*\]/g, ' ')
+        .replace(/```[\s\S]*?```/g, ' ')
+        .replace(/[*_`>#\[\]()]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    if (!cleaned) return null;
+
+    let title = cleaned;
+
+    const prefixes = [
+        /^can you\s+/i,
+        /^could you\s+/i,
+        /^would you\s+/i,
+        /^will you\s+/i,
+        /^please\s+/i,
+        /^help me\s+/i,
+        /^i need you to\s+/i,
+        /^i need\s+/i,
+        /^i want you to\s+/i,
+        /^write\s+/i,
+        /^draft\s+/i,
+        /^create\s+/i,
+        /^make\s+/i,
+        /^generate\s+/i,
+        /^summarize\s+/i,
+        /^summarise\s+/i,
+        /^explain\s+/i,
+        /^analyze\s+/i,
+        /^analyse\s+/i,
+        /^review\s+/i,
+        /^rewrite\s+/i,
+        /^improve\s+/i,
+        /^fix\s+/i,
+        /^convert\s+/i
+    ];
+
+    for (const prefix of prefixes) {
+        title = title.replace(prefix, '');
+    }
+
+    title = title
+        .replace(/^(a|an|the)\s+/i, '')
+        .replace(/^(for|to|about)\s+/i, '')
+        .replace(/\s+[?.!]+$/, '')
+        .replace(/[?.!,;:]+$/g, '')
+        .trim();
+
+    if (!title) return null;
+
+    const words = title.split(' ');
+    const maxWords = 6;
+    if (words.length > maxWords) {
+        title = words.slice(0, maxWords).join(' ');
+    }
+
+    const smallWords = new Set(['a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'from', 'in', 'into', 'nor', 'of', 'on', 'or', 'over', 'per', 'the', 'to', 'up', 'via', 'with']);
+    title = title
+        .toLowerCase()
+        .split(' ')
+        .map((word, index) => {
+            if (!word) return word;
+            if (index > 0 && smallWords.has(word)) return word;
+            return word.charAt(0).toUpperCase() + word.slice(1);
+        })
+        .join(' ');
+
+    if (title.length > 40) {
+        title = title.slice(0, 40).trim();
+        const lastSpace = title.lastIndexOf(' ');
+        if (lastSpace > 20) {
+            title = title.slice(0, lastSpace);
+        }
+    }
+
+    return title || null;
+}
+
+function syncConversationTitleInUI(convId, title) {
+    const item = document.querySelector(`.chat-list-item[data-id="${convId}"]`);
+    if (!item) return;
+
+    item.title = title;
+    const titleNode = item.querySelector('.chat-item-title');
+    if (titleNode) {
+        titleNode.textContent = title;
+    }
 }

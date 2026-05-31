@@ -124,6 +124,11 @@ export async function loadConversations() {
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
             </svg>
         `;
+
+        const actionGroup = document.createElement('div');
+        actionGroup.className = 'chat-item-actions';
+        actionGroup.appendChild(renameBtn);
+        actionGroup.appendChild(deleteBtn);
         
         item.addEventListener('click', () => {
             switchConversation(conv.id);
@@ -141,8 +146,7 @@ export async function loadConversations() {
         
         item.innerHTML = iconSvg;
         item.appendChild(titleSpan);
-        item.appendChild(renameBtn);
-        item.appendChild(deleteBtn);
+        item.appendChild(actionGroup);
         chatsList.appendChild(item);
     });
 }
