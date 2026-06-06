@@ -4,6 +4,11 @@ This file is for feature and functionality ideas, not technical refactor work.
 Use the technical planning doc for implementation cleanup and architecture
 changes.
 
+Related plans:
+
+- [`story_continuity_scaffolds_plan.md`](story_continuity_scaffolds_plan.md)
+- [`composable_prompt_system_plan.md`](composable_prompt_system_plan.md)
+
 ## Near-Term UI Expansion
 
 - Add a collapsible right-hand pane for reusable context.
@@ -43,6 +48,8 @@ changes.
 - Pinning important entries to a conversation.
 - Import/export for context packs.
 - Versioning for world info entries.
+- Composable prompt modules and inheritance for reusable prompt cards.
+- Story continuity scaffolds for summaries, pinned facts, and character notes.
 
 ## Notes
 

@@ -3,6 +3,12 @@
 Incremental refactor plan for cleaning up the current app while keeping it
 working after every step.
 
+Related product-planning docs:
+
+- [`FEATURE_ROADMAP.md`](FEATURE_ROADMAP.md)
+- [`story_continuity_scaffolds_plan.md`](story_continuity_scaffolds_plan.md)
+- [`composable_prompt_system_plan.md`](composable_prompt_system_plan.md)
+
 **Constraint:** No build step. Runtime dependencies installed with `npm install`
 are acceptable.
 
@@ -744,3 +750,11 @@ Each step should produce a working, committable app.
 - `start-loomscribe.bat`.
 - The browser-visible API contract.
 - The DeepSeek streaming behavior.
+
+## Planning Notes
+
+The refactor work should preserve the current prompt-card-first workflow while making room for:
+
+- story continuity scaffolds
+- composable prompt modules
+- a future prompt compiler and preview flow
