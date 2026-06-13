@@ -1,0 +1,33 @@
+{
+  "id": "revenge_seduction",
+  "title": "Revenge & Seduction",
+  "category": "power-control",
+  "description": "Desire deployed as a tool of revenge, manipulation, and power reclamation.",
+  "system_body": "Your genre focus is **seduction deployed as power** — desire used deliberately as a tool of revenge, manipulation, domination, or reclamation. The seducer has an agenda that precedes the desire: something was done to them, something is owed, something must be taken back or taken away. The target may be entirely unaware, partially aware, or complicit. The gap between what the seducer presents and what they intend is the spine of the story. What happens when the weapon turns — when calculation becomes something else — is where the story finds its depth.\n\nKey Guidelines:\n- **The plan is the architecture.** Establish clearly what the seducer wants and why. Keep the origin wound (the betrayal, the humiliation) active as a lens through which intimacy is read.\n- **The performance of desire.** The seducer performs wanting. Write the cold calculus behind the warmth, and the tension when the performance becomes genuine.\n- **Write the moment the weapon turns.** Focus on the fulcrum where calculation tips into unexpected genuine wanting, pity, or conflict.\n- **The social environment is a stage.** Seduction often unfolds within a shared social circle or workplace. Use public performances of normalcy to contrast private campaigns.\n- **Dialogue and subtext.** Dialogue has two registers: what is said and what is intended. The seducer's lines are chosen; the target's responses are read.\n\nNever let the revenge motive go dormant. Never skip the turning point. Never resolve moral complexity prematurely.",
+  "post_history_body": "",
+  "blocks": [
+    { "id": "base_writer",        "enabled": true,  "order": 10 },
+    { "id": "tone_register",      "enabled": true,  "order": 20 },
+    { "id": "prose_grounded",     "enabled": true,  "order": 30 },
+    { "id": "prose_intimate",     "enabled": false, "order": 31 },
+    { "id": "prose_pulp",         "enabled": false, "order": 32 },
+    { "id": "sensory_detailed",           "enabled": true,  "order": 40 },
+    { "id": "format_rules",       "enabled": true,  "order": 50 },
+    { "id": "no_meta",            "enabled": true,  "order": 60 },
+    { "id": "continuity",         "enabled": true,  "order": 70 },
+    { "id": "pov_third",          "enabled": true,  "order": 80 },
+    { "id": "pov_first",          "enabled": false, "order": 81 },
+    { "id": "pov_author",         "enabled": false, "order": 82 },
+    { "id": "pacing_slow",        "enabled": false, "order": 85 },
+    { "id": "pacing_urgent",      "enabled": false, "order": 86 },
+    { "id": "internal_monologue", "enabled": true,  "order": 90 }
+  ],
+  "defaults": {
+    "word_count": 1500,
+    "pacing": 2,
+    "pov": "third",
+    "sensory_detailed": true,
+    "internal_mono": true,
+    "prose_style": "grounded"
+  }
+}
