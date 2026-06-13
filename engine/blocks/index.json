@@ -1,0 +1,107 @@
+[
+  {
+    "id": "base_writer",
+    "title": "Base Writer",
+    "file": "base_writer.md",
+    "group": "core",
+    "order": 10
+  },
+  {
+    "id": "tone_register",
+    "title": "Tone & Register",
+    "file": "tone_register.md",
+    "group": "core",
+    "order": 20
+  },
+  {
+    "id": "prose_grounded",
+    "title": "Prose — Grounded",
+    "file": "prose_grounded.md",
+    "group": "prose",
+    "order": 30
+  },
+  {
+    "id": "prose_intimate",
+    "title": "Prose — Intimate",
+    "file": "prose_intimate.md",
+    "group": "prose",
+    "order": 31
+  },
+  {
+    "id": "prose_pulp",
+    "title": "Prose — Pulp",
+    "file": "prose_pulp.md",
+    "group": "prose",
+    "order": 32
+  },
+  {
+    "id": "sensory_detailed",
+    "title": "Explicit Content",
+    "file": "sensory_detailed.md",
+    "group": "content",
+    "order": 40
+  },
+  {
+    "id": "format_rules",
+    "title": "Format Rules",
+    "file": "format_rules.md",
+    "group": "core",
+    "order": 50
+  },
+  {
+    "id": "no_meta",
+    "title": "No Meta",
+    "file": "no_meta.md",
+    "group": "core",
+    "order": 60
+  },
+  {
+    "id": "continuity",
+    "title": "Continuity",
+    "file": "continuity.md",
+    "group": "core",
+    "order": 70
+  },
+  {
+    "id": "pov_third",
+    "title": "POV — Close Third",
+    "file": "pov_third.md",
+    "group": "pov",
+    "order": 80
+  },
+  {
+    "id": "pov_first",
+    "title": "POV — Deep First",
+    "file": "pov_first.md",
+    "group": "pov",
+    "order": 81
+  },
+  {
+    "id": "pov_author",
+    "title": "POV — Omniscient",
+    "file": "pov_author.md",
+    "group": "pov",
+    "order": 82
+  },
+  {
+    "id": "pacing_slow",
+    "title": "Pacing — Slow Burn",
+    "file": "pacing_slow.md",
+    "group": "pacing",
+    "order": 85
+  },
+  {
+    "id": "pacing_urgent",
+    "title": "Pacing — Urgent",
+    "file": "pacing_urgent.md",
+    "group": "pacing",
+    "order": 86
+  },
+  {
+    "id": "internal_monologue",
+    "title": "Internal Monologue",
+    "file": "internal_monologue.md",
+    "group": "content",
+    "order": 90
+  }
+]

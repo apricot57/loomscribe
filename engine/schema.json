@@ -1,0 +1,61 @@
+[
+  {
+    "id": "word_count",
+    "label": "Response Length",
+    "type": "slider",
+    "min": 600,
+    "max": 3000,
+    "step": 100,
+    "unit": "words",
+    "default": 1500,
+    "slot": "post_history"
+  },
+  {
+    "id": "pacing",
+    "label": "Pacing",
+    "type": "slider",
+    "min": 1,
+    "max": 5,
+    "labels": ["Slow burn", "", "", "", "Urgent"],
+    "default": 2,
+    "slot": "system"
+  },
+  {
+    "id": "pov",
+    "label": "Point of View",
+    "type": "select",
+    "options": [
+      { "value": "third",  "label": "Close Third" },
+      { "value": "first",  "label": "Deep First" },
+      { "value": "author", "label": "Omniscient" }
+    ],
+    "default": "third",
+    "slot": "system"
+  },
+  {
+    "id": "sensory_detailed",
+    "label": "Explicit Content",
+    "type": "toggle",
+    "default": true,
+    "slot": "system"
+  },
+  {
+    "id": "internal_mono",
+    "label": "Internal Monologue",
+    "type": "toggle",
+    "default": true,
+    "slot": "system"
+  },
+  {
+    "id": "prose_style",
+    "label": "Prose Style",
+    "type": "select",
+    "options": [
+      { "value": "grounded", "label": "Grounded" },
+      { "value": "intimate", "label": "Intimate" },
+      { "value": "pulp",     "label": "Pulp" }
+    ],
+    "default": "grounded",
+    "slot": "system"
+  }
+]
