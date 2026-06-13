@@ -1,6 +1,6 @@
 # 🌌 LoomScribe
 
-A premium single-page chat interface for collaborative fiction writing with DeepSeek models. Vanilla HTML/CSS/JS — no build tools, no frameworks, no bundlers. Runs as a **desktop web app** (Node.js backend) or as a standalone **serverless Android APK**.
+A premium single-page chat interface for collaborative fiction writing with DeepSeek models. Vanilla HTML/CSS/JS on the frontend (no build tools, no frameworks, no bundlers) powered by a lightweight Node.js/Express backend. Runs as a **desktop web app** or as a standalone **serverless Android APK**.
 
 [![Download APK](https://img.shields.io/badge/Download-LoomScribe.apk-blue?style=for-the-badge&logo=android)](https://github.com/apricot57/vibe-api/releases/latest)
 [![Android Branch](https://img.shields.io/badge/Branch-Android%20Port-green?style=for-the-badge&logo=git)](https://github.com/apricot57/vibe-api/tree/feature/android-serverless-port)
@@ -48,6 +48,12 @@ See the [`feature/android-serverless-port`](https://github.com/apricot57/vibe-ap
 
 Prerequisites: [Node.js](https://nodejs.org/) (any recent version).
 
+Install dependencies:
+```bash
+npm install
+```
+
+Start the server:
 ```bash
 node server.js
 ```
