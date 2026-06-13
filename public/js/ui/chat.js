@@ -741,7 +741,7 @@ function removeAssistantDraft(conversationId, tempId) {
     }
 }
 
-function renderAssistantDrafts(conversationId) {
+export function renderAssistantDrafts(conversationId) {
     const drafts = loadAssistantDrafts(conversationId);
     if (drafts.length === 0) return;
 
