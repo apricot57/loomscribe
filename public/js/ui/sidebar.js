@@ -1,7 +1,7 @@
 import { state } from '../state.js';
 import { fetchPromptContent } from '../api.js';
 import { initializeModelUI } from './input.js';
-import { updatePromptSelectorDisplay } from './prompts.js';
+import { updatePromptSelectorDisplay, populatePromptDropdown } from './prompts.js';
 import {
     addMessageToUI,
     renderAssistantDrafts,
@@ -9,6 +9,7 @@ import {
     updateContinueButtonVisibility
 } from './chat.js';
 import { showToast } from './modals.js';
+import { safeAsync } from './helpers.js';
 
 // Fetch and render the list of conversations in the sidebar
 export async function loadConversations() {
@@ -306,4 +307,97 @@ export function startInlineRename(item, titleSpan, id, currentTitle) {
     titleSpan.replaceWith(input);
     input.focus();
     input.select();
+}
+
+export function initSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
+    const sidebarCloseBtn = document.getElementById('sidebar-close-btn');
+
+    // Toggle Sidebar on mobile viewports
+    if (sidebarToggleBtn && sidebar) {
+        sidebarToggleBtn.addEventListener('click', () => {
+            sidebar.classList.add('active');
+        });
+    }
+
+    if (sidebarCloseBtn && sidebar) {
+        sidebarCloseBtn.addEventListener('click', () => {
+            sidebar.classList.remove('active');
+        });
+    }
+}
+
+export function initNewChatModal() {
+    const clearChatBtn = document.getElementById('clear-chat-btn');
+    const newChatModal = document.getElementById('new-chat-modal');
+    const newChatModalCloseBtn = document.getElementById('new-chat-modal-close-btn');
+    const newChatTitleInput = document.getElementById('new-chat-title-input');
+    const modalPromptSelectBtn = document.getElementById('modal-prompt-select-btn');
+    const modalActivePromptName = document.getElementById('modal-active-prompt-name');
+    const modalPromptDropdownMenu = document.getElementById('modal-prompt-dropdown-menu');
+    const startChatBtn = document.getElementById('start-chat-btn');
+
+    // New Chat button — shows modal instead of immediate creation
+    if (clearChatBtn) {
+        clearChatBtn.addEventListener('click', () => {
+            if (newChatTitleInput) newChatTitleInput.value = '';
+            if (modalActivePromptName) modalActivePromptName.textContent = 'None (Default)';
+            state.modalSelectedPromptId = null;
+            if (newChatModal) {
+                newChatModal.classList.remove('hidden');
+                setTimeout(() => newChatTitleInput?.focus(), 100);
+            }
+        });
+    }
+
+    // New Chat Modal close
+    if (newChatModalCloseBtn) {
+        newChatModalCloseBtn.addEventListener('click', () => newChatModal?.classList.add('hidden'));
+    }
+    if (newChatModal) {
+        newChatModal.addEventListener('click', (e) => {
+            if (e.target === newChatModal) newChatModal.classList.add('hidden');
+        });
+    }
+
+    // New Chat Modal — prompt dropdown toggle
+    if (modalPromptSelectBtn && modalPromptDropdownMenu) {
+        modalPromptSelectBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = !modalPromptDropdownMenu.classList.contains('hidden');
+            if (isOpen) {
+                modalPromptDropdownMenu.classList.add('hidden');
+            } else {
+                modalPromptDropdownMenu.classList.remove('hidden');
+                populatePromptDropdown(modalPromptDropdownMenu, state.modalSelectedPromptId, (promptId) => {
+                    state.modalSelectedPromptId = promptId;
+                    if (state.factoryPromptCategories && promptId) {
+                        for (const prompts of Object.values(state.factoryPromptCategories.categories)) {
+                            for (const p of prompts) {
+                                if (`${p.category}/${p.filename}` === promptId) {
+                                    if (modalActivePromptName) modalActivePromptName.textContent = p.name;
+                                    modalPromptDropdownMenu.classList.add('hidden');
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                    if (modalActivePromptName) {
+                        modalActivePromptName.textContent = promptId ? 'Selected' : 'None (Default)';
+                    }
+                    modalPromptDropdownMenu.classList.add('hidden');
+                });
+            }
+        });
+    }
+
+    // Start Chat button in modal
+    if (startChatBtn) {
+        startChatBtn.addEventListener('click', safeAsync(async () => {
+            const title = newChatTitleInput?.value.trim() || 'New Chat';
+            await createNewConversation(title, state.modalSelectedPromptId);
+            newChatModal?.classList.add('hidden');
+        }));
+    }
 }

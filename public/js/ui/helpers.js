@@ -1,1 +1,7 @@
-// Private shared utilities for UI modules can be placed here in the future if needed.
+export function safeAsync(fn) {
+    return function (...args) {
+        Promise.resolve(fn(...args)).catch((err) => {
+            console.error("Unhandled async error caught by safeAsync boundary:", err);
+        });
+    };
+}

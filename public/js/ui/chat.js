@@ -1,10 +1,13 @@
-import { state, escapeHtml } from '../state.js';
+import { state, escapeHtml, getSystemPromptContentSync } from '../state.js';
 import {
     fetchPromptContent,
     buildApiPayload,
-    buildApiPayloadUpTo
+    buildApiPayloadUpTo,
+    autoTitleConversation
 } from '../api.js';
 import { showToast } from './modals.js';
+import { safeAsync } from './helpers.js';
+import { createNewConversation } from './sidebar.js';
 
 const ASSISTANT_DRAFT_STORAGE_PREFIX = 'loomscribe:assistant-drafts:';
 
@@ -943,5 +946,217 @@ export async function streamApiResponse({ conversationId, parentMsgId, stopAfter
             userInput.focus();
         }
         await updateContinueButtonVisibility();
+    }
+}
+
+export function initChatForm() {
+    const chatForm = document.getElementById('chat-form');
+    const userInput = document.getElementById('user-input');
+    const continueBtn = document.getElementById('continue-btn');
+
+    // Handle Enter and Shift+Enter for textarea
+    if (userInput && chatForm) {
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const text = userInput.value.trim();
+                if (text) {
+                    chatForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                }
+            }
+        });
+
+        userInput.addEventListener('input', () => {
+            userInput.style.height = 'auto';
+            userInput.style.height = Math.min(userInput.scrollHeight, 150) + 'px';
+        });
+    }
+
+    // Message submit trigger
+    if (chatForm) {
+        chatForm.addEventListener('submit', safeAsync(async (e) => {
+            e.preventDefault();
+            
+            if (continueBtn) continueBtn.classList.add('hidden');
+            
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            // Verify API key configuration on backend
+            if (!state.serverConfig.hasKey) {
+                addMessageToUI('bot', '⚠️ API Key is missing! Please configure your DeepSeek API key in the sidebar under Settings (🔑).');
+                return;
+            }
+
+            // Auto-create active thread if none exists
+            if (state.currentConversationId === null) {
+                await createNewConversation();
+            }
+
+            // Find the previous active message to set parentMsgId
+            const mRes = await fetch(`/api/messages?conversationId=${state.currentConversationId}`);
+            const prevMsgs = mRes.ok ? await mRes.json() : [];
+            const lastActive = prevMsgs.filter(m => m.isActive !== false).sort((a, b) => a.timestamp - b.timestamp).pop();
+            const parentMsgIdVal = lastActive ? lastActive.id : null;
+
+            // Add user message to UI
+            const userMsgDiv = addMessageToUI('user', message);
+
+            // Clear input early
+            userInput.value = '';
+            userInput.style.height = 'auto';
+
+            // Write message record to server side DB
+            const addRes = await fetch('/api/messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    conversationId: state.currentConversationId,
+                    role: 'user',
+                    content: message,
+                    timestamp: Date.now(),
+                    parentMsgId: parentMsgIdVal,
+                    isActive: true
+                })
+            });
+            let newMsg = {};
+            if (addRes.ok) {
+                newMsg = await addRes.json();
+            }
+            const userMsgId = newMsg.id;
+
+            // Attach edit actions directly to the user message div instead of re-rendering
+            if (userMsgDiv && userMsgId) {
+                userMsgDiv.id = userMsgId;
+                userMsgDiv.dataset.msgId = userMsgId;
+                attachMessageActions(userMsgDiv, 'user', { id: userMsgId });
+            }
+
+            // Trigger auto-titling if this is the very first message
+            if (prevMsgs.length === 0) {
+                await autoTitleConversation(state.currentConversationId, message);
+            }
+
+            // Stream AI response using shared function
+            await streamApiResponse({
+                conversationId: state.currentConversationId,
+                parentMsgId: userMsgId
+            });
+        }));
+    }
+}
+
+export function initStopButton() {
+    const stopBtn = document.getElementById('stop-btn');
+    const userInput = document.getElementById('user-input');
+
+    if (stopBtn) {
+        stopBtn.addEventListener('click', () => {
+            if (state.abortController) {
+                state.abortController.abort();
+                state.abortController = null;
+            }
+            const typingIndicator = document.querySelector('.typing-indicator');
+            if (typingIndicator) {
+                const id = typingIndicator.id;
+                if (id) removeTypingIndicator(id);
+                else typingIndicator.remove();
+            }
+            stopBtn.classList.add('hidden');
+            const sendBtn = document.getElementById('send-btn');
+            if (sendBtn) sendBtn.classList.remove('hidden');
+            if (userInput) {
+                userInput.disabled = false;
+                userInput.focus();
+            }
+            updateContinueButtonVisibility();
+        });
+    }
+}
+
+export function initContinueButton() {
+    const continueBtn = document.getElementById('continue-btn');
+    const userInput = document.getElementById('user-input');
+    const chatForm = document.getElementById('chat-form');
+
+    if (continueBtn) {
+        continueBtn.addEventListener('click', () => {
+            if (userInput && chatForm) {
+                continueBtn.classList.add('hidden');
+                userInput.value = '[continue]';
+                userInput.style.height = 'auto';
+                chatForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+            }
+        });
+    }
+}
+
+export function initExportButton() {
+    const exportChatBtn = document.getElementById('export-chat-btn');
+
+    if (exportChatBtn) {
+        exportChatBtn.addEventListener('click', safeAsync(async () => {
+            if (state.currentConversationId === null) {
+                showToast('No active conversation to export.', 'warning');
+                return;
+            }
+
+            const cRes = await fetch('/api/conversations');
+            const conversations = cRes.ok ? await cRes.json() : [];
+            const conv = conversations.find(c => c.id === state.currentConversationId);
+            if (!conv) return;
+
+            const mRes = await fetch(`/api/messages?conversationId=${state.currentConversationId}`);
+            const allMessages = mRes.ok ? await mRes.json() : [];
+            allMessages.sort((a, b) => a.timestamp - b.timestamp);
+            const activeMessages = allMessages.filter(m => m.isActive !== false);
+
+            if (activeMessages.length === 0) {
+                showToast('This conversation has no messages to export.', 'warning');
+                return;
+            }
+
+            const title = conv.title || 'Untitled Conversation';
+            const systemPrompt = getSystemPromptContentSync();
+
+            let mdContent = `# ${title}\n\n`;
+            if (systemPrompt) {
+                mdContent += `> **System Prompt:** ${systemPrompt}\n\n`;
+            }
+            mdContent += `---\n\n`;
+
+            activeMessages.forEach(msg => {
+                if (msg.role !== 'system') {
+                    const roleName = msg.role === 'assistant' ? 'Assistant' : 'User';
+                    mdContent += `## ${roleName}\n\n${msg.content}\n\n---\n\n`;
+                }
+            });
+
+            // Clean up trailing separators
+            mdContent = mdContent.trim().replace(/---\s*$/, '').trim() + '\n';
+
+            // Trigger download
+            const slugify = (text) => {
+                return text
+                    .toString()
+                    .toLowerCase()
+                    .replace(/\s+/g, '-')
+                    .replace(/[^\w\-]+/g, '')
+                    .replace(/\-\-+/g, '-')
+                    .replace(/^-+/, '')
+                    .replace(/-+$/, '');
+            };
+
+            const filename = `${slugify(title) || 'conversation'}.md`;
+            const blob = new Blob([mdContent], { type: 'text/markdown;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }));
     }
 }
