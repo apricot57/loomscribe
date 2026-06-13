@@ -260,3 +260,44 @@ function syncConversationTitleInUI(convId, title) {
         titleNode.textContent = title;
     }
 }
+
+export async function getEngineSchema() {
+    if (state.engineSchema) return state.engineSchema;
+    const res = await fetch('/api/engine/schema');
+    if (res.ok) {
+        state.engineSchema = await res.json();
+        return state.engineSchema;
+    }
+    throw new Error("Failed to load parameters schema");
+}
+
+export async function getEnginePresets() {
+    if (state.enginePresets) return state.enginePresets;
+    const res = await fetch('/api/engine/presets');
+    if (res.ok) {
+        state.enginePresets = await res.json();
+        return state.enginePresets;
+    }
+    throw new Error("Failed to load presets");
+}
+
+export async function getEnginePreset(presetId) {
+    const res = await fetch(`/api/engine/presets/${presetId}`);
+    if (res.ok) {
+        return await res.json();
+    }
+    throw new Error(`Failed to load preset: ${presetId}`);
+}
+
+export async function compilePromptPreview({ presetId, params, blockOverrides, directorNote }) {
+    const res = await fetch('/api/engine/compile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ presetId, params, blockOverrides, directorNote })
+    });
+    if (res.ok) {
+        return await res.json();
+    }
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || "Failed to compile prompt preview");
+}

@@ -1,7 +1,6 @@
 import { state } from '../state.js';
-import { fetchPromptContent } from '../api.js';
 import { initializeModelUI } from './input.js';
-import { updatePromptSelectorDisplay, populatePromptDropdown } from './prompts.js';
+import { renderRightPane, clearPendingSave } from './right-pane.js';
 import {
     addMessageToUI,
     renderAssistantDrafts,
@@ -131,11 +130,8 @@ export async function switchConversation(id) {
         initializeModelUI();
     }
 
-    state.currentSystemPromptId = conv?.systemPromptId || null;
-    if (state.currentSystemPromptId) {
-        await fetchPromptContent(state.currentSystemPromptId);
-    }
-    updatePromptSelectorDisplay();
+    clearPendingSave();
+    await renderRightPane(conv);
 
     const mRes = await fetch(`/api/messages?conversationId=${id}`);
     const allMessages = mRes.ok ? await mRes.json() : [];
@@ -208,11 +204,18 @@ export async function switchConversation(id) {
 }
 
 // Spawn a new empty conversation
-export async function createNewConversation(title = 'New Chat', systemPromptId = null) {
+export async function createNewConversation(title = 'New Chat', presetId = null) {
     const selectedModel = state.serverConfig.activeModel || 'deepseek-v4-pro';
 
-    if (systemPromptId) {
-        await fetchPromptContent(systemPromptId);
+    let defaults = {};
+    if (presetId) {
+        try {
+            const { getEnginePreset } = await import('../api.js');
+            const p = await getEnginePreset(presetId);
+            defaults = p.defaults || {};
+        } catch (err) {
+            console.error("Error fetching preset defaults on creation:", err);
+        }
     }
 
     const res = await fetch('/api/conversations', {
@@ -221,7 +224,11 @@ export async function createNewConversation(title = 'New Chat', systemPromptId =
         body: JSON.stringify({
             title: title,
             activeModel: selectedModel,
-            systemPromptId: systemPromptId || null
+            presetId: presetId || null,
+            params: defaults,
+            blockOverrides: {},
+            directorNote: '',
+            lastAppliedEngineSignature: ''
         })
     });
 
@@ -248,8 +255,8 @@ export async function createNewConversation(title = 'New Chat', systemPromptId =
 
     state.currentConversationId = newId;
     localStorage.setItem('activeConversationId', newId);
-    state.currentSystemPromptId = systemPromptId || null;
-    updatePromptSelectorDisplay();
+    state.currentSystemPromptId = null;
+    await renderRightPane(newConv);
 
     await loadConversations();
 
@@ -364,22 +371,74 @@ export function initSidebar() {
     }
 }
 
+async function populatePresetDropdown(menuElement, currentSelectionId, onSelect) {
+    menuElement.innerHTML = '';
+    
+    const noneBtn = document.createElement('button');
+    noneBtn.className = 'dropdown-item' + (currentSelectionId === null ? ' selected' : '');
+    noneBtn.textContent = 'None (Default)';
+    noneBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        onSelect(null, 'None (Default)');
+        menuElement.classList.add('hidden');
+    });
+    menuElement.appendChild(noneBtn);
+
+    const divider = document.createElement('div');
+    divider.className = 'dropdown-divider';
+    menuElement.appendChild(divider);
+
+    try {
+        const { getEnginePresets } = await import('../api.js');
+        const presetsGrouped = await getEnginePresets();
+
+        for (const [category, list] of Object.entries(presetsGrouped)) {
+            const section = document.createElement('div');
+            section.className = 'dropdown-category-section';
+
+            const header = document.createElement('div');
+            header.className = 'dropdown-category-header';
+            header.innerHTML = `<span>${category.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>`;
+            section.appendChild(header);
+
+            const itemsContainer = document.createElement('div');
+            itemsContainer.className = 'dropdown-category-items';
+
+            for (const preset of list) {
+                const btn = document.createElement('button');
+                btn.className = 'dropdown-item' + (currentSelectionId === preset.id ? ' selected' : '');
+                btn.textContent = preset.title;
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    onSelect(preset.id, preset.title);
+                    menuElement.classList.add('hidden');
+                });
+                itemsContainer.appendChild(btn);
+            }
+            section.appendChild(itemsContainer);
+            menuElement.appendChild(section);
+        }
+    } catch (err) {
+        console.error("Failed to load presets for dropdown:", err);
+    }
+}
+
 export function initNewChatModal() {
     const clearChatBtn = document.getElementById('clear-chat-btn');
     const newChatModal = document.getElementById('new-chat-modal');
     const newChatModalCloseBtn = document.getElementById('new-chat-modal-close-btn');
     const newChatTitleInput = document.getElementById('new-chat-title-input');
-    const modalPromptSelectBtn = document.getElementById('modal-prompt-select-btn');
-    const modalActivePromptName = document.getElementById('modal-active-prompt-name');
-    const modalPromptDropdownMenu = document.getElementById('modal-prompt-dropdown-menu');
+    const modalPresetSelectBtn = document.getElementById('modal-preset-select-btn');
+    const modalActivePresetName = document.getElementById('modal-active-preset-name');
+    const modalPresetDropdownMenu = document.getElementById('modal-preset-dropdown-menu');
     const startChatBtn = document.getElementById('start-chat-btn');
 
     // New Chat button — shows modal instead of immediate creation
     if (clearChatBtn) {
         clearChatBtn.addEventListener('click', () => {
             if (newChatTitleInput) newChatTitleInput.value = '';
-            if (modalActivePromptName) modalActivePromptName.textContent = 'None (Default)';
-            state.modalSelectedPromptId = null;
+            if (modalActivePresetName) modalActivePresetName.textContent = 'None (Default)';
+            state.modalSelectedPresetId = null;
             if (newChatModal) {
                 newChatModal.classList.remove('hidden');
                 setTimeout(() => newChatTitleInput?.focus(), 100);
@@ -397,42 +456,37 @@ export function initNewChatModal() {
         });
     }
 
-    // New Chat Modal — prompt dropdown toggle
-    if (modalPromptSelectBtn && modalPromptDropdownMenu) {
-        modalPromptSelectBtn.addEventListener('click', (e) => {
+    // New Chat Modal — preset dropdown toggle
+    if (modalPresetSelectBtn && modalPresetDropdownMenu) {
+        modalPresetSelectBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const isOpen = !modalPromptDropdownMenu.classList.contains('hidden');
+            const isOpen = !modalPresetDropdownMenu.classList.contains('hidden');
             if (isOpen) {
-                modalPromptDropdownMenu.classList.add('hidden');
+                modalPresetDropdownMenu.classList.add('hidden');
             } else {
-                modalPromptDropdownMenu.classList.remove('hidden');
-                populatePromptDropdown(modalPromptDropdownMenu, state.modalSelectedPromptId, (promptId) => {
-                    state.modalSelectedPromptId = promptId;
-                    if (state.factoryPromptCategories && promptId) {
-                        for (const prompts of Object.values(state.factoryPromptCategories.categories)) {
-                            for (const p of prompts) {
-                                if (`${p.category}/${p.filename}` === promptId) {
-                                    if (modalActivePromptName) modalActivePromptName.textContent = p.name;
-                                    modalPromptDropdownMenu.classList.add('hidden');
-                                    return;
-                                }
-                            }
-                        }
+                modalPresetDropdownMenu.classList.remove('hidden');
+                populatePresetDropdown(modalPresetDropdownMenu, state.modalSelectedPresetId, (presetId, presetTitle) => {
+                    state.modalSelectedPresetId = presetId;
+                    if (modalActivePresetName) {
+                        modalActivePresetName.textContent = presetTitle || 'None (Default)';
                     }
-                    if (modalActivePromptName) {
-                        modalActivePromptName.textContent = promptId ? 'Selected' : 'None (Default)';
-                    }
-                    modalPromptDropdownMenu.classList.add('hidden');
                 });
             }
         });
     }
 
+    // Close modal dropdown if clicking elsewhere
+    document.addEventListener('click', () => {
+        if (modalPresetDropdownMenu) {
+            modalPresetDropdownMenu.classList.add('hidden');
+        }
+    });
+
     // Start Chat button in modal
     if (startChatBtn) {
         startChatBtn.addEventListener('click', safeAsync(async () => {
             const title = newChatTitleInput?.value.trim() || 'New Chat';
-            await createNewConversation(title, state.modalSelectedPromptId);
+            await createNewConversation(title, state.modalSelectedPresetId);
             newChatModal?.classList.add('hidden');
         }));
     }

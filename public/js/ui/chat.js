@@ -845,6 +845,7 @@ export async function streamApiResponse({ conversationId, parentMsgId, stopAfter
             },
             signal: currentAbortController.signal,
             body: JSON.stringify({
+                conversationId,
                 model: selectedModel,
                 messages: payloadMessages,
                 temperature: 0.7,
@@ -859,6 +860,42 @@ export async function streamApiResponse({ conversationId, parentMsgId, stopAfter
             const errorData = await response.json().catch(() => ({}));
             console.error("API Error:", errorData);
             throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+        }
+
+        // Update lastAppliedEngineSignature on successful API send to clear amber warnings
+        try {
+            const { getEngineSchema } = await import('../api.js');
+            const { renderRightPane } = await import('./right-pane.js');
+            const convRes = await fetch(`/api/conversations/${conversationId}`);
+            if (convRes.ok) {
+                const conv = await convRes.json();
+                if (conv && conv.presetId) {
+                    const schema = await getEngineSchema();
+                    const systemParams = {};
+                    for (const item of schema) {
+                        if (item.slot === 'system') {
+                            systemParams[item.id] = conv.params?.[item.id] !== undefined ? conv.params[item.id] : item.default;
+                        }
+                    }
+                    const signature = JSON.stringify({
+                        presetId: conv.presetId,
+                        params: systemParams,
+                        blockOverrides: conv.blockOverrides || {}
+                    });
+                    
+                    const updatedConv = await fetch(`/api/conversations/${conversationId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ lastAppliedEngineSignature: signature })
+                    }).then(r => r.json());
+                    
+                    if (conversationId === state.currentConversationId) {
+                        await renderRightPane(updatedConv);
+                    }
+                }
+            }
+        } catch (sigErr) {
+            console.error("Failed to update engine signature:", sigErr);
         }
 
         const reader = response.body.getReader();

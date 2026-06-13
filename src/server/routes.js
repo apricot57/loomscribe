@@ -1,17 +1,15 @@
 const config = require('./endpoints/config');
 const conversations = require('./endpoints/conversations');
 const messages = require('./endpoints/messages');
-const promptsApi = require('./endpoints/prompts-api');
 const proxy = require('./endpoints/proxy');
-const userPrompts = require('./endpoints/user-prompts');
+const engine = require('./endpoints/engine');
 
 function handleApiRoutes(app) {
     config(app);
     conversations(app);
     messages(app);
-    promptsApi(app);
     proxy(app);
-    userPrompts(app);
+    engine(app);
 }
 
 module.exports = {

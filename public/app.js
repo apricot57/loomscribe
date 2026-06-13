@@ -1,5 +1,4 @@
 import { state } from './js/state.js';
-import { loadFactoryPrompts } from './js/api.js';
 import {
     initInputBar,
     initializeModelUI,
@@ -10,16 +9,13 @@ import {
     loadConversations,
     switchConversation,
     createNewConversation,
-    initPromptSelector,
-    initPromptEditorImport,
-    updatePromptSelectorDisplay,
     initKeyModal,
-    initPromptEditorModal,
     initDeleteModal,
     initChatForm,
     initStopButton,
     initContinueButton,
-    initExportButton
+    initExportButton,
+    initRightPane
 } from './js/ui.js';
 
 // Load Magic module which automatically binds its selection & click listeners
@@ -36,21 +32,17 @@ async function initApp() {
         state.serverConfig = await configRes.json();
     }
 
-    await loadFactoryPrompts();
-
     // Register all event listeners in respective UI modules
     initSidebar();
     initNewChatModal();
     initInputBar();
-    initPromptSelector();
-    initPromptEditorImport();
     initKeyModal();
-    initPromptEditorModal();
     initDeleteModal();
     initChatForm();
     initStopButton();
     initContinueButton();
     initExportButton();
+    initRightPane();
 
     // Initialize UI visuals from serverConfig
     initializeModelUI();
@@ -81,5 +73,4 @@ async function initApp() {
             await createNewConversation();
         }
     }
-    updatePromptSelectorDisplay();
 }

@@ -4,6 +4,8 @@ const rawState = {
     abortControllers: {},
     activeStreams: {},
     currentSystemPromptId: null,
+    engineSchema: null,
+    enginePresets: null,
     factoryPromptCategories: null,
     promptContentCache: new Map(),
     modalSelectedPromptId: null,

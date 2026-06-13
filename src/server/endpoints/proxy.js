@@ -1,5 +1,6 @@
 const { readDb } = require('../db');
 const https = require('https');
+const { compilePrompt } = require('../../../engine/compiler');
 
 function registerProxyRoutes(app) {
     // --- API: DeepSeek completions secure stream proxy ---
@@ -11,7 +12,45 @@ function registerProxyRoutes(app) {
             return;
         }
 
-        const body = req.body;
+        const body = { ...req.body };
+        const conversationId = body.conversationId;
+        delete body.conversationId;
+
+        let messages = body.messages || [];
+
+        if (conversationId !== undefined && conversationId !== null) {
+            // Convert string ID if needed
+            const convId = typeof conversationId === 'string' && !isNaN(conversationId) ? parseInt(conversationId, 10) : conversationId;
+            const conv = (db.conversations || []).find(c => c.id === convId);
+            if (conv) {
+                const { presetId, params, blockOverrides, directorNote } = conv;
+                try {
+                    const { systemPrompt, postHistory } = compilePrompt({
+                        presetId,
+                        params,
+                        blockOverrides,
+                        directorNote
+                    });
+
+                    const history = messages.filter(m => m.role !== 'system');
+                    const finalMessages = [];
+                    
+                    if (systemPrompt && systemPrompt.trim()) {
+                        finalMessages.push({ role: 'system', content: systemPrompt });
+                    }
+                    finalMessages.push(...history);
+                    if (postHistory && postHistory.trim()) {
+                        finalMessages.push({ role: 'system', content: postHistory });
+                    }
+                    body.messages = finalMessages;
+                } catch (compileErr) {
+                    console.error("Proxy prompt compilation failed:", compileErr);
+                    res.status(400).json({ error: { message: `Prompt compilation failed: ${compileErr.message}` } });
+                    return;
+                }
+            }
+        }
+
         const options = {
             hostname: 'api.deepseek.com',
             port: 443,

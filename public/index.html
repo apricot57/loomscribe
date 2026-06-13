@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="css/input.css">
     <link rel="stylesheet" href="css/modals.css">
     <link rel="stylesheet" href="css/magic.css">
+    <link rel="stylesheet" href="css/right-pane.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -71,6 +72,12 @@
                     <h3>LoomScribe</h3>
                 </div>
                 <div class="header-actions">
+                    <button id="right-pane-toggle-btn" class="header-btn visible" aria-label="Toggle settings" title="Toggle Settings">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="header-icon">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                    </button>
                     <button id="export-chat-btn" class="header-btn visible" aria-label="Export conversation to Markdown" title="Export to Markdown">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="header-icon">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -126,21 +133,12 @@
                             <span id="thinking-status-text">Thinking: On</span>
                         </button>
                         <div class="prompt-select-wrapper">
-                            <button id="prompt-select-btn" class="prompt-select-btn" type="button">
+                            <button id="active-preset-indicator-btn" class="prompt-select-btn" type="button" title="Active Preset settings">
                                 <svg class="prompt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                    <polyline points="14 2 14 8 20 8"></polyline>
-                                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
                                 </svg>
-                                <span id="active-prompt-name">Default</span>
-                                <svg class="dropdown-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
-                                    <polyline points="6 9 12 15 18 9"></polyline>
-                                </svg>
+                                <span id="active-preset-indicator-name">No Preset</span>
                             </button>
-                            <div id="prompt-dropdown-menu" class="prompt-dropdown-menu hidden">
-                                <!-- Populated dynamically -->
-                            </div>
                         </div>
                         <!-- Dynamic Continue Button for Creative Storytelling -->
                         <button id="continue-btn" class="continue-btn hidden" type="button" title="Continue the story automatically">
@@ -169,6 +167,99 @@
                 </div>
             </footer>
         </main>
+
+        <!-- Right Settings Pane -->
+        <aside class="right-pane collapsed" id="right-pane">
+            <div class="right-pane-header">
+                <h3>Preset Settings</h3>
+                <button id="right-pane-close-btn" class="right-pane-close-btn" aria-label="Close settings">
+                    &times;
+                </button>
+            </div>
+            <div class="right-pane-content">
+                <!-- Warning Banner if parameters modified since last save -->
+                <div id="settings-warning-banner" class="settings-warning-banner hidden">
+                    ⚠️ Settings modified. Cache will bust on next send.
+                </div>
+
+                <!-- Preset info and change button -->
+                <section class="settings-section preset-section">
+                    <h4 class="section-title">Scenario Preset</h4>
+                    <div class="preset-card">
+                        <div id="preset-active-info" class="preset-active-info">
+                            <div class="preset-header-row">
+                                <strong id="preset-title">No Preset Selected</strong>
+                                <span id="preset-category-badge" class="category-badge hidden">General</span>
+                            </div>
+                            <p id="preset-desc" class="preset-desc">Pick a scenario preset to construct a tailored prompt.</p>
+                        </div>
+                        <button id="change-preset-btn" class="btn btn-secondary btn-full">
+                            Change Preset
+                        </button>
+                    </div>
+                </section>
+
+                <div id="preset-settings-container" class="hidden">
+                    <!-- Dynamic Parameter Controls (System Slot) -->
+                    <section class="settings-section">
+                        <h4 class="section-title">Writing Settings</h4>
+                        <div id="system-params-container" class="params-list">
+                            <!-- Dynamic system parameters render here -->
+                        </div>
+                    </section>
+
+                    <!-- Per-Turn Settings (Post-History Slot) -->
+                    <section class="settings-section">
+                        <h4 class="section-title">Per-Turn Directives</h4>
+                        <div id="post-history-params-container" class="params-list">
+                            <!-- Dynamic post-history parameters render here -->
+                        </div>
+                        <div class="director-note-container">
+                            <label for="director-note-textarea" class="field-label">Director's Note</label>
+                            <textarea id="director-note-textarea" placeholder="Add per-turn direction (e.g. 'increase tension', 'focus on character X's reaction')..." rows="3"></textarea>
+                            <span class="field-helper">Appended after chat history for highest recency.</span>
+                        </div>
+                    </section>
+
+                    <!-- Collapsible Prompt Preview -->
+                    <section class="settings-section collapsible-section" id="preview-collapsible">
+                        <div class="collapsible-header">
+                            <h4 class="section-title">Prompt Preview</h4>
+                            <span class="collapsible-icon">▶</span>
+                        </div>
+                        <div class="collapsible-body hidden">
+                            <div class="preview-tabs">
+                                <button class="preview-tab-btn active" data-tab="slot1">Slot 1 (System)</button>
+                                <button class="preview-tab-btn" data-tab="slot2">Slot 2 (Post-Hist)</button>
+                            </div>
+                            <div class="preview-tab-content">
+                                <textarea id="prompt-preview-textarea" readonly rows="12" placeholder="Click compile to view..."></textarea>
+                            </div>
+                            <button id="refresh-preview-btn" class="btn btn-secondary btn-full btn-sm">
+                                Compile & Refresh
+                            </button>
+                        </div>
+                    </section>
+
+                    <!-- Collapsible Advanced Blocks Override -->
+                    <section class="settings-section collapsible-section" id="blocks-collapsible">
+                        <div class="collapsible-header">
+                            <h4 class="section-title">Advanced Blocks</h4>
+                            <span class="collapsible-icon">▶</span>
+                        </div>
+                        <div class="collapsible-body hidden">
+                            <p class="section-intro">Manually override default markdown prompt blocks:</p>
+                            <div id="advanced-blocks-list" class="blocks-list">
+                                <!-- Dynamic block checkboxes render here -->
+                            </div>
+                            <button id="reset-overrides-btn" class="btn btn-danger btn-full btn-sm" style="margin-top: 10px;">
+                                Reset Block Overrides
+                            </button>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </aside>
 
         <!-- API Key Modal (Centered Glassmorphic Popup overlay) -->
         <div id="key-modal" class="modal-overlay hidden">
@@ -203,15 +294,15 @@
                 <div class="input-wrapper">
                     <input type="text" id="new-chat-title-input" placeholder="Chat title (optional)" autocomplete="off">
                 </div>
-                <div class="modal-prompt-select-wrapper">
-                    <label class="modal-field-label">System Prompt</label>
-                    <button id="modal-prompt-select-btn" class="prompt-select-btn" type="button">
-                        <span id="modal-active-prompt-name">None (Default)</span>
+                <div class="modal-preset-select-wrapper" style="margin-top: 15px;">
+                    <label class="modal-field-label" style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem; color: var(--text-secondary);">Scenario Preset</label>
+                    <button id="modal-preset-select-btn" class="prompt-select-btn" type="button" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 12px; color: var(--text-primary); cursor: pointer; text-align: left;">
+                        <span id="modal-active-preset-name">None (Default)</span>
                         <svg class="dropdown-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
                             <polyline points="6 9 12 15 18 9"></polyline>
                         </svg>
                     </button>
-                    <div id="modal-prompt-dropdown-menu" class="prompt-dropdown-menu hidden">
+                    <div id="modal-preset-dropdown-menu" class="prompt-dropdown-menu hidden" style="position: absolute; width: calc(100% - 48px); max-height: 250px; overflow-y: auto; background: rgba(30, 41, 59, 0.95); border: 1px solid var(--border-color); border-radius: 12px; z-index: 1000; box-shadow: var(--shadow-m3-high); backdrop-filter: blur(12px);">
                         <!-- Populated dynamically -->
                     </div>
                 </div>
@@ -221,28 +312,17 @@
             </div>
         </div>
 
-        <!-- Prompt Editor Modal -->
-        <div id="prompt-editor-modal" class="modal-overlay hidden">
-            <div class="modal-content">
-                <button id="prompt-editor-close-btn" class="close-btn">&times;</button>
-                <h2 id="prompt-editor-title">Create Prompt</h2>
-                <div class="input-wrapper">
-                    <input type="text" id="prompt-name-input" placeholder="Prompt name" autocomplete="off">
+        <!-- Preset Picker Modal -->
+        <div id="preset-picker-modal" class="modal-overlay hidden">
+            <div class="modal-content preset-picker-modal-content" style="max-width: 600px; width: 90%; max-height: 80vh; display: flex; flex-direction: column;">
+                <button id="preset-picker-close-btn" class="close-btn" aria-label="Close modal">&times;</button>
+                <h2>Choose Preset</h2>
+                <p class="modal-description">Select a narrative scenario preset. This will configure writing parameter defaults and enable matching markdown blocks.</p>
+                <div class="preset-search-box" style="margin-bottom: 16px;">
+                    <input type="text" id="preset-search-input" placeholder="Search presets..." autocomplete="off" style="width: 100%; padding: 12px 16px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 12px; color: var(--text-primary); outline: none; transition: var(--transition-m3);">
                 </div>
-                <div class="input-wrapper">
-                    <input type="text" id="prompt-category-input" placeholder="Category (e.g. Story Writing)" autocomplete="off" list="prompt-category-list">
-                    <datalist id="prompt-category-list"></datalist>
-                </div>
-                <div class="input-wrapper">
-                    <textarea id="prompt-content-input" placeholder="System prompt content..." rows="8"></textarea>
-                </div>
-                <div class="import-prompt-wrapper" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
-                    <label class="modal-field-label" style="display: block; margin-bottom: 8px; color: rgba(255, 255, 255, 0.6); font-size: 0.85rem;">Or import from a markdown/ZIP file:</label>
-                    <input type="file" id="prompt-import-file" accept=".md,.txt,.zip" style="display: none;">
-                    <button type="button" id="prompt-import-btn" class="btn btn-secondary" style="width: 100%; border: 1px dashed rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.05); color: #fff;">📁 Import MD (.md) or ZIP (.zip)</button>
-                </div>
-                <div class="modal-actions">
-                    <button id="save-prompt-btn" class="btn btn-primary">Save Prompt</button>
+                <div id="preset-categories-container" class="preset-categories-container" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding-right: 4px;">
+                    <!-- Populated dynamically -->
                 </div>
             </div>
         </div>

@@ -18,6 +18,11 @@ function registerConversationsRoutes(app) {
             title: body.title || 'New Chat',
             activeModel: body.activeModel || 'deepseek-v4-pro',
             systemPromptId: body.systemPromptId || null,
+            presetId: body.presetId || null,
+            params: body.params || {},
+            blockOverrides: body.blockOverrides || {},
+            directorNote: body.directorNote || '',
+            lastAppliedEngineSignature: body.lastAppliedEngineSignature || '',
             createdAt: Date.now()
         };
         db.conversations.push(newConv);
@@ -45,11 +50,30 @@ function registerConversationsRoutes(app) {
         const db = readDb();
         const idx = db.conversations.findIndex(c => c.id === id);
         if (idx !== -1) {
-            const { title, activeModel, systemPromptId } = body;
+            const { 
+                title, 
+                activeModel, 
+                systemPromptId,
+                presetId,
+                params,
+                blockOverrides,
+                directorNote,
+                lastAppliedEngineSignature
+            } = body;
             const updateObj = {};
             if (title !== undefined) updateObj.title = title;
             if (activeModel !== undefined) updateObj.activeModel = activeModel;
             if (systemPromptId !== undefined) updateObj.systemPromptId = systemPromptId;
+            if (presetId !== undefined) updateObj.presetId = presetId;
+            if (params !== undefined) {
+                updateObj.params = { ...db.conversations[idx].params, ...params };
+            }
+            if (blockOverrides !== undefined) {
+                updateObj.blockOverrides = { ...db.conversations[idx].blockOverrides, ...blockOverrides };
+            }
+            if (directorNote !== undefined) updateObj.directorNote = directorNote;
+            if (lastAppliedEngineSignature !== undefined) updateObj.lastAppliedEngineSignature = lastAppliedEngineSignature;
+            
             db.conversations[idx] = { ...db.conversations[idx], ...updateObj };
             writeDb(db);
             res.json(db.conversations[idx]);
