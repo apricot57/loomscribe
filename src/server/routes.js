@@ -441,8 +441,10 @@ function handleApiRoutes(app) {
             }
         });
 
-        req.on('close', () => {
-            proxyReq.destroy();
+        res.on('close', () => {
+            if (!res.writableEnded) {
+                proxyReq.destroy();
+            }
         });
 
         proxyReq.write(JSON.stringify(body));
