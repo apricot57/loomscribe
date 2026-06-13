@@ -1,7 +1,8 @@
 const rawState = {
     serverConfig: { hasKey: false, activeModel: 'deepseek-v4-pro', thinkingMode: 'enabled' },
     currentConversationId: null,
-    abortController: null,
+    abortControllers: {},
+    activeStreams: {},
     currentSystemPromptId: null,
     factoryPromptCategories: null,
     promptContentCache: new Map(),

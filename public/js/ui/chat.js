@@ -7,7 +7,7 @@ import {
 } from '../api.js';
 import { showToast } from './modals.js';
 import { safeAsync } from './helpers.js';
-import { createNewConversation } from './sidebar.js';
+import { createNewConversation, loadConversations } from './sidebar.js';
 
 const ASSISTANT_DRAFT_STORAGE_PREFIX = 'loomscribe:assistant-drafts:';
 
@@ -107,13 +107,18 @@ export function removeTypingIndicator(id) {
     }
 }
 
-export function addStreamingBotMessage() {
+export function addStreamingBotMessage(customId) {
     const chatContainer = document.getElementById('chat-container');
     const container = chatContainer ? chatContainer.querySelector('.messages-container') : null;
     if (!container) return null;
 
-    const id = 'stream-msg-' + Date.now();
-    const messageDiv = document.createElement('div');
+    const id = customId || ('stream-msg-' + Date.now());
+    let messageDiv = document.getElementById(id);
+    if (messageDiv) {
+        return id;
+    }
+
+    messageDiv = document.createElement('div');
     messageDiv.className = 'message bot-message';
     messageDiv.id = id;
 
@@ -217,7 +222,7 @@ export async function updateContinueButtonVisibility(activeMessages = null) {
     const continueBtn = document.getElementById('continue-btn');
     if (!continueBtn) return;
 
-    if (state.currentConversationId === null || state.abortController !== null) {
+    if (state.currentConversationId === null || state.abortControllers[state.currentConversationId]) {
         continueBtn.classList.add('hidden');
         return;
     }
@@ -793,11 +798,13 @@ export async function streamApiResponse({ conversationId, parentMsgId, stopAfter
         ? await buildApiPayloadUpTo(conversationId, stopAfterMsgId)
         : await buildApiPayload(conversationId);
 
-    if (state.abortController) {
-        state.abortController.abort();
+    if (state.abortControllers[conversationId]) {
+        state.abortControllers[conversationId].abort();
     }
-    state.abortController = new AbortController();
-    let streamMsgId = null;
+    const currentAbortController = new AbortController();
+    state.abortControllers[conversationId] = currentAbortController;
+
+    let streamMsgId = 'stream-msg-' + Date.now();
     let fullContent = '';
     let fullReasoning = '';
 
@@ -805,9 +812,28 @@ export async function streamApiResponse({ conversationId, parentMsgId, stopAfter
     const sendBtn = document.getElementById('send-btn');
     const userInput = document.getElementById('user-input');
 
-    if (stopBtn) stopBtn.classList.remove('hidden');
-    if (sendBtn) sendBtn.classList.add('hidden');
-    if (userInput) userInput.disabled = true;
+    if (conversationId === state.currentConversationId) {
+        if (stopBtn) stopBtn.classList.remove('hidden');
+        if (sendBtn) sendBtn.classList.add('hidden');
+        if (userInput) userInput.disabled = true;
+    }
+
+    // Initialize active stream in memory
+    state.activeStreams[conversationId] = {
+        content: '',
+        reasoning: '',
+        streamMsgId: streamMsgId,
+        parentMsgId: parentMsgId || null,
+        versionGroupId: versionGroupId || null,
+        version: version || 1
+    };
+
+    // Load sidebar immediately to show indicator (since abortControllers[conversationId] is set)
+    await loadConversations();
+
+    if (conversationId === state.currentConversationId) {
+        addStreamingBotMessage(streamMsgId);
+    }
 
     try {
         const selectedModel = state.serverConfig.activeModel || 'deepseek-v4-pro';
@@ -817,7 +843,7 @@ export async function streamApiResponse({ conversationId, parentMsgId, stopAfter
             headers: {
                 'Content-Type': 'application/json'
             },
-            signal: state.abortController.signal,
+            signal: currentAbortController.signal,
             body: JSON.stringify({
                 model: selectedModel,
                 messages: payloadMessages,
@@ -834,8 +860,6 @@ export async function streamApiResponse({ conversationId, parentMsgId, stopAfter
             console.error("API Error:", errorData);
             throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
         }
-
-        streamMsgId = addStreamingBotMessage();
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -860,13 +884,24 @@ export async function streamApiResponse({ conversationId, parentMsgId, stopAfter
                     const parsed = JSON.parse(payload);
                     const reasoningDelta = parsed.choices?.[0]?.delta?.reasoning_content;
                     const delta = parsed.choices?.[0]?.delta?.content;
+                    
                     if (reasoningDelta) {
                         fullReasoning += reasoningDelta;
-                        updateStreamingReasoning(streamMsgId, fullReasoning);
+                        if (state.activeStreams[conversationId]) {
+                            state.activeStreams[conversationId].reasoning = fullReasoning;
+                        }
+                        if (conversationId === state.currentConversationId) {
+                            updateStreamingReasoning(streamMsgId, fullReasoning);
+                        }
                     }
                     if (delta) {
                         fullContent += delta;
-                        updateStreamingBotMessage(streamMsgId, fullContent);
+                        if (state.activeStreams[conversationId]) {
+                            state.activeStreams[conversationId].content = fullContent;
+                        }
+                        if (conversationId === state.currentConversationId) {
+                            updateStreamingBotMessage(streamMsgId, fullContent);
+                        }
                     }
                 } catch (e) {
                     // Skip malformed JSON lines
@@ -887,31 +922,33 @@ export async function streamApiResponse({ conversationId, parentMsgId, stopAfter
                 isActive: true
             }, conversationId, streamMsgId);
 
-            finalizeStreamingBotMessage(streamMsgId, fullContent, fullReasoning);
+            if (conversationId === state.currentConversationId) {
+                finalizeStreamingBotMessage(streamMsgId, fullContent, fullReasoning);
 
-            const streamMsgDiv = document.getElementById(streamMsgId);
-            if (streamMsgDiv && savedMsg.id) {
-                streamMsgDiv.dataset.msgId = savedMsg.id;
-                if (savedMsg.versionGroupId) {
-                    streamMsgDiv.dataset.versionGroupId = savedMsg.versionGroupId;
-                    streamMsgDiv.dataset.version = savedMsg.version || 1;
+                const streamMsgDiv = document.getElementById(streamMsgId);
+                if (streamMsgDiv && savedMsg && savedMsg.id) {
+                    streamMsgDiv.dataset.msgId = savedMsg.id;
+                    if (savedMsg.versionGroupId) {
+                        streamMsgDiv.dataset.versionGroupId = savedMsg.versionGroupId;
+                        streamMsgDiv.dataset.version = savedMsg.version || 1;
+                    }
+                    
+                    const vCountRes = await fetch(`/api/messages?conversationId=${conversationId}`);
+                    const allMsgs = vCountRes.ok ? await vCountRes.json() : [];
+                    const vGroup = savedMsg.versionGroupId;
+                    const versionCount = vGroup ? allMsgs.filter(m => m.versionGroupId === vGroup).length : 1;
+
+                    attachMessageActions(streamMsgDiv, 'bot', {
+                        id: savedMsg.id,
+                        versionGroupId: savedMsg.versionGroupId,
+                        version: savedMsg.version || 1,
+                        versionCount: versionCount
+                    });
+                } else if (streamMsgDiv && !savedMsg) {
+                    streamMsgDiv.dataset.unsaved = 'true';
+                    streamMsgDiv.title = 'Draft message not saved to the server yet.';
+                    showToast('Assistant response was saved locally because the server save failed.', 'warning');
                 }
-                
-                const vCountRes = await fetch(`/api/messages?conversationId=${conversationId}`);
-                const allMsgs = vCountRes.ok ? await vCountRes.json() : [];
-                const vGroup = savedMsg.versionGroupId;
-                const versionCount = vGroup ? allMsgs.filter(m => m.versionGroupId === vGroup).length : 1;
-
-                attachMessageActions(streamMsgDiv, 'bot', {
-                    id: savedMsg.id,
-                    versionGroupId: savedMsg.versionGroupId,
-                    version: savedMsg.version || 1,
-                    versionCount: versionCount
-                });
-            } else if (streamMsgDiv && !savedMsg) {
-                streamMsgDiv.dataset.unsaved = 'true';
-                streamMsgDiv.title = 'Draft message not saved to the server yet.';
-                showToast('Assistant response was saved locally because the server save failed.', 'warning');
             }
         }
 
@@ -930,22 +967,29 @@ export async function streamApiResponse({ conversationId, parentMsgId, stopAfter
                     isActive: true
                 }, conversationId, streamMsgId);
             }
-            if (streamMsgId) {
+            if (conversationId === state.currentConversationId && streamMsgId) {
                 finalizeStreamingBotMessage(streamMsgId, fullContent, fullReasoning);
             }
             return;
         }
         console.error('Error fetching DeepSeek response:', error);
-        addMessageToUI('bot', 'Sorry, I encountered an error connecting to the server. Please check your API key or try again later.');
-    } finally {
-        state.abortController = null;
-        if (stopBtn) stopBtn.classList.add('hidden');
-        if (sendBtn) sendBtn.classList.remove('hidden');
-        if (userInput) {
-            userInput.disabled = false;
-            userInput.focus();
+        if (conversationId === state.currentConversationId) {
+            addMessageToUI('bot', 'Sorry, I encountered an error connecting to the server. Please check your API key or try again later.');
         }
-        await updateContinueButtonVisibility();
+    } finally {
+        delete state.abortControllers[conversationId];
+        delete state.activeStreams[conversationId];
+
+        if (conversationId === state.currentConversationId) {
+            if (stopBtn) stopBtn.classList.add('hidden');
+            if (sendBtn) sendBtn.classList.remove('hidden');
+            if (userInput) {
+                userInput.disabled = false;
+                userInput.focus();
+            }
+            await updateContinueButtonVisibility();
+        }
+        await loadConversations();
     }
 }
 
@@ -1052,9 +1096,10 @@ export function initStopButton() {
 
     if (stopBtn) {
         stopBtn.addEventListener('click', () => {
-            if (state.abortController) {
-                state.abortController.abort();
-                state.abortController = null;
+            const activeId = state.currentConversationId;
+            if (activeId !== null && state.abortControllers[activeId]) {
+                state.abortControllers[activeId].abort();
+                delete state.abortControllers[activeId];
             }
             const typingIndicator = document.querySelector('.typing-indicator');
             if (typingIndicator) {

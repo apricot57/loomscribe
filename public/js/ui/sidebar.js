@@ -6,7 +6,10 @@ import {
     addMessageToUI,
     renderAssistantDrafts,
     scrollToBottom,
-    updateContinueButtonVisibility
+    updateContinueButtonVisibility,
+    addStreamingBotMessage,
+    updateStreamingReasoning,
+    updateStreamingBotMessage
 } from './chat.js';
 import { showToast } from './modals.js';
 import { safeAsync } from './helpers.js';
@@ -51,6 +54,13 @@ export async function loadConversations() {
         const titleSpan = document.createElement('span');
         titleSpan.className = 'chat-item-title';
         titleSpan.textContent = conv.title || 'Untitled Conversation';
+        
+        if (state.abortControllers[conv.id]) {
+            const indicator = document.createElement('span');
+            indicator.className = 'streaming-indicator-dot';
+            indicator.textContent = '⚡';
+            titleSpan.appendChild(indicator);
+        }
         
         const renameBtn = document.createElement('button');
         renameBtn.className = 'chat-rename-btn';
@@ -159,6 +169,32 @@ export async function switchConversation(id) {
         });
 
         renderAssistantDrafts(id);
+
+        // Reconstruct active background stream in UI if switching to a currently streaming conversation
+        if (state.activeStreams[id]) {
+            const activeStream = state.activeStreams[id];
+            addStreamingBotMessage(activeStream.streamMsgId);
+            if (activeStream.reasoning) {
+                updateStreamingReasoning(activeStream.streamMsgId, activeStream.reasoning);
+            }
+            if (activeStream.content) {
+                updateStreamingBotMessage(activeStream.streamMsgId, activeStream.content);
+            }
+
+            const stopBtn = document.getElementById('stop-btn');
+            const sendBtn = document.getElementById('send-btn');
+            const userInput = document.getElementById('user-input');
+            if (stopBtn) stopBtn.classList.remove('hidden');
+            if (sendBtn) sendBtn.classList.add('hidden');
+            if (userInput) userInput.disabled = true;
+        } else {
+            const stopBtn = document.getElementById('stop-btn');
+            const sendBtn = document.getElementById('send-btn');
+            const userInput = document.getElementById('user-input');
+            if (stopBtn) stopBtn.classList.add('hidden');
+            if (sendBtn) sendBtn.classList.remove('hidden');
+            if (userInput) userInput.disabled = false;
+        }
     }
     
     scrollToBottom();
