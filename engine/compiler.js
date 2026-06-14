@@ -329,6 +329,16 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote }) {
         postParts.push("Introduce a minor immediate complication, hesitation, or external distraction (e.g., a sudden sound, a flash of guilt, a boundary hesitation, or a realization) to disrupt the smooth flow of the scene.");
     }
 
+    // Add pushback slider mapping
+    const pushbackVal = validParams.pushback;
+    if (pushbackVal <= 2) {
+        postParts.push("Character Behavior: Receptive and highly compliant. The AI-controlled characters should easily go along with the user character's initiatives, suggestions, and physical advances with minimal hesitation.");
+    } else if (pushbackVal === 3) {
+        postParts.push("Character Behavior: Realistic agency. Characters act on their own beliefs, immediate mood, and comfort levels. They will show natural hesitation, boundary checks, or mild pushback if the user character pushes them too fast or acts out of character.");
+    } else if (pushbackVal >= 4) {
+        postParts.push("Character Behavior: Guarded and resistant. Characters prioritize their own secret motivations, strict boundaries, fears, or independent goals. They will actively push back, refuse, express doubt, or create friction against the user character's advances and suggestions.");
+    }
+
     // If directorNote is non-empty, append it
     if (directorNote && directorNote.trim()) {
         postParts.push(directorNote.trim());

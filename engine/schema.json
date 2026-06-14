@@ -78,6 +78,16 @@
     "slot": "post_history"
   },
   {
+    "id": "pushback",
+    "label": "Pushback / Resistance",
+    "type": "slider",
+    "min": 1,
+    "max": 5,
+    "labels": ["Compliant", "", "Realistic", "", "Resistant"],
+    "default": 3,
+    "slot": "post_history"
+  },
+  {
     "id": "internal_mono",
     "label": "Internal Monologue",
     "type": "toggle",
