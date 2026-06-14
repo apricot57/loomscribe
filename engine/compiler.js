@@ -342,7 +342,7 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote }) {
 
     // Always append the word count instruction, but add outlining directives if in Outline Mode
     if (validParams.outline_mode === true) {
-        postParts.push("Write a structured outline, plot points, or brainstorm ideas based on the user's prompt. Do not write full-narrative prose chapters. Keep the format organized.");
+        postParts.push("Focus on plotting, outlining, and brainstorming narrative directions or ideas based on the user's input. Do not write full-narrative prose chapters yet. Expand on plot beats, character details, and story structure with depth and detail.");
     }
     const wordCount = validParams.word_count;
     postParts.push(`Write approximately ${wordCount} words.`);
