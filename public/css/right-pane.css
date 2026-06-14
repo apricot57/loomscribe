@@ -490,15 +490,9 @@ input:checked + .slider-toggle:before {
 
 .presets-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 12px;
     margin-bottom: 16px;
-}
-
-@media (max-width: 580px) {
-    .presets-grid {
-        grid-template-columns: 1fr;
-    }
 }
 
 .preset-picker-item {
