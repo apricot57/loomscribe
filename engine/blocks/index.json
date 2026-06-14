@@ -35,11 +35,60 @@
     "order": 32
   },
   {
-    "id": "sensory_detailed",
-    "title": "Explicit Content",
-    "file": "sensory_detailed.md",
-    "group": "content",
+    "id": "sensory_poetic",
+    "title": "Sensory — Poetic",
+    "file": "sensory_poetic.md",
+    "group": "sensory_intensity",
     "order": 40
+  },
+  {
+    "id": "sensory_tactile",
+    "title": "Sensory — Tactile",
+    "file": "sensory_tactile.md",
+    "group": "sensory_intensity",
+    "order": 41
+  },
+  {
+    "id": "sensory_detailed",
+    "title": "Sensory — Detailed",
+    "file": "sensory_detailed.md",
+    "group": "sensory_intensity",
+    "order": 42
+  },
+  {
+    "id": "sensory_visceral",
+    "title": "Sensory — Visceral",
+    "file": "sensory_visceral.md",
+    "group": "sensory_intensity",
+    "order": 43
+  },
+  {
+    "id": "dialogue_register_none",
+    "title": "Dialogue — Minimal",
+    "file": "dialogue_register_none.md",
+    "group": "dialogue_register",
+    "order": 44
+  },
+  {
+    "id": "dialogue_register_teasing",
+    "title": "Dialogue — Playful",
+    "file": "dialogue_register_teasing.md",
+    "group": "dialogue_register",
+    "order": 45
+  },
+  {
+    "id": "dialogue_register_filthy",
+    "title": "Dialogue — Candid",
+    "file": "dialogue_register_filthy.md",
+    "group": "dialogue_register",
+    "order": 46
+  },
+  {
+    "id": "dialogue_register_degrading",
+    "title": "Dialogue — Commanding",
+    "file": "dialogue_register_degrading.md",
+    "group": "dialogue_register",
+    "order": 47
   },
   {
     "id": "format_rules",
@@ -82,6 +131,27 @@
     "file": "pov_author.md",
     "group": "pov",
     "order": 82
+  },
+  {
+    "id": "focus_balanced",
+    "title": "POV Focus — Balanced",
+    "file": "focus_balanced.md",
+    "group": "pov_focus",
+    "order": 83
+  },
+  {
+    "id": "focus_self",
+    "title": "POV Focus — Self",
+    "file": "focus_self.md",
+    "group": "pov_focus",
+    "order": 84
+  },
+  {
+    "id": "focus_partner",
+    "title": "POV Focus — Partner",
+    "file": "focus_partner.md",
+    "group": "pov_focus",
+    "order": 85
   },
   {
     "id": "pacing_slow",

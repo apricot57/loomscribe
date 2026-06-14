@@ -33,11 +33,49 @@
     "slot": "system"
   },
   {
-    "id": "sensory_detailed",
-    "label": "Explicit Content",
-    "type": "toggle",
-    "default": true,
+    "id": "sensory_intensity",
+    "label": "Sensory Intensity",
+    "type": "select",
+    "options": [
+      { "value": "romantic", "label": "Romantic" },
+      { "value": "sensual",  "label": "Sensual" },
+      { "value": "sensory_detailed", "label": "Explicit" },
+      { "value": "hardcore", "label": "Hardcore" }
+    ],
+    "default": "sensory_detailed",
     "slot": "system"
+  },
+  {
+    "id": "dialogue_register",
+    "label": "Dialogue Register",
+    "type": "select",
+    "options": [
+      { "value": "none",               "label": "Minimal Dialogue / Silent" },
+      { "value": "teasing",            "label": "Playful Banter / Subtext" },
+      { "value": "filthy",             "label": "Candid / Direct" },
+      { "value": "dominant_degrading", "label": "Power / Command" }
+    ],
+    "default": "teasing",
+    "slot": "system"
+  },
+  {
+    "id": "pov_focus",
+    "label": "POV Focus Spotlight",
+    "type": "select",
+    "options": [
+      { "value": "balanced", "label": "Balanced" },
+      { "value": "self",     "label": "POV Interiority" },
+      { "value": "partner",  "label": "Partner Reaction" }
+    ],
+    "default": "balanced",
+    "slot": "system"
+  },
+  {
+    "id": "complication_generator",
+    "label": "Complication Generator",
+    "type": "toggle",
+    "default": false,
+    "slot": "post_history"
   },
   {
     "id": "internal_mono",

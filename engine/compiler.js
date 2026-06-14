@@ -109,10 +109,29 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote }) {
         }
     }
 
-    // Stage 5: Start with preset blocks array
+    // Stage 5: Start with registry blocks as baseline
+    let registry;
+    try {
+        registry = JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf-8'));
+    } catch (err) {
+        throw new Error('Failed to load block registry index.json');
+    }
+
     const blockState = {};
-    for (const b of (preset.blocks || [])) {
-        blockState[b.id] = { enabled: !!b.enabled, order: b.order };
+    for (const entry of registry) {
+        blockState[entry.id] = { enabled: false, order: entry.order };
+    }
+
+    // Overlay preset block overrides if any are defined
+    if (preset.blocks && Array.isArray(preset.blocks)) {
+        for (const b of preset.blocks) {
+            if (blockState[b.id] !== undefined) {
+                blockState[b.id].enabled = !!b.enabled;
+                if (b.order !== undefined) {
+                    blockState[b.id].order = b.order;
+                }
+            }
+        }
     }
 
     // Helper for applying rules safely
@@ -150,11 +169,65 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote }) {
         forceState('pacing_slow', false);
     }
 
-    // Explicit mapping
-    if (validParams.sensory_detailed === true) {
-        forceState('sensory_detailed', true);
-    } else if (validParams.sensory_detailed === false) {
+    // Sensory intensity mapping
+    if (validParams.sensory_intensity === 'romantic') {
+        forceState('sensory_poetic', true);
+        forceState('sensory_tactile', false);
         forceState('sensory_detailed', false);
+        forceState('sensory_visceral', false);
+    } else if (validParams.sensory_intensity === 'sensual') {
+        forceState('sensory_tactile', true);
+        forceState('sensory_poetic', false);
+        forceState('sensory_detailed', false);
+        forceState('sensory_visceral', false);
+    } else if (validParams.sensory_intensity === 'sensory_detailed') {
+        forceState('sensory_detailed', true);
+        forceState('sensory_poetic', false);
+        forceState('sensory_tactile', false);
+        forceState('sensory_visceral', false);
+    } else if (validParams.sensory_intensity === 'hardcore') {
+        forceState('sensory_visceral', true);
+        forceState('sensory_poetic', false);
+        forceState('sensory_tactile', false);
+        forceState('sensory_detailed', false);
+    }
+
+    // Dialogue register mapping
+    if (validParams.dialogue_register === 'none') {
+        forceState('dialogue_register_none', true);
+        forceState('dialogue_register_teasing', false);
+        forceState('dialogue_register_filthy', false);
+        forceState('dialogue_register_degrading', false);
+    } else if (validParams.dialogue_register === 'teasing') {
+        forceState('dialogue_register_teasing', true);
+        forceState('dialogue_register_none', false);
+        forceState('dialogue_register_filthy', false);
+        forceState('dialogue_register_degrading', false);
+    } else if (validParams.dialogue_register === 'filthy') {
+        forceState('dialogue_register_filthy', true);
+        forceState('dialogue_register_none', false);
+        forceState('dialogue_register_teasing', false);
+        forceState('dialogue_register_degrading', false);
+    } else if (validParams.dialogue_register === 'dominant_degrading') {
+        forceState('dialogue_register_degrading', true);
+        forceState('dialogue_register_none', false);
+        forceState('dialogue_register_teasing', false);
+        forceState('dialogue_register_filthy', false);
+    }
+
+    // POV focus mapping
+    if (validParams.pov_focus === 'balanced') {
+        forceState('focus_balanced', true);
+        forceState('focus_self', false);
+        forceState('focus_partner', false);
+    } else if (validParams.pov_focus === 'self') {
+        forceState('focus_self', true);
+        forceState('focus_balanced', false);
+        forceState('focus_partner', false);
+    } else if (validParams.pov_focus === 'partner') {
+        forceState('focus_partner', true);
+        forceState('focus_balanced', false);
+        forceState('focus_self', false);
     }
 
     // Internal monologue mapping
@@ -195,13 +268,6 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote }) {
         .sort((a, b) => a.order - b.order);
 
     // Stage 9: Load each block's markdown file
-    let registry;
-    try {
-        registry = JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf-8'));
-    } catch (err) {
-        throw new Error('Failed to load block registry index.json');
-    }
-
     const blockRegistryMap = {};
     for (const entry of registry) {
         blockRegistryMap[entry.id] = entry;
@@ -257,6 +323,11 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote }) {
     // Always append the word count instruction
     const wordCount = validParams.word_count;
     postParts.push(`Write approximately ${wordCount} words.`);
+
+    // If complication_generator is enabled, append the complication instruction
+    if (validParams.complication_generator === true) {
+        postParts.push("Introduce a minor immediate complication, hesitation, or external distraction (e.g., a sudden sound, a flash of guilt, a boundary hesitation, or a realization) to disrupt the smooth flow of the scene.");
+    }
 
     // If directorNote is non-empty, append it
     if (directorNote && directorNote.trim()) {
