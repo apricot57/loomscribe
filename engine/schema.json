@@ -88,6 +88,13 @@
     "slot": "post_history"
   },
   {
+    "id": "outline_mode",
+    "label": "Outline / Brainstorm Mode",
+    "type": "toggle",
+    "default": false,
+    "slot": "system"
+  },
+  {
     "id": "internal_mono",
     "label": "Internal Monologue",
     "type": "toggle",

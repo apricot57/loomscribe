@@ -86,6 +86,7 @@
     "sensory_intensity": "sensory_detailed",
     "dialogue_register": "teasing",
     "pov_focus": "balanced",
-    "pushback": 3
+    "pushback": 3,
+    "outline_mode": false
   }
 }

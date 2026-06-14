@@ -173,5 +173,12 @@
     "file": "internal_monologue.md",
     "group": "content",
     "order": 90
+  },
+  {
+    "id": "outline_mode",
+    "title": "Outline Mode",
+    "file": "outline_mode.md",
+    "group": "outline",
+    "order": 95
   }
 ]
