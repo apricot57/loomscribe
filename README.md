@@ -42,7 +42,6 @@ See the [`feature/android-serverless-port`](https://github.com/apricot57/vibe-ap
 - **Message editing** — Inline edit any message (user or AI). Editing a user message triggers regeneration; editing an AI message saves the rewrite in-place
 - **Version navigation** — Edited and regenerated messages are tracked as version groups with prev/next navigation controls
 - **Regenerate** — Re-roll any AI response, creating a new version branch
-- **Magic Rewrite** — Select text within an AI response and rewrite *just that section* via a floating instruction dialog
 - **Continue** — One-click button to continue the last AI response without typing
 
 ### Management
@@ -124,12 +123,10 @@ loomscribe/
 │   │   ├── messages.css        Chat bubbles, reasoning blocks, message actions
 │   │   ├── input.css           Input form, model dropdown, continue button
 │   │   ├── modals.css          Dialog overlays (API key, delete confirmation)
-│   │   ├── magic.css           Magic Rewrite floating wand and dialog
 │   │   └── right-pane.css      Settings pane, preset picker, parameter controls
 │   └── js/
 │       ├── state.js            Shared reactive client state
 │       ├── api.js              REST API helpers (engine, conversations, messages)
-│       ├── magic.js            Text selection, floating wand, inline rewrite logic
 │       ├── ui.js               Barrel file re-exporting UI modules
 │       └── ui/
 │           ├── chat.js         Chat rendering, streaming, version traversal, drafts

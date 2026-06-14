@@ -37,7 +37,6 @@ public/
     ui.js               ~1,568 lines - rendering, streaming, modals, sidebar, prompts
     api.js              ~200 lines - fetch/payload helpers; keep as-is for now
     state.js            ~100 lines - shared state object; keep as-is for now
-    magic.js            ~500 lines - text selection rewrite; keep as-is for now
 ```
 
 Primary refactor targets:
@@ -537,7 +536,6 @@ ui/chat.js
 - Select the latest conversation when no saved conversation is valid.
 - Create a first conversation when none exist.
 - Update the prompt selector display.
-- Import `magic.js` so its selection listeners still bind.
 
 ### `app.js` Sketch
 
@@ -573,7 +571,6 @@ import {
     initContinueButton,
     initExportButton
 } from './js/ui/chat.js';
-import './js/magic.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     initApp().catch(err => {
@@ -744,7 +741,6 @@ Each step should produce a working, committable app.
 - `prompt_cards/` structure.
 - `public/js/state.js` behavior.
 - `public/js/api.js` behavior.
-- `public/js/magic.js` behavior.
 - `public/css/` behavior.
 - `public/index.html`, except optional vendor script changes.
 - `start-loomscribe.bat`.

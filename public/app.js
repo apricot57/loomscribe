@@ -18,9 +18,6 @@ import {
     initRightPane
 } from './js/ui.js';
 
-// Load Magic module which automatically binds its selection & click listeners
-import './js/magic.js';
-
 document.addEventListener('DOMContentLoaded', () => {
     initApp().catch(err => console.error("Unhandled error during app initialization:", err));
 });
