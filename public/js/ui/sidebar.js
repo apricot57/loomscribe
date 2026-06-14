@@ -255,7 +255,6 @@ export async function createNewConversation(title = 'New Chat', presetId = null)
 
     state.currentConversationId = newId;
     localStorage.setItem('activeConversationId', newId);
-    state.currentSystemPromptId = null;
     await renderRightPane(newConv);
 
     await loadConversations();
@@ -371,84 +370,39 @@ export function initSidebar() {
     }
 }
 
-async function populatePresetDropdown(menuElement, currentSelectionId, onSelect) {
-    menuElement.innerHTML = '';
-    
-    const noneBtn = document.createElement('button');
-    noneBtn.className = 'dropdown-item' + (currentSelectionId === null ? ' selected' : '');
-    noneBtn.textContent = 'None (Default)';
-    noneBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        onSelect(null, 'None (Default)');
-        menuElement.classList.add('hidden');
-    });
-    menuElement.appendChild(noneBtn);
-
-    const divider = document.createElement('div');
-    divider.className = 'dropdown-divider';
-    menuElement.appendChild(divider);
-
-    try {
-        const { getEnginePresets } = await import('../api.js');
-        const presetsGrouped = await getEnginePresets();
-
-        for (const [category, list] of Object.entries(presetsGrouped)) {
-            const section = document.createElement('div');
-            section.className = 'dropdown-category-section';
-
-            const header = document.createElement('div');
-            header.className = 'dropdown-category-header';
-            header.innerHTML = `<span>${category.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>`;
-            section.appendChild(header);
-
-            const itemsContainer = document.createElement('div');
-            itemsContainer.className = 'dropdown-category-items';
-
-            for (const preset of list) {
-                const btn = document.createElement('button');
-                btn.className = 'dropdown-item' + (currentSelectionId === preset.id ? ' selected' : '');
-                btn.textContent = preset.title;
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    onSelect(preset.id, preset.title);
-                    menuElement.classList.add('hidden');
-                });
-                itemsContainer.appendChild(btn);
-            }
-            section.appendChild(itemsContainer);
-            menuElement.appendChild(section);
-        }
-    } catch (err) {
-        console.error("Failed to load presets for dropdown:", err);
-    }
-}
-
+/**
+ * Initialises the New Chat flow: two steps.
+ *   Step 1 — New Chat button opens the preset-picker-modal with context='newChat'.
+ *   Step 2 — After preset selection, selectPreset() (right-pane.js) stores the id
+ *             and opens new-chat-modal (title only).
+ */
 export function initNewChatModal() {
     const clearChatBtn = document.getElementById('clear-chat-btn');
+    const presetPickerModal = document.getElementById('preset-picker-modal');
+    const presetSearchInput = document.getElementById('preset-search-input');
     const newChatModal = document.getElementById('new-chat-modal');
     const newChatModalCloseBtn = document.getElementById('new-chat-modal-close-btn');
     const newChatTitleInput = document.getElementById('new-chat-title-input');
-    const modalPresetSelectBtn = document.getElementById('modal-preset-select-btn');
-    const modalActivePresetName = document.getElementById('modal-active-preset-name');
-    const modalPresetDropdownMenu = document.getElementById('modal-preset-dropdown-menu');
     const startChatBtn = document.getElementById('start-chat-btn');
 
-    // New Chat button — shows modal instead of immediate creation
-    if (clearChatBtn) {
+    // Step 1: New Chat button opens the preset picker in newChat mode
+    if (clearChatBtn && presetPickerModal) {
         clearChatBtn.addEventListener('click', () => {
-            if (newChatTitleInput) newChatTitleInput.value = '';
-            if (modalActivePresetName) modalActivePresetName.textContent = 'None (Default)';
+            state.presetPickerContext = 'newChat';
             state.modalSelectedPresetId = null;
-            if (newChatModal) {
-                newChatModal.classList.remove('hidden');
-                setTimeout(() => newChatTitleInput?.focus(), 100);
+            presetPickerModal.classList.remove('hidden');
+            if (presetSearchInput) {
+                presetSearchInput.value = '';
+                presetSearchInput.focus();
             }
+            // Populate the preset list via right-pane module
+            import('./right-pane.js').then(m => m.renderPresetPickerList());
         });
     }
 
-    // New Chat Modal close
-    if (newChatModalCloseBtn) {
-        newChatModalCloseBtn.addEventListener('click', () => newChatModal?.classList.add('hidden'));
+    // Step 2a: Close button on title modal
+    if (newChatModalCloseBtn && newChatModal) {
+        newChatModalCloseBtn.addEventListener('click', () => newChatModal.classList.add('hidden'));
     }
     if (newChatModal) {
         newChatModal.addEventListener('click', (e) => {
@@ -456,33 +410,7 @@ export function initNewChatModal() {
         });
     }
 
-    // New Chat Modal — preset dropdown toggle
-    if (modalPresetSelectBtn && modalPresetDropdownMenu) {
-        modalPresetSelectBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const isOpen = !modalPresetDropdownMenu.classList.contains('hidden');
-            if (isOpen) {
-                modalPresetDropdownMenu.classList.add('hidden');
-            } else {
-                modalPresetDropdownMenu.classList.remove('hidden');
-                populatePresetDropdown(modalPresetDropdownMenu, state.modalSelectedPresetId, (presetId, presetTitle) => {
-                    state.modalSelectedPresetId = presetId;
-                    if (modalActivePresetName) {
-                        modalActivePresetName.textContent = presetTitle || 'None (Default)';
-                    }
-                });
-            }
-        });
-    }
-
-    // Close modal dropdown if clicking elsewhere
-    document.addEventListener('click', () => {
-        if (modalPresetDropdownMenu) {
-            modalPresetDropdownMenu.classList.add('hidden');
-        }
-    });
-
-    // Start Chat button in modal
+    // Step 2b: Start Chat button creates the conversation
     if (startChatBtn) {
         startChatBtn.addEventListener('click', safeAsync(async () => {
             const title = newChatTitleInput?.value.trim() || 'New Chat';

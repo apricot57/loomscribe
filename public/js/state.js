@@ -3,13 +3,12 @@ const rawState = {
     currentConversationId: null,
     abortControllers: {},
     activeStreams: {},
-    currentSystemPromptId: null,
     engineSchema: null,
     enginePresets: null,
-    factoryPromptCategories: null,
-    promptContentCache: new Map(),
-    modalSelectedPromptId: null,
-    editingPromptId: null,
+    currentConversationPresetId: null,
+    modalSelectedPresetId: null,
+    /** 'changePreset' | 'newChat' — controls what the preset-picker modal does on selection */
+    presetPickerContext: 'changePreset',
     conversationIdToDelete: null,
     DEFAULT_SYSTEM_PROMPT: 'You are a helpful and concise AI assistant.',
     API_URL: '/api/chat/completions'
@@ -72,9 +71,9 @@ function makeObservable(obj, path = '') {
 
 export const state = makeObservable(rawState);
 
+/** @deprecated Engine now compiles system prompts server-side. Returns empty string to avoid stale injection. */
 export function getSystemPromptContentSync() {
-    if (!state.currentSystemPromptId) return state.DEFAULT_SYSTEM_PROMPT;
-    return state.promptContentCache.get(state.currentSystemPromptId) || state.DEFAULT_SYSTEM_PROMPT;
+    return '';
 }
 
 export function prettifyCategory(str) {

@@ -193,8 +193,9 @@ export function initRightPane() {
 
 /**
  * Loads and renders the category-grouped presets in the picker modal.
+ * Exported so it can be called by sidebar.js in the newChat context.
  */
-async function renderPresetPickerList() {
+export async function renderPresetPickerList() {
     const container = document.getElementById('preset-categories-container');
     if (!container) return;
     container.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 20px;">Loading presets...</div>';
@@ -211,7 +212,7 @@ async function renderPresetPickerList() {
         noneGrid.className = 'presets-grid';
         
         const noneBtn = document.createElement('button');
-        noneBtn.className = 'preset-picker-item' + (!state.currentSystemPromptId && !state.currentConversationPresetId ? ' selected' : '');
+        noneBtn.className = 'preset-picker-item' + (!state.currentConversationPresetId ? ' selected' : '');
         noneBtn.innerHTML = `
             <strong>None (Default)</strong>
             <p>Runs conversation without system prompt instructions (raw chat).</p>
@@ -293,11 +294,30 @@ function filterPresetsList(query) {
 
 /**
  * Handles selecting a preset from the picker.
+ * Behaviour differs based on state.presetPickerContext:
+ *   'changePreset' — updates the current conversation (existing behaviour).
+ *   'newChat'      — stores the preset id and opens the title modal (step 2).
  */
 async function selectPreset(presetId) {
     const modal = document.getElementById('preset-picker-modal');
     if (modal) modal.classList.add('hidden');
 
+    const ctx = state.presetPickerContext;
+    state.presetPickerContext = 'changePreset'; // always reset
+
+    if (ctx === 'newChat') {
+        // Step 2: store the chosen preset and open the title modal
+        state.modalSelectedPresetId = presetId;
+        const newChatModal = document.getElementById('new-chat-modal');
+        const titleInput = document.getElementById('new-chat-title-input');
+        if (newChatModal) {
+            newChatModal.classList.remove('hidden');
+            setTimeout(() => titleInput?.focus(), 100);
+        }
+        return;
+    }
+
+    // 'changePreset' context: update the current conversation
     if (!state.currentConversationId) return;
 
     let defaults = {};

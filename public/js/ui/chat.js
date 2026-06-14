@@ -1,6 +1,5 @@
-import { state, escapeHtml, getSystemPromptContentSync } from '../state.js';
+import { state, escapeHtml } from '../state.js';
 import {
-    fetchPromptContent,
     buildApiPayload,
     buildApiPayloadUpTo,
     autoTitleConversation

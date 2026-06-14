@@ -285,26 +285,14 @@
             </div>
         </div>
 
-        <!-- New Chat Modal -->
+        <!-- New Chat Modal (Step 2: Title) -->
         <div id="new-chat-modal" class="modal-overlay hidden">
             <div class="modal-content">
                 <button id="new-chat-modal-close-btn" class="close-btn">&times;</button>
                 <h2>New Chat</h2>
-                <p class="modal-description">Name your chat and choose a system prompt.</p>
+                <p class="modal-description">Give your chat a title to get started.</p>
                 <div class="input-wrapper">
                     <input type="text" id="new-chat-title-input" placeholder="Chat title (optional)" autocomplete="off">
-                </div>
-                <div class="modal-preset-select-wrapper" style="margin-top: 15px;">
-                    <label class="modal-field-label" style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem; color: var(--text-secondary);">Scenario Preset</label>
-                    <button id="modal-preset-select-btn" class="prompt-select-btn" type="button" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 12px; color: var(--text-primary); cursor: pointer; text-align: left;">
-                        <span id="modal-active-preset-name">None (Default)</span>
-                        <svg class="dropdown-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                    </button>
-                    <div id="modal-preset-dropdown-menu" class="prompt-dropdown-menu hidden" style="position: absolute; width: calc(100% - 48px); max-height: 250px; overflow-y: auto; background: rgba(30, 41, 59, 0.95); border: 1px solid var(--border-color); border-radius: 12px; z-index: 1000; box-shadow: var(--shadow-m3-high); backdrop-filter: blur(12px);">
-                        <!-- Populated dynamically -->
-                    </div>
                 </div>
                 <div class="modal-actions">
                     <button id="start-chat-btn" class="btn btn-primary">Start Chat</button>

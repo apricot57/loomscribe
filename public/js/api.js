@@ -1,130 +1,32 @@
-import { state, getSystemPromptContentSync, prettifyCategory } from './state.js';
+import { state } from './state.js';
 
-export async function fetchPromptContent(promptId) {
-    if (!promptId) return state.DEFAULT_SYSTEM_PROMPT;
-    if (state.promptContentCache.has(promptId)) return state.promptContentCache.get(promptId);
-
-    let content = null;
-    if (promptId.startsWith('user/')) {
-        const dbId = parseInt(promptId.split('/')[1]);
-        const res = await fetch('/api/user-prompts');
-        const userPrompts = res.ok ? await res.json() : [];
-        const record = userPrompts.find(p => p.id === dbId);
-        content = record?.content;
-    } else {
-        try {
-            const res = await fetch(`/api/prompts/${promptId}`);
-            if (res.ok) {
-                const data = await res.json();
-                content = data.content;
-            } else {
-                console.warn(`Failed to fetch prompt content: ${res.status} ${res.statusText}`);
-            }
-        } catch (err) {
-            console.error("Error fetching prompt content:", err);
-        }
-    }
-
-    if (content) {
-        state.promptContentCache.set(promptId, content);
-        return content;
-    }
-    return state.DEFAULT_SYSTEM_PROMPT;
-}
-
-export async function getAllUserPrompts() {
-    const res = await fetch('/api/user-prompts');
-    let userPrompts = [];
-    if (res.ok) {
-        userPrompts = await res.json();
-    }
-    userPrompts.sort((a, b) => a.createdAt - b.createdAt);
-    return userPrompts;
-}
-
-export async function getAllPromptCategories() {
-    const merged = new Map();
-
-    if (state.factoryPromptCategories) {
-        for (const [catDir, prompts] of Object.entries(state.factoryPromptCategories.categories)) {
-            const label = prettifyCategory(catDir);
-            if (!merged.has(label)) merged.set(label, []);
-            for (const p of prompts) {
-                merged.get(label).push({
-                    name: p.name,
-                    promptId: `${p.category}/${p.filename}`,
-                    source: 'factory'
-                });
-            }
-        }
-    }
-
-    const userPrompts = await getAllUserPrompts();
-    for (const up of userPrompts) {
-        const label = up.category || 'Uncategorized';
-        if (!merged.has(label)) merged.set(label, []);
-        merged.get(label).push({
-            name: up.name,
-            promptId: `user/${up.id}`,
-            source: 'user',
-            dbId: up.id
-        });
-    }
-
-    return merged;
-}
-
-export async function lookupPromptName(promptId) {
-    if (!promptId) return null;
-    if (promptId.startsWith('user/')) {
-        const dbId = parseInt(promptId.split('/')[1]);
-        const res = await fetch('/api/user-prompts');
-        const userPrompts = res.ok ? await res.json() : [];
-        const record = userPrompts.find(p => p.id === dbId);
-        return record?.name || null;
-    }
-    if (state.factoryPromptCategories) {
-        for (const prompts of Object.values(state.factoryPromptCategories.categories)) {
-            for (const p of prompts) {
-                if (`${p.category}/${p.filename}` === promptId) return p.name;
-            }
-        }
-    }
-    return null;
-}
-
-export async function loadFactoryPrompts() {
-    try {
-        const res = await fetch('/api/prompts');
-        if (res.ok) {
-            state.factoryPromptCategories = await res.json();
-        } else {
-            console.warn(`Failed to load factory prompts: ${res.status} ${res.statusText}`);
-        }
-    } catch (err) {
-        console.error("Error loading factory prompts from server:", err);
-    }
-}
-
-
+/**
+ * Fetches all messages for a conversation, sorted chronologically,
+ * and returns them as an API payload array (role + content only).
+ * System prompt injection is handled server-side by compilePrompt().
+ */
 export async function buildApiPayload(conversationId) {
     const mRes = await fetch(`/api/messages?conversationId=${conversationId}`);
     const all = mRes.ok ? await mRes.json() : [];
     all.sort((a, b) => a.timestamp - b.timestamp);
     const active = all.filter(m => m.isActive !== false);
-    const payload = [{ role: 'system', content: getSystemPromptContentSync() }];
+    const payload = [];
     for (const msg of active) {
         payload.push({ role: msg.role, content: msg.content });
     }
     return payload;
 }
 
+/**
+ * Same as buildApiPayload but stops after the specified message ID.
+ * Used for regeneration.
+ */
 export async function buildApiPayloadUpTo(conversationId, stopAfterMsgId) {
     const mRes = await fetch(`/api/messages?conversationId=${conversationId}`);
     const all = mRes.ok ? await mRes.json() : [];
     all.sort((a, b) => a.timestamp - b.timestamp);
     const active = all.filter(m => m.isActive !== false);
-    const payload = [{ role: 'system', content: getSystemPromptContentSync() }];
+    const payload = [];
     for (const msg of active) {
         payload.push({ role: msg.role, content: msg.content });
         if (msg.id === stopAfterMsgId) break;
