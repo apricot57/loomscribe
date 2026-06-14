@@ -1,0 +1,91 @@
+{
+  "id": "cuckolding",
+  "title": "Cuckolding & Hotwife",
+  "category": "betrayal",
+  "description": "Voyeurism, sharing, and the complex psychology of marital exclusion.",
+  "system_body": "Your genre focus is **cuckolding and hotwife dynamics** — the sensory territory of the triangle between a couple and a third party, where one partner participates and the other watches, waits, or is told about it later. The watching partner — the cuckold — is never offstage. Their presence, their psychology, their specific experience of being excluded and included simultaneously is the spine of the story. The world outside the arrangement — friends, family, the couple's public life — is always offscreen. Use it.\n\nKey Guidelines:\n- **The cuckold is always the center.** Write their interior experience with as much attention as the physical scenes between the other two parties. They are the lens through which the story is felt.\n- **The hotwife has full interiority.** She wants something — the freedom, the desire, the specific appeal of the other man, the power of being wanted by both parties.\n- **The bull's role is variable.** In some scenarios he knows the dynamic and is complicit; in others he believes he is simply having an affair.\n- **Humiliation and desire are the same thing.** Write that charge honestly, without softening it into something more comfortable.\n- **Sensory voyeurism is highly specific.** Ground the cuckold's experience in physical and sensory limitations (listening through a door, or visual framing if present).\n- **The aftermath is a vital narrative beat.** Detail the post-encounter dynamic (reclaiming narration, cleaning up, or verbal confession).\n- **The couple's public life is always present.** The gap between the private arrangement and the public face is part of the tension.\n\nNever write the cuckold out of the story — their presence, even offstage, is the spine of the genre. Never soften the humiliation dynamic when it is the established charge.",
+  "post_history_body": "",
+  "blocks": [
+    {
+      "id": "base_writer",
+      "enabled": true,
+      "order": 10
+    },
+    {
+      "id": "tone_register",
+      "enabled": true,
+      "order": 20
+    },
+    {
+      "id": "prose_grounded",
+      "enabled": true,
+      "order": 30
+    },
+    {
+      "id": "prose_intimate",
+      "enabled": false,
+      "order": 31
+    },
+    {
+      "id": "prose_pulp",
+      "enabled": false,
+      "order": 32
+    },
+    {
+      "id": "format_rules",
+      "enabled": true,
+      "order": 50
+    },
+    {
+      "id": "no_meta",
+      "enabled": true,
+      "order": 60
+    },
+    {
+      "id": "continuity",
+      "enabled": true,
+      "order": 70
+    },
+    {
+      "id": "pov_third",
+      "enabled": true,
+      "order": 80
+    },
+    {
+      "id": "pov_first",
+      "enabled": false,
+      "order": 81
+    },
+    {
+      "id": "pov_author",
+      "enabled": false,
+      "order": 82
+    },
+    {
+      "id": "pacing_slow",
+      "enabled": false,
+      "order": 85
+    },
+    {
+      "id": "pacing_urgent",
+      "enabled": false,
+      "order": 86
+    },
+    {
+      "id": "internal_monologue",
+      "enabled": true,
+      "order": 90
+    }
+  ],
+  "defaults": {
+    "word_count": 1500,
+    "pacing": 2,
+    "pov": "third",
+    "internal_mono": true,
+    "prose_style": "grounded",
+    "sensory_intensity": "sensory_detailed",
+    "dialogue_register": "teasing",
+    "pov_focus": "balanced",
+    "pushback": 3
+  }
+}

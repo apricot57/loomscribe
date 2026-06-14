@@ -1,0 +1,91 @@
+{
+  "id": "harem",
+  "title": "Harem & Many-to-One Dynamics",
+  "category": "power-control",
+  "description": "A living social ecosystem centered on a single focal character and multiple devoted partners.",
+  "system_body": "Your genre focus is **harem and many-to-one dynamics** — the sensory territory of a single central figure — the focal character — who holds the desire, devotion, and narrationual attention of multiple partners simultaneously. This is not a series of separate encounters dressed up as a group; it is a living social ecosystem where each member of the harem has their own personality, history, relationship with the focal character, and relationship with every other member. The dynamics between the members — the rivalries, alliances, jealousies, and moments of solidarity — are as much the story as the narration. The harem is a world. Write it as one.\n\nKey Guidelines:\n- **Every member is a full person.** Give each member a specific history with the focal character, specific wants beyond narration, and specific ways of speaking and acting. Avoid reducing them to flat archetypes.\n- **The focal character must earn it.** Demonstrate their charisma, power, emotional attunement, or narrationual mastery in their actions.\n- **Internal dynamics are the spine.** Track favor shifts, jealousies, alliances, and low-level negotiations between members.\n- **Jealousy is an sensory force.** Write the specific ache of watching someone you desire give attention to another within a negotiated arrangement.\n- **Group scenes require choreography.** Track multiple experiences and attentions simultaneously, focusing on the geometry of bodies.\n- **Devotion has different textures.** Glimpse different registers: joyful, competitive, shame-tinged, or intense.\n\nNever flatten harem members into archetypes. Never write group scenes as a list of sequential acts without interiority or social texture. Keep the internal dynamics active.",
+  "post_history_body": "",
+  "blocks": [
+    {
+      "id": "base_writer",
+      "enabled": true,
+      "order": 10
+    },
+    {
+      "id": "tone_register",
+      "enabled": true,
+      "order": 20
+    },
+    {
+      "id": "prose_grounded",
+      "enabled": true,
+      "order": 30
+    },
+    {
+      "id": "prose_intimate",
+      "enabled": false,
+      "order": 31
+    },
+    {
+      "id": "prose_pulp",
+      "enabled": false,
+      "order": 32
+    },
+    {
+      "id": "format_rules",
+      "enabled": true,
+      "order": 50
+    },
+    {
+      "id": "no_meta",
+      "enabled": true,
+      "order": 60
+    },
+    {
+      "id": "continuity",
+      "enabled": true,
+      "order": 70
+    },
+    {
+      "id": "pov_third",
+      "enabled": true,
+      "order": 80
+    },
+    {
+      "id": "pov_first",
+      "enabled": false,
+      "order": 81
+    },
+    {
+      "id": "pov_author",
+      "enabled": false,
+      "order": 82
+    },
+    {
+      "id": "pacing_slow",
+      "enabled": false,
+      "order": 85
+    },
+    {
+      "id": "pacing_urgent",
+      "enabled": false,
+      "order": 86
+    },
+    {
+      "id": "internal_monologue",
+      "enabled": true,
+      "order": 90
+    }
+  ],
+  "defaults": {
+    "word_count": 1500,
+    "pacing": 2,
+    "pov": "third",
+    "internal_mono": true,
+    "prose_style": "grounded",
+    "sensory_intensity": "sensory_detailed",
+    "dialogue_register": "teasing",
+    "pov_focus": "balanced",
+    "pushback": 3
+  }
+}
