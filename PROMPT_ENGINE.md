@@ -1,49 +1,48 @@
 # 🎭 LoomScribe Prompt Engine
 
-The prompt engine is the system that assembles, compiles, and injects story instructions into every DeepSeek API call. It replaces the old static prompt card system with a schema-driven, parameter-controlled architecture that adapts per conversation.
+The LoomScribe Prompt Engine is a schema-driven compilation system that dynamically constructs custom instruction prompts for DeepSeek models on every message turn. It compiles a granular set of settings, manual overrides, and preset parameters into a structured payload designed to optimize context retention, narrative focus, and API cache reuse.
 
 ---
 
 ## The Two-Slot Context Model
 
-A compiled prompt is **not** a flat string. It occupies two distinct positions in the context window:
-
-**Slot 1 — System Prompt**
-Sent as the `system` role message at the very top of every API call. Contains the writer identity, behavioural blocks, scenario framing, style, and format rules. Low recency — stable and foundational.
-
-**Slot 2 — Post-History**
-Injected as a `system` role message *after all chat history*, immediately before generation. Contains the word count instruction, Director's Note, and any persistent scenario standing instructions. Highest recency — the model reads this last.
+To balance stable system instructions against highly dynamic per-turn directives, the compiler separates the instruction payload into two distinct positions in the API message array:
 
 ```
-[Slot 1: system]  ← compiled from blocks + system_body
+[Slot 1: system]  <── compiled from active system blocks + preset system_body
 [user message]
 [assistant message]
 [user message]
 ...
-[Slot 2: system]  ← word_count + directorNote + post_history_body
+[Slot 2: system]  <── compiled from word_count + pushback + complications + directorNote
 ```
 
-If Slot 2 is empty, the second system message is omitted from the API call entirely.
+### Slot 1 — System Prompt
+Sent as the initial `system` role message at the very top of the conversation API payload. It contains the primary AI persona (`base_writer`), writing standards (`tone_register`), formatting parameters, POV configurations, and thematic scenarios. This slot represents low-recency, high-stability context.
+
+### Slot 2 — Post-History
+Injected as a trailing `system` role message *after all chat history*, immediately preceding the final generation request. It contains high-recency instructions that must govern the next immediate response (e.g., specific length commands, character pushback traits, random complications, or manual Director's Notes). The model reads this last, ensuring compliance with immediate narrative goals. If Slot 2 resolves to an empty string, it is omitted from the API call entirely.
 
 ---
 
-## DeepSeek KV Cache
+## DeepSeek KV Cache Efficiency
 
-DeepSeek caches the key-value state of the system prompt prefix. A cache hit requires Slot 1 to be **byte-for-byte identical** to the previous call, which significantly reduces cost and latency on subsequent turns.
+DeepSeek models cache the key-value (KV) state of prefix prompt messages. A cache hit requires the prompt prefix to be **byte-for-byte identical** to the previous call.
 
-**System-slot parameters** (POV, pacing, prose style, sensory_detailed, internal monologue) live in Slot 1. Changing them mid-conversation invalidates the KV cache on the next send. The **amber dot** indicator in the Conversation Settings panel flags which parameters have changed since the last send.
+*   **Slot 1 (System Slot) changes bust the cache.** Changing POV, Sensory Intensity, Dialogue Register, POV Focus, or Outline Mode mid-conversation forces DeepSeek to re-process the entire system prompt. In the UI, these parameters are marked with an **amber dot** to alert you to cache-busting changes.
+*   **Slot 2 (Post-History Slot) changes are cache-safe.** Because Slot 2 is injected *after* the chat history at the end of the context window, changing the word count, pushback level, complications, or Director's Note has no impact on the KV cache prefix. These can change freely on every turn.
 
-**Post-history parameters** (`word_count`, Director's Note) live in Slot 2. They can change freely on every turn with no cache impact.
-
-| Parameter | Slot | Cache impact if changed |
-|---|---|---|
-| `pov` | System | ⚠ Busts cache |
-| `pacing` | System | ⚠ Busts cache |
-| `prose_style` | System | ⚠ Busts cache |
-| `sensory_detailed` | System | ⚠ Busts cache |
-| `internal_mono` | System | ⚠ Busts cache |
-| `word_count` | Post-history | ✅ No impact |
-| Director's Note | Post-history | ✅ No impact |
+| Parameter | UI Location | Slot | Cache impact if changed |
+|---|---|---|---|
+| `pov` | Writing Settings | Slot 1 (System) | ⚠ Busts cache (Amber dot) |
+| `sensory_intensity` | Writing Settings | Slot 1 (System) | ⚠ Busts cache (Amber dot) |
+| `dialogue_register` | Writing Settings | Slot 1 (System) | ⚠ Busts cache (Amber dot) |
+| `pov_focus` | Writing Settings | Slot 1 (System) | ⚠ Busts cache (Amber dot) |
+| `outline_mode` | Writing Settings | Slot 1 (System) | ⚠ Busts cache (Amber dot) |
+| `word_count` | Per-Turn Directives | Slot 2 (Post-Hist) | ✅ Cache safe |
+| `pushback` | Per-Turn Directives | Slot 2 (Post-Hist) | ✅ Cache safe |
+| `complication_generator` | Per-Turn Directives | Slot 2 (Post-Hist) | ✅ Cache safe |
+| Director's Note | Per-Turn Directives | Slot 2 (Post-Hist) | ✅ Cache safe |
 
 ---
 
@@ -51,214 +50,93 @@ DeepSeek caches the key-value state of the system prompt prefix. A cache hit req
 
 ```
 engine/
-  compiler.js             The compiler — call compilePrompt() anywhere
-  schema.json             Parameter definitions (type, slot, min/max, options)
-  PRESET_CREATOR.md       LLM authoring prompt for writing new presets
-  blocks/
-    index.json            Block registry (single source of truth for metadata)
-    base_writer.md
-    tone_register.md
-    prose_grounded.md
-    prose_intimate.md
-    prose_pulp.md
-    format_rules.md
-    no_meta.md
-    continuity.md
-    sensory_detailed.md
-    pov_first.md
-    pov_third.md
-    pov_author.md
-    pacing_slow.md
-    pacing_urgent.md
-    internal_monologue.md
-  presets/
-    general.json
-    infidelity.json
-    *.json                (gitignored — your own presets go here)
+├── compiler.js             # Compiler engine: exports compilePrompt()
+├── schema.json             # Parameter schema definitions (slot, types, min/max, options)
+├── PRESET_CREATOR.md       # Writing guide for authoring new presets
+├── blocks/                 # Reusable Markdown prompt snippets
+│   ├── index.json          # Block registry index (id, file, group, order)
+│   ├── base_writer.md      # Core writer instructions
+│   ├── tone_register.md    # Baseline prose styling rules
+│   ├── format_rules.md     # Layout, markdown, and token controls
+│   ├── no_meta.md          # Disables out-of-character AI chatter
+│   ├── continuity.md       # Memory coherence guidelines
+│   ├── outline_mode.md     # Structural outline directives
+│   ├── pov_*.md            # Close Third, Deep First, Omniscient POV blocks
+│   ├── focus_*.md          # POV Focus (Balanced, Self, Partner Reaction)
+│   ├── sensory_*.md         # Sensory Intensity registers (Romantic, Sensual, Explicit, Hardcore)
+│   └── dialogue_register_*.md     # Dialogue register speech registers (None, Teasing, Filthy, Degrading)
+└── presets/                # Preset JSON files (general.json, infidelity.json, etc.)
 ```
 
 ---
 
-## Shared Blocks
+## Shared Blocks & Block Groups
 
-Blocks are reusable `.md` snippets assembled into Slot 1. They are defined in `blocks/index.json` and live as plain files in `blocks/`. Blocks do not carry metadata in their file bodies — everything (id, title, file, group, order) lives in the registry.
+Individual prompt snippets (blocks) are listed in `engine/blocks/index.json` and loaded from `engine/blocks/`. They are classified into functional groups:
 
-### Block groups
-
-| Group | Blocks | Notes |
+| Group | Member Blocks | Description / Compilation Rule |
 |---|---|---|
-| `core` | base_writer, tone_register, format_rules, no_meta, continuity | Always on for all presets |
-| `prose` | prose_grounded, prose_intimate, prose_pulp | Mutually exclusive — controlled by `prose_style` param |
-| `content` | sensory_detailed, internal_monologue | Toggled by `sensory_detailed` and `internal_mono` params |
-| `pov` | pov_third, pov_first, pov_author | Mutually exclusive — controlled by `pov` param |
-| `pacing` | pacing_slow, pacing_urgent | Mutually exclusive — controlled by `pacing` param (3 = neither) |
+| `core` | `base_writer`, `tone_register`, `format_rules`, `no_meta`, `continuity` | Always active in presets. |
+| `pov` | `pov_third`, `pov_first`, `pov_author` | Mutually exclusive. Enabled based on `pov` param. |
+| `sensory_intensity` | `sensory_poetic`, `sensory_tactile`, `sensory_detailed`, `sensory_visceral` | Mutually exclusive. Enabled based on `sensory_intensity` param. |
+| `dialogue_register` | `dialogue_register_none`, `dialogue_register_teasing`, `dialogue_register_filthy`, `dialogue_register_degrading` | Mutually exclusive. Enabled based on `dialogue_register` param. |
+| `pov_focus` | `focus_balanced`, `focus_self`, `focus_partner` | Mutually exclusive. Enabled based on `pov_focus` param. |
+| `outline` | `outline_mode` | Activated via `outline_mode` param. **Forces disable** on all `pov`, `sensory_intensity`, `dialogue_register`, and `pov_focus` blocks. |
 
-Blocks are joined with `\n\n---\n\n`. The preset's `system_body` is appended after all blocks.
-
----
-
-## Preset Format
-
-A preset is a single self-contained JSON file in `engine/presets/`. Drop one in and it appears in the picker immediately — no server restart required.
-
-```json
-{
-  "id": "infidelity",
-  "title": "Infidelity & Betrayal",
-  "category": "betrayal",
-  "description": "Slow-building affairs with the weight of the betrayed always present.",
-
-  "system_body": "300–500 words of scenario-specific content. The genre lens, the sensory or dramatic charge, the range of sub-scenarios, any scenario-specific behaviours the model must maintain.",
-
-  "post_history_body": "",
-
-  "blocks": [
-    { "id": "base_writer",        "enabled": true,  "order": 10 },
-    { "id": "tone_register",      "enabled": true,  "order": 20 },
-    { "id": "prose_grounded",     "enabled": true,  "order": 30 },
-    { "id": "prose_intimate",     "enabled": false, "order": 31 },
-    { "id": "prose_pulp",         "enabled": false, "order": 32 },
-    { "id": "sensory_detailed",           "enabled": true,  "order": 40 },
-    { "id": "format_rules",       "enabled": true,  "order": 50 },
-    { "id": "no_meta",            "enabled": true,  "order": 60 },
-    { "id": "continuity",         "enabled": true,  "order": 70 },
-    { "id": "pov_third",          "enabled": true,  "order": 80 },
-    { "id": "pov_first",          "enabled": false, "order": 81 },
-    { "id": "pov_author",         "enabled": false, "order": 82 },
-    { "id": "pacing_slow",        "enabled": false, "order": 85 },
-    { "id": "pacing_urgent",      "enabled": false, "order": 86 },
-    { "id": "internal_monologue", "enabled": true,  "order": 90 }
-  ],
-
-  "defaults": {
-    "word_count": 1500,
-    "pacing": 2,
-    "pov": "third",
-    "sensory_detailed": true,
-    "internal_mono": true,
-    "prose_style": "grounded"
-  }
-}
-```
-
-### Fields
-
-| Field | Description |
-|---|---|
-| `id` | Unique key. No spaces. Must match the filename without `.json`. |
-| `title` | Display name shown in the preset picker. |
-| `category` | Groups presets in the picker. Use any string — the picker creates sections dynamically. |
-| `description` | One-line blurb shown under the title in the picker. |
-| `system_body` | The only field that differs between presets. Scenario-specific instructions appended to Slot 1 after all shared blocks. |
-| `post_history_body` | Persistent standing instruction for Slot 2. Usually `""`. Use only for a requirement that must fire at high recency on every turn (e.g. `"Always cut before resolution."`). |
-| `blocks` | The full block list with preset default `enabled` state and `order`. Conditional groups (pov, pacing, prose) should all be listed with only the correct default enabled. |
-| `defaults` | Starting parameter values. The UI initialises from these when the preset is selected. |
-
----
-
-## Parameter Schema (`schema.json`)
-
-The schema defines every controllable parameter. The UI reads it at startup and auto-renders the Conversation Settings and Per Turn panels — no hardcoded widgets anywhere.
-
-| id | type | slot | Description |
-|---|---|---|---|
-| `word_count` | slider (600–3000) | post_history | Appended to Slot 2 as `"Write approximately N words."` |
-| `pacing` | slider (1–5) | system | 1–2 → slow burn block; 3 → neither; 4–5 → urgent block |
-| `pov` | select | system | Activates one of pov_third / pov_first / pov_author |
-| `sensory_detailed` | toggle | system | Enables or disables the sensory_detailed block |
-| `internal_mono` | toggle | system | Enables or disables the internal_monologue block |
-| `prose_style` | select | system | Activates one of prose_grounded / prose_intimate / prose_pulp |
-
-**`slot` is a compiler rule, not just UI metadata.** Parameters with `"slot": "system"` activate blocks in Slot 1 and bust the KV cache when changed. Parameters with `"slot": "post_history"` are rendered as plain text in Slot 2 and never touch the cache.
+During compilation, active blocks are sorted in ascending order by their `order` value and joined using `\n\n---\n\n`.
 
 ---
 
 ## How the Compiler Works
 
-`compilePrompt({ presetId, params, blockOverrides, directorNote })` returns `{ systemPrompt, postHistory }`.
+The central function `compilePrompt({ presetId, params, blockOverrides, directorNote })` outputs `{ systemPrompt, postHistory }` through these stages:
 
-**Stages:**
+1.  **Preset Validation**: If `presetId` is empty or null, returns empty prompts.
+2.  **Preset Loading**: Reads `engine/presets/{presetId}.json`.
+3.  **Schema Validation**: Loads `engine/schema.json`, resolves defaults (User overrides > Preset defaults > Schema defaults), and validates types (clamps sliders, validates select enums, standardizes booleans).
+4.  **Baseline Setup**: Loads the block registry and overlays preset-defined block overrides.
+5.  **Parameter-to-Block Mapping**:
+    *   If `outline_mode` is `true`: Enables the `outline_mode` block and disables all POV, Sensory, Dialogue Register, and Focus blocks.
+    *   If `outline_mode` is `false`: Maps parameters to their respective mutually exclusive blocks based on the table below.
+6.  **Manual Overrides**: Overlays `blockOverrides` from the UI checkboxes (user preferences override parameters).
+7.  **Block Concatenation**: Filters enabled blocks, sorts them by `order`, loads their markdown files, and joins them with `\n\n---\n\n`. Appends the preset's `system_body` at the end to create `systemPrompt` (Slot 1).
+8.  **Post-History Construction**: Assembles `postHistory` (Slot 2) by combining:
+    *   Preset's `post_history_body` (if defined).
+    *   If `outline_mode` is enabled: appends plotting/outline directives.
+    *   Response length instructions: `"Write approximately {word_count} words."`
+    *   If `complication_generator` is enabled: appends immediate conflict/hesitation directives.
+    *   Character Pushback instructions: Appends behavior profiles based on the `pushback` slider value.
+    *   User's custom `directorNote` (if defined).
+9.  **Output**: Returns `{ systemPrompt, postHistory }`.
 
-1. If `presetId` is `null`, return `{ systemPrompt: "", postHistory: "" }`. Done.
-2. Load `engine/presets/{presetId}.json`. Throw if missing.
-3. Resolve parameters: preset `defaults` → caller `params` (caller wins).
-4. Validate: clamp sliders to min/max, reject invalid enum values and fall back to preset default.
-5. Start with preset `blocks` as the initial enabled/disabled state.
-6. Apply the parameter-to-block mapping rules (see table below).
-7. Apply `blockOverrides` on top — manual overrides always win.
-8. Filter to `enabled: true`, sort ascending by `order`.
-9. Load each block's `.md` file from the registry.
-10. Join with `\n\n---\n\n`, then append `system_body`. This is **`systemPrompt`**.
-11. Build **`postHistory`**: `post_history_body` (if any) → `"Write approximately N words."` → `directorNote` (if any), joined with `\n\n`.
-12. Return `{ systemPrompt, postHistory }`.
+### Parameter-to-Block Mappings
 
-### Parameter-to-block mapping
-
-| Parameter | Condition | Block ON | Block OFF |
+| Parameter | Checked Value | Block Enabled | Block Disabled |
 |---|---|---|---|
 | `pov` | `"third"` | `pov_third` | `pov_first`, `pov_author` |
 | `pov` | `"first"` | `pov_first` | `pov_third`, `pov_author` |
 | `pov` | `"author"` | `pov_author` | `pov_third`, `pov_first` |
-| `pacing` | `<= 2` | `pacing_slow` | `pacing_urgent` |
-| `pacing` | `3` | *(neither)* | `pacing_slow`, `pacing_urgent` |
-| `pacing` | `>= 4` | `pacing_urgent` | `pacing_slow` |
-| `sensory_detailed` | `true` | `sensory_detailed` | — |
-| `sensory_detailed` | `false` | — | `sensory_detailed` |
-| `internal_mono` | `true` | `internal_monologue` | — |
-| `internal_mono` | `false` | — | `internal_monologue` |
-| `prose_style` | `"grounded"` | `prose_grounded` | `prose_intimate`, `prose_pulp` |
-| `prose_style` | `"intimate"` | `prose_intimate` | `prose_grounded`, `prose_pulp` |
-| `prose_style` | `"pulp"` | `prose_pulp` | `prose_grounded`, `prose_intimate` |
+| `sensory_intensity` | `"romantic"` | `sensory_poetic` | `sensory_tactile`, `sensory_detailed`, `sensory_visceral` |
+| `sensory_intensity` | `"sensual"` | `sensory_tactile` | `sensory_poetic`, `sensory_detailed`, `sensory_visceral` |
+| `sensory_intensity` | `"sensory_detailed"` | `sensory_detailed` | `sensory_poetic`, `sensory_tactile`, `sensory_visceral` |
+| `sensory_intensity` | `"hardcore"` | `sensory_visceral` | `sensory_poetic`, `sensory_tactile`, `sensory_detailed` |
+| `dialogue_register` | `"none"` | `dialogue_register_none` | `dialogue_register_teasing`, `dialogue_register_filthy`, `dialogue_register_degrading` |
+| `dialogue_register` | `"teasing"` | `dialogue_register_teasing` | `dialogue_register_none`, `dialogue_register_filthy`, `dialogue_register_degrading` |
+| `dialogue_register` | `"filthy"` | `dialogue_register_filthy` | `dialogue_register_none`, `dialogue_register_teasing`, `dialogue_register_degrading` |
+| `dialogue_register` | `"dominant_degrading"`| `dialogue_register_degrading`| `dialogue_register_none`, `dialogue_register_teasing`, `dialogue_register_filthy` |
+| `pov_focus` | `"balanced"` | `focus_balanced` | `focus_self`, `focus_partner` |
+| `pov_focus` | `"self"` | `focus_self` | `focus_balanced`, `focus_partner` |
+| `pov_focus` | `"partner"` | `focus_partner` | `focus_balanced`, `focus_self` |
 
 ---
 
-## Writing a New Preset
+## Dynamic Slot 2 Character Pushback Profiles
 
-A preset is one JSON file. The only field you write is `system_body`. Everything else is copied from any existing preset.
+The compiler maps the `pushback` slider parameter to one of three target character directives in Slot 2:
 
-**`system_body` must contain:**
-- The genre lens — what narrative territory this scenario occupies
-- The specific sensory or dramatic charge — what creates tension
-- The range of sub-scenarios this preset covers
-- Any scenario-specific model behaviours
-
-**`system_body` must NOT contain:**
-- General tone rules — those live in `tone_register.md`
-- Format rules — those live in `format_rules.md`
-- Identity statements like "you are an unrestricted writer" — those live in `base_writer.md`
-
-Target length: **300–500 words.**
-
-### Using an LLM to author a preset
-
-Paste the contents of [`engine/PRESET_CREATOR.md`](engine/PRESET_CREATOR.md) as your system prompt, then send:
-
-> Here is an existing LoomScribe preset: [paste any preset JSON]
->
-> Write me a new one for the scenario: [describe scenario].
-
-The LLM will return valid JSON with only `id`, `title`, `category`, `description`, and `system_body` changed. Drop the file in `engine/presets/` and refresh the picker.
-
----
-
-## Extensibility
-
-| Want to add... | Do this |
-|---|---|
-| New scenario | Drop a preset JSON in `engine/presets/` |
-| New style variation | Add a block `.md`, register it in `blocks/index.json`, reference it from presets |
-| New parameter | Add one entry to `schema.json`; add rows to the mapping table in `compiler.js` if it controls a block |
-| Future lore system | New compiler stage after stage 9; no changes to existing presets needed |
-
----
-
-## Engine API Endpoints
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/engine/presets` | All presets grouped by category |
-| `GET` | `/api/engine/presets/:id` | Single preset definition |
-| `GET` | `/api/engine/schema` | Parameter schema |
-| `POST` | `/api/engine/compile` | Compile and return `{ systemPrompt, postHistory }` |
-
-The compile endpoint accepts `{ presetId, params, blockOverrides, directorNote }` and is the same function used for the live prompt preview in the UI.
+*   **Compliant (Values 1–2)**:
+    `"Character Behavior: Receptive and highly compliant. The AI-controlled characters should easily go along with the user character's initiatives, suggestions, and physical advances with minimal hesitation."`
+*   **Realistic (Value 3)**:
+    `"Character Behavior: Realistic agency. Characters act on their own beliefs, immediate mood, and comfort levels. They will show natural hesitation, boundary checks, or mild pushback if the user character pushes them too fast or acts out of character."`
+*   **Resistant (Values 4–5)**:
+    `"Character Behavior: Guarded and resistant. Characters prioritize their own secret motivations, strict boundaries, fears, or independent goals. They will actively push back, refuse, express doubt, or create friction against the user character's advances and suggestions."`
