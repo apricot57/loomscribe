@@ -190,6 +190,17 @@
     gap: 6px;
 }
 
+.param-icon {
+    width: 14px;
+    height: 14px;
+    opacity: 0.6;
+    color: var(--text-muted);
+}
+
+.collapsible-icon svg {
+    display: block;
+}
+
 /* Warning dot indicator */
 .warning-dot {
     width: 6px;
@@ -207,7 +218,12 @@
 }
 
 /* Custom Select Control */
-.param-select {
+.custom-select-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.custom-select-trigger {
     width: 100%;
     padding: 10px 14px;
     background: rgba(0, 0, 0, 0.2);
@@ -218,12 +234,80 @@
     font-size: 0.88rem;
     outline: none;
     cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     transition: var(--transition-m3);
+    text-align: left;
 }
 
-.param-select:focus {
+.custom-select-trigger:hover {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(56, 189, 248, 0.3);
+}
+
+.custom-select-wrapper.open .custom-select-trigger,
+.custom-select-trigger:focus {
     border-color: var(--accent-color);
     box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.custom-select-trigger .dropdown-chevron {
+    width: 14px;
+    height: 14px;
+    color: var(--text-secondary);
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+    margin-left: 8px;
+}
+
+.custom-select-wrapper.open .dropdown-chevron {
+    transform: rotate(180deg);
+}
+
+.custom-select-options {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 100%;
+    background: var(--bg-sidebar);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: var(--shadow-m3-high);
+    z-index: 100;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 4px;
+    box-sizing: border-box;
+}
+
+.custom-select-options.hidden {
+    display: none;
+}
+
+.custom-select-option {
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-align: left;
+    transition: var(--transition-m3);
+    width: 100%;
+}
+
+.custom-select-option:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.custom-select-option.active {
+    background-color: var(--accent-dim);
+    color: var(--accent-color);
+    font-weight: 600;
 }
 
 /* Custom Toggle Switch */

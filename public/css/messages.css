@@ -222,6 +222,16 @@
     font-weight: 500;
     transition: var(--transition-m3);
     line-height: 1.4;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.message-action-btn svg {
+    width: 11px;
+    height: 11px;
+    display: block;
 }
 
 .message-action-btn:hover {
@@ -280,6 +290,15 @@
     font-size: 0.7rem;
     line-height: 1;
     transition: var(--transition-m3);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.version-nav-btn svg {
+    width: 9px;
+    height: 9px;
+    display: block;
 }
 
 .version-nav-btn:hover {

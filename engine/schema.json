@@ -11,16 +11,6 @@
     "slot": "post_history"
   },
   {
-    "id": "pacing",
-    "label": "Pacing",
-    "type": "slider",
-    "min": 1,
-    "max": 5,
-    "labels": ["Slow burn", "", "", "", "Urgent"],
-    "default": 2,
-    "slot": "system"
-  },
-  {
     "id": "pov",
     "label": "Point of View",
     "type": "select",
@@ -92,25 +82,6 @@
     "label": "Outline / Brainstorm Mode",
     "type": "toggle",
     "default": false,
-    "slot": "system"
-  },
-  {
-    "id": "internal_mono",
-    "label": "Internal Monologue",
-    "type": "toggle",
-    "default": true,
-    "slot": "system"
-  },
-  {
-    "id": "prose_style",
-    "label": "Prose Style",
-    "type": "select",
-    "options": [
-      { "value": "grounded", "label": "Grounded" },
-      { "value": "intimate", "label": "Intimate" },
-      { "value": "pulp",     "label": "Pulp" }
-    ],
-    "default": "grounded",
     "slot": "system"
   }
 ]

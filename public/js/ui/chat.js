@@ -262,7 +262,11 @@ export function attachMessageActions(messageDiv, sender, msgMeta) {
 
         const prevBtn = document.createElement('button');
         prevBtn.className = 'version-nav-btn';
-        prevBtn.innerHTML = '&#9664;';
+        prevBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m15 18-6-6 6-6"></path>
+            </svg>
+        `;
         prevBtn.title = 'Previous version';
         prevBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -275,7 +279,11 @@ export function attachMessageActions(messageDiv, sender, msgMeta) {
 
         const nextBtn = document.createElement('button');
         nextBtn.className = 'version-nav-btn';
-        nextBtn.innerHTML = '&#9654;';
+        nextBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m9 18 6-6-6-6"></path>
+            </svg>
+        `;
         nextBtn.title = 'Next version';
         nextBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -291,7 +299,12 @@ export function attachMessageActions(messageDiv, sender, msgMeta) {
     if (sender === 'user') {
         const editBtn = document.createElement('button');
         editBtn.className = 'message-action-btn edit-btn';
-        editBtn.innerHTML = '&#9998;';
+        editBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+        `;
         editBtn.title = 'Edit message';
         editBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -303,7 +316,12 @@ export function attachMessageActions(messageDiv, sender, msgMeta) {
     if (sender === 'bot') {
         const editBtn = document.createElement('button');
         editBtn.className = 'message-action-btn edit-btn';
-        editBtn.innerHTML = '&#9998;';
+        editBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+        `;
         editBtn.title = 'Edit response';
         editBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -315,7 +333,14 @@ export function attachMessageActions(messageDiv, sender, msgMeta) {
     if (sender === 'bot') {
         const regenBtn = document.createElement('button');
         regenBtn.className = 'message-action-btn regen-btn';
-        regenBtn.innerHTML = '&#8635;';
+        regenBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                <path d="M3 3v5h5"></path>
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path>
+                <path d="M16 16h5v5"></path>
+            </svg>
+        `;
         regenBtn.title = 'Regenerate response';
         regenBtn.addEventListener('click', async (e) => {
             e.stopPropagation();

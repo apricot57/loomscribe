@@ -148,12 +148,9 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote }) {
         // Force disable all prose/narrative blocks
         const blocksToDisable = [
             'pov_third', 'pov_first', 'pov_author',
-            'pacing_slow', 'pacing_urgent',
-            'prose_grounded', 'prose_intimate', 'prose_pulp',
             'sensory_poetic', 'sensory_tactile', 'sensory_detailed', 'sensory_visceral',
             'dialogue_register_none', 'dialogue_register_teasing', 'dialogue_register_filthy', 'dialogue_register_degrading',
-            'focus_balanced', 'focus_self', 'focus_partner',
-            'internal_monologue'
+            'focus_balanced', 'focus_self', 'focus_partner'
         ];
         for (const blockId of blocksToDisable) {
             forceState(blockId, false);
@@ -174,18 +171,6 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote }) {
             forceState('pov_author', true);
             forceState('pov_third', false);
             forceState('pov_first', false);
-        }
-
-        // Pacing mapping
-        if (validParams.pacing <= 2) {
-            forceState('pacing_slow', true);
-            forceState('pacing_urgent', false);
-        } else if (validParams.pacing === 3) {
-            forceState('pacing_slow', false);
-            forceState('pacing_urgent', false);
-        } else if (validParams.pacing >= 4) {
-            forceState('pacing_urgent', true);
-            forceState('pacing_slow', false);
         }
 
         // Sensory intensity mapping
@@ -247,28 +232,6 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote }) {
             forceState('focus_partner', true);
             forceState('focus_balanced', false);
             forceState('focus_self', false);
-        }
-
-        // Internal monologue mapping
-        if (validParams.internal_mono === true) {
-            forceState('internal_monologue', true);
-        } else if (validParams.internal_mono === false) {
-            forceState('internal_monologue', false);
-        }
-
-        // Prose style mapping
-        if (validParams.prose_style === 'grounded') {
-            forceState('prose_grounded', true);
-            forceState('prose_intimate', false);
-            forceState('prose_pulp', false);
-        } else if (validParams.prose_style === 'intimate') {
-            forceState('prose_intimate', true);
-            forceState('prose_grounded', false);
-            forceState('prose_pulp', false);
-        } else if (validParams.prose_style === 'pulp') {
-            forceState('prose_pulp', true);
-            forceState('prose_grounded', false);
-            forceState('prose_intimate', false);
         }
     }
 
@@ -342,7 +305,7 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote }) {
 
     // Always append the word count instruction, but add outlining directives if in Outline Mode
     if (validParams.outline_mode === true) {
-        postParts.push("Write a structured outline, plot points, or brainstorm ideas based on the user's prompt. Do not write full-narrative prose chapters. Keep the format organized.");
+        postParts.push("Focus on plotting, outlining, and brainstorming narrative directions or ideas based on the user's input. Do not write full-narrative prose chapters yet. Expand on plot beats, character details, and story structure with depth and detail.");
     }
     const wordCount = validParams.word_count;
     postParts.push(`Write approximately ${wordCount} words.`);
