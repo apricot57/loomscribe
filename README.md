@@ -1,219 +1,180 @@
 # 🌌 LoomScribe
 
-A premium single-page chat interface for collaborative fiction writing with DeepSeek models. Vanilla HTML/CSS/JS on the frontend (no build tools, no frameworks, no bundlers) powered by a lightweight Node.js/Express backend. Runs as a **desktop web app** or as a standalone **serverless Android APK**.
+LoomScribe is a premium, highly specialized creative writing workspace designed specifically for DeepSeek models. It provides a dual-slot compiler architecture that maximizes API cache performance while putting granular writing controls (POV, sensory intensity, dialogue register, partner pushback, complications, and outline sandbox mode) directly in your hands. 
 
-[![Download APK](https://img.shields.io/badge/Download-LoomScribe.apk-blue?style=for-the-badge&logo=android)](https://github.com/apricot57/vibe-api/releases/latest)
-[![Android Branch](https://img.shields.io/badge/Branch-Android%20Port-green?style=for-the-badge&logo=git)](https://github.com/apricot57/vibe-api/tree/feature/android-serverless-port)
-
----
-
-## 📱 Android APK
-
-A fully standalone, serverless Android build is available — no Node.js, no server, nothing to install.
-
-**[⬇ Download LoomScribe.apk from Releases](https://github.com/apricot57/vibe-api/releases/latest)**
-
-- API key and all chat history stored on-device in IndexedDB
-- Streams directly from DeepSeek — no proxy, no middleman
-- Collapsible settings drawer for comfortable one-handed mobile use
-
-See the [`feature/android-serverless-port`](https://github.com/apricot57/vibe-api/tree/feature/android-serverless-port) branch for the full Android implementation details.
+Built with a lightweight Node.js/Express backend and a responsive, zero-build vanilla HTML/CSS/JS frontend, LoomScribe serves as a distraction-free desktop environment for drafting, brainstorming, and editing interactive fiction.
 
 ---
 
-## ✨ Features
+## ✨ Core Features
 
-### Core
-- **Streaming responses** — Real-time token streaming with markdown rendering and collapsible reasoning blocks
-- **Thinking mode** — Toggle DeepSeek chain-of-thought reasoning on or off per session
-- **Model selection** — Switch between DeepSeek V4 Pro and V4 Flash
-- **Multi-threaded background streaming** — Switch conversation threads while other responses generate concurrently in the background. Generating threads show a pulsing `⚡` in the sidebar and reconstruct their streaming view smoothly when revisited
+### 🧠 DeepSeek Optimization & Dual-Slot Prompting
+DeepSeek models utilize a key-value (KV) cache of the prefix prompt. To prevent cache-busting, LoomScribe compiles your prompt into two distinct slots:
+*   **Slot 1 (System Prompt - Stable)**: Contains the foundational character, prose, tone, and formatting rules. This stays byte-for-byte identical across turns to maximize cache hits, reducing cost and latency.
+*   **Slot 2 (Post-History - Dynamic)**: Injected *after* all chat history, immediately before the model generates. This holds dynamic turn-based instructions (e.g., word count targets, pushback, complications, and the Director's Note). Changes here never bust the cache.
 
-### Prompt Engine
-- **Scenario presets** — Choose a narrative scenario preset when starting a new chat. Each preset configures writing style, POV, pacing, and sensory_detailed content defaults
-- **Two-slot system prompt** — System instructions occupy two distinct context positions: a stable *System Prompt* slot (Slot 1) and a high-recency *Post-History* slot (Slot 2) injected after all chat history, immediately before generation
-- **Conversation Settings panel** — Right-side pane with live controls for POV, pacing, prose style, sensory_detailed content, and internal monologue. Amber indicators flag system-slot changes that will bust the DeepSeek KV cache
-- **Per-turn controls** — Response length slider and Director's Note textarea that can change freely every turn without affecting the prompt cache
-- **Compiled prompt preview** — Inspect the exact Slot 1 and Slot 2 strings that will be sent to the model before each response
-- **Advanced block overrides** — Toggle individual shared prompt blocks on or off for the current conversation
-- **Drop-in preset authoring** — Add a new preset by dropping a single JSON file into `engine/presets/`. It appears in the picker immediately, no server restart needed. See **[PROMPT_ENGINE.md](PROMPT_ENGINE.md)**
+### 🎛️ Dynamic Configuration Panel (Right Pane)
+Loaded directly from a central JSON schema, the right pane provides a live suite of parameters:
+*   **System-Slot Controls (Busts Cache - Amber Warning Dot)**:
+    *   **Point of View**: Toggle between *Close Third*, *Deep First*, and *Omniscient* POV blocks.
+    *   **Sensory Intensity**: Adjust from *Romantic*, *Sensual*, *Explicit*, to *Hardcore* narrative tone.
+    *   **Dialogue Register**: Control dialogue styling (*Minimal Dialogue / Silent*, *Playful Banter / Subtext*, *Candid / Direct*, *Power / Command*).
+    *   **POV Focus Spotlight**: Shift narrative focus between *Balanced*, *POV Interiority*, and *Partner Reaction*.
+*   **Post-History Controls (Cache Safe)**:
+    *   **Response Length**: Slider targeting a word count between 600 and 3,000 words.
+    *   **Pushback / Resistance**: Graded slider (1 to 5) controlling how cooperative the AI-controlled characters are (*Compliant*, *Realistic*, *Resistant*).
+    *   **Complication Generator**: Toggle to introduce sudden external distractions, guilt, hesitations, or obstacles.
+    *   **Director's Note**: Per-turn free text (e.g., `"Focus on the rain sound; build slow tension"`) appended at high recency.
+*   **Advanced Block Overrides**: Manually override individual system-prompt markdown files inside your preset.
+*   **Live Prompt Compiler Preview**: View compiled Slot 1 and Slot 2 prompt states in real-time.
 
-### Writing Tools
-- **Message editing** — Inline edit any message (user or AI). Editing a user message triggers regeneration; editing an AI message saves the rewrite in-place
-- **Version navigation** — Edited and regenerated messages are tracked as version groups with prev/next navigation controls
-- **Regenerate** — Re-roll any AI response, creating a new version branch
-- **Continue** — One-click button to continue the last AI response without typing
+### 📐 Outline & Brainstorm Mode
+A dedicated toggle shifts LoomScribe from a prose drafting interface into a plotting sandbox. Enabling Outline Mode disables all prose, dialogue, and POV-focus blocks, injecting a custom planning directive that instructs the model to expand on plot structures, scene outline beats, and character trajectories instead of generating chapters.
 
-### Management
-- **Conversation management** — Create, rename, and delete conversations with persistent history
-- **Export to Markdown** — Download any conversation as a `.md` file
-- **Abort** — Stop generation mid-stream per conversation
+### ⚡ Concurrency & Multi-Threaded Streaming
+Switch between chat threads while other responses stream in the background. Generating threads show a pulsing `⚡` status dot in the sidebar and reconstruct their streaming views smoothly when revisited. Supports active stream abortion per thread.
+
+### 🌿 Version Navigation & Sibling Trees
+LoomScribe tracks conversation history as a branching version tree. Inline editing of any user message branches a new lineage. Travel back and forth between alternative timelines, drafts, and regenerations using intuitive prev/next traversal buttons on any edited turn.
 
 ---
 
 ## 🚀 Desktop Quick Start
 
-Prerequisites: [Node.js](https://nodejs.org/) (any recent version).
+### Prerequisites
+Make sure you have [Node.js](https://nodejs.org/) installed (LoomScribe works on any recent LTS version).
 
-Install dependencies:
+### 1. Installation
+Clone the repository and install the dependencies:
 ```bash
 npm install
 ```
 
-Start the server:
+### 2. Configuration
+Copy the template environment file:
 ```bash
-node server.js
+cp .env.example .env
 ```
+Open `.env` and configure your settings:
+*   `PORT`: Port to host the app (defaults to `3000`).
+*   `DEEPSEEK_API_KEY`: Set your `sk-...` API key here. (Alternatively, configure it securely in the UI sidebar settings).
 
-Open http://localhost:3000 in your browser.
+### 3. Running LoomScribe
+Run the development command:
+```bash
+npm run dev
+```
+Open **`http://localhost:3000`** in your browser.
 
-On Windows, double-click `start-loomscribe.bat` — it starts the server, opens the browser, and shuts down when you press any key.
-
-### First-time setup
-
-1. Click **DeepSeek API Key** in the sidebar and paste your `sk-...` key
-2. Click **New Chat** — the preset picker opens
-3. Choose a scenario preset (or *None* for raw chat), enter a title, and start writing
-
-Your API key is stored server-side in `data/db.json` and is never exposed to the browser. All DeepSeek API calls are proxied through the server.
-
----
-
-## 🌿 Branches
-
-| Branch | Description |
-|---|---|
-| [`main`](https://github.com/apricot57/vibe-api/tree/main) | Desktop app — Node.js backend, `data/db.json` persistence |
-| [`feature/prompt-engine`](https://github.com/apricot57/vibe-api/tree/feature/prompt-engine) | Schema-driven prompt engine with preset picker, right settings pane, and two-slot compilation |
-| [`feature/android-serverless-port`](https://github.com/apricot57/vibe-api/tree/feature/android-serverless-port) | Standalone Android APK — Capacitor + IndexedDB, zero backend |
+**On Windows:** Simply double-click `start-loomscribe.bat`. It will start the server, open the browser automatically, and cleanly shut down the background processes when you press any key in the console window.
 
 ---
 
 ## 📁 Project Structure
 
 ```
-loomscribe/
-├── engine/                     Prompt engine (runtime files, no build step)
-│   ├── compiler.js             Compiles { systemPrompt, postHistory } from a preset + params
-│   ├── schema.json             Parameter schema loaded by UI to auto-render controls
-│   ├── PRESET_CREATOR.md       LLM authoring guide for writing new presets
-│   ├── blocks/                 Shared, reusable prompt blocks
-│   │   ├── index.json          Block registry (id, file, group, order)
-│   │   ├── base_writer.md
-│   │   ├── tone_register.md
-│   │   ├── prose_grounded.md   (+ prose_intimate.md, prose_pulp.md)
-│   │   ├── format_rules.md
-│   │   ├── no_meta.md
-│   │   ├── continuity.md
-│   │   ├── sensory_detailed.md
-│   │   ├── pov_third.md        (+ pov_first.md, pov_author.md)
-│   │   ├── pacing_slow.md      (+ pacing_urgent.md)
-│   │   └── internal_monologue.md
-│   └── presets/                One JSON file per scenario (gitignored — add your own)
-│       ├── general.json
-│       └── *.json
-│
-├── public/                     Frontend (served by Node.js)
-│   ├── index.html              App markup and modals
-│   ├── app.js                  Frontend bootstrapper and initializer
-│   ├── style.css               CSS entrypoint (imports css/ modules)
-│   ├── css/
-│   │   ├── variables.css       Design tokens, dark theme, global reset
-│   │   ├── layout.css          Sidebar drawer, header & footer frames
-│   │   ├── messages.css        Chat bubbles, reasoning blocks, message actions
-│   │   ├── input.css           Input form, model dropdown, continue button
-│   │   ├── modals.css          Dialog overlays (API key, delete confirmation)
-│   │   └── right-pane.css      Settings pane, preset picker, parameter controls
-│   └── js/
-│       ├── state.js            Shared reactive client state
-│       ├── api.js              REST API helpers (engine, conversations, messages)
-│       ├── ui.js               Barrel file re-exporting UI modules
-│       └── ui/
-│           ├── chat.js         Chat rendering, streaming, version traversal, drafts
-│           ├── sidebar.js      Conversation CRUD, new-chat flow, background status
-│           ├── right-pane.js   Preset picker, Conversation Settings, preview panel
-│           ├── input.js        Thinking mode toggles, model dropdown
-│           ├── modals.js       Settings modal, delete confirmation, toasts
-│           └── helpers.js      Shared async utilities
-│
-├── server.js                   Node.js server entrypoint
-├── start-loomscribe.bat        Windows one-click launcher
-├── src/
-│   └── server/
-│       ├── db.js               Read/write helpers for data/db.json
-│       ├── routes.js           Main router mounting modular endpoints
-│       ├── utils.js            Shared server utilities
-│       ├── services/
-│       │   └── version-tree.js Message tree deactivation and navigation logic
-│       └── endpoints/
-│           ├── config.js       API key status, model config
-│           ├── conversations.js Conversation CRUD (stores engine fields)
-│           ├── messages.js     Messages and version navigation
-│           ├── engine.js       Prompt engine API (presets, schema, compile)
-│           └── proxy.js        DeepSeek SSE proxy — calls compilePrompt() per send
-│
+loomscribe-prompt-engine/
 ├── data/
-│   └── db.json                 Server-side JSON database
-└── plans/                      Design documents
-    └── prompt_engine_plan.md
+│   └── db.json                 # Server-side JSON database (settings, chats, messages)
+├── engine/
+│   ├── blocks/                 # Reusable Markdown prompt blocks
+│   │   ├── index.json          # Block registry (id, file, group, order)
+│   │   ├── base_writer.md      # Core AI identity
+│   │   ├── tone_register.md    # Baseline prose standards
+│   │   ├── format_rules.md     # Layout constraints (no emojis, etc.)
+│   │   ├── no_meta.md          # Blocks out-of-character comments
+│   │   ├── continuity.md       # Memory retention guidelines
+│   │   ├── outline_mode.md     # Instructions for the brainstorming sandbox
+│   │   ├── pov_*.md            # Point-of-view definitions (first, third, author)
+│   │   ├── focus_*.md          # POV spotlight controls (self, partner, balanced)
+│   │   ├── sensory_*.md         # Sensory intensity levels (romantic, sensual, sensory_detailed, hardcore)
+│   │   └── dialogue_register_*.md     # Dialogue speech registers
+│   ├── presets/                # Preset JSON files (defining categories & defaults)
+│   ├── compiler.js             # Resolves schema parameters and compiles dual-slot output
+│   ├── schema.json             # Parameter definitions loaded by the UI to render inputs
+│   └── PRESET_CREATOR.md       # LLM prompt to generate new preset JSON structures
+├── plans/                      # Architectural designs and roadmap
+│   ├── DEFERRED_REFACTOR_PLAN.md
+│   ├── FUTURE_ROADMAP.md       # Roadmap for Continuity Scaffolds and World Info
+│   └── prompt_engine_plan.md
+├── public/                     # Vanilla HTML/CSS/JS frontend
+│   ├── css/                    # Modular theme and layout designs
+│   │   ├── variables.css       # Neon dark theme tokens
+│   │   ├── layout.css          # Core workspace 3-pane structure
+│   │   ├── messages.css        # Chat bubbles and version trees
+│   │   ├── input.css           # Model and text input areas
+│   │   ├── modals.css          # Pop-up overlays (API key, presets, delete)
+│   │   └── right-pane.css      # Live compiler panels and settings
+│   ├── js/                     # Client application logic
+│   │   ├── ui/                 # Component layout handlers
+│   │   │   ├── chat.js         # Streaming, markdown, and tree traversal
+│   │   │   ├── sidebar.js      # Chat list navigation and CRUD
+│   │   │   ├── right-pane.js   # Parameter bindings & compiler preview
+│   │   │   ├── input.js        # Model list, thinking state, & continue
+│   │   │   ├── modals.js       # Popup overlays & notifications
+│   │   │   └── helpers.js      # Timing and layout utilities
+│   │   ├── api.js              # Fetch requests to backend routes
+│   │   ├── state.js            # Reactive global client store
+│   │   └── ui.js               # Frontend router and UI barrel file
+│   ├── app.js                  # App initializer
+│   ├── favicon.png
+│   ├── index.html              # Main page template
+│   └── style.css               # Stylesheet imports
+├── src/                        # Node.js Express server
+│   └── server/
+│       ├── endpoints/          # Route controller layers
+│       │   ├── config.js       # App configuration (API Key checks)
+│       │   ├── conversations.js # Chat thread configurations
+│       │   ├── messages.js     # Message logs and version mappings
+│       │   ├── engine.js       # Presets, schema, and preview compiler
+│       │   └── proxy.js        # SSE streaming proxy to DeepSeek API
+│       ├── services/
+│       │   └── version-tree.js # Prev/next branch traversal service
+│       ├── db.js               # JSON DB read/write routines
+│       ├── routes.js           # Express API router registration
+│       └── utils.js            # Node utilities
+├── server.js                   # Application entry point
+└── start-loomscribe.bat        # Windows automation script
 ```
 
 ---
 
-## ⚙️ How It Works
+## ⚙️ Compilation & DeepSeek KV Cache Flow
 
-### API endpoints
+When you send a message, the server processes the payload as follows:
 
-| Endpoint | Description |
-|---|---|
-| `GET/POST /api/config` | API key status, active model, thinking mode |
-| `GET/POST /api/conversations` | List or create conversations |
-| `PUT/DELETE /api/conversations/:id` | Update or delete a conversation |
-| `GET/POST /api/messages` | Get or create messages (by `conversationId`) |
-| `PUT /api/messages/:id` | Update content, active state, or versioning |
-| `GET /api/engine/presets` | All presets grouped by category |
-| `GET /api/engine/presets/:id` | Single preset definition |
-| `GET /api/engine/schema` | Parameter schema (drives the Settings UI) |
-| `POST /api/engine/compile` | Compile and return `{ systemPrompt, postHistory }` |
-| `POST /api/chat/completions` | Proxy to `api.deepseek.com` with stored API key |
+```
+[UI Settings State] ──> [compilePrompt()]
+                           │
+                           ├──> Compile Slot 1 (System Prompt)
+                           │    [Registry Blocks] + [Preset System Body]
+                           │
+                           └──> Compile Slot 2 (Post-History)
+                                [Preset Post-History Body] + [Outline/WordCount/Pushback/Complications] + [Director's Note]
+```
 
-### Data flow per message
+### Prompt Assembly Order
+The payload sent upstream to DeepSeek is reconstructed in this sequence:
+1.  **Slot 1 (System Message)**: Foundation prompt block. *Must remain identical to reuse the KV Cache.*
+2.  **Conversation History**: Alternating user and assistant messages.
+3.  **Slot 2 (System Message)**: Word count targets, complication generation, pushback directives, and per-turn Director's Notes. *Highest recency.*
 
-1. Your message is saved to `db.json` and rendered in the UI
-2. The proxy reads the conversation's `presetId`, `params`, `blockOverrides`, and `directorNote` from `db.json`
-3. `compilePrompt()` assembles **Slot 1** (system prompt) and **Slot 2** (post-history instruction)
-4. The final message array is: `[Slot 1 system] → [chat history] → [Slot 2 system]`
-5. This is forwarded to DeepSeek; the response streams back as SSE and is saved on completion
-
-### DeepSeek KV cache
-
-DeepSeek caches the key-value state of the system prompt prefix. A cache hit requires Slot 1 to be byte-for-byte identical to the previous call. Parameters in the **Conversation Settings** section (POV, pacing, prose style, sensory_detailed, internal monologue) all live in Slot 1 — changing them mid-conversation busts the cache. The amber dot indicator in the UI flags this. Parameters in the **Per Turn** section (`word_count`, Director's Note) live in Slot 2 and never affect the cache.
+### Cache-Busting UI Indicators
+*   **Amber dot next to settings**: Indicates that changing this slider/select controls Slot 1 blocks and **will invalidate** the KV cache on the next token request.
+*   **Green/Safe controls**: Per-turn parameters and Director's Notes belong in Slot 2. They can change every turn without busting the KV cache.
 
 ---
 
-## 🎭 Prompt Engine
+## 🎭 Creating New Presets
 
-See **[PROMPT_ENGINE.md](PROMPT_ENGINE.md)** for the full authoring guide covering:
+A preset is a single JSON file dropped in `engine/presets/`. It will load into the preset picker automatically.
 
-- The two-slot context model and what goes where
-- How the compiler assembles a prompt from blocks + preset + params
-- The parameter-to-block mapping rules
-- How to write and drop in a new preset JSON file
-- Using `PRESET_CREATOR.md` with an LLM to author presets quickly
+See [PROMPT_ENGINE.md](PROMPT_ENGINE.md) for instructions on creating new presets. You can use the provided [PRESET_CREATOR.md](engine/PRESET_CREATOR.md) prompt with any LLM to automatically generate a preset for any scenario.
 
 ---
 
-## 🤖 Models
+## 📖 Related Documentation
 
-- **DeepSeek V4 Pro** — Maximum reasoning and intelligence (default)
-- **DeepSeek V4 Flash** — High-speed, efficient generation
-
-Toggle **Thinking Mode** (chain-of-thought reasoning) on or off via the brain icon in the input area.
-
----
-
-## 💾 Data
-
-All persistent data lives in `data/db.json` — conversations, messages, API key, model preferences, and per-conversation engine settings (`presetId`, `params`, `blockOverrides`, `directorNote`, `lastAppliedEngineSignature`). Human-readable JSON, easy to back up or inspect.
-
-Preset files in `engine/presets/` are gitignored so your personal scenario library stays local.
+*   **[PROMPT_ENGINE.md](PROMPT_ENGINE.md)**: Deep dive into the prompt compiler, block registry, and custom presets mapping.
+*   **[plans/FUTURE_ROADMAP.md](plans/FUTURE_ROADMAP.md)**: Outline for planned Phase 1-3 features, including Story Continuity Scaffolds ( rolling summaries, pinned facts, character dossiers) and World Info context databases.
+*   **[plans/DEFERRED_REFACTOR_PLAN.md](plans/DEFERRED_REFACTOR_PLAN.md)**: Details on the Express/Node server migration and modular UI structure.
