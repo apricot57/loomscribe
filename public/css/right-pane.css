@@ -179,6 +179,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
 }
 
 .param-label-row label {
@@ -316,6 +317,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 4px 0;
+    gap: 12px;
 }
 
 .switch {
