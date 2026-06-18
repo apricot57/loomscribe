@@ -142,9 +142,27 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote }) {
     };
 
     // Stage 6: Apply parameter-to-block mapping rules (system-slot params only)
-    if (validParams.outline_mode === true) {
+    // The prose-bypass modes (premises_mode > outline_mode) disable all narrative blocks.
+    const proseBypassActive = validParams.premises_mode === true || validParams.outline_mode === true;
+
+    if (validParams.premises_mode === true) {
+        forceState('premises_mode', true);
+        forceState('outline_mode', false);
+
+        // Force disable all prose/narrative blocks
+        const blocksToDisable = [
+            'pov_third', 'pov_first', 'pov_author',
+            'sensory_poetic', 'sensory_tactile', 'sensory_detailed', 'sensory_visceral',
+            'dialogue_register_none', 'dialogue_register_teasing', 'dialogue_register_filthy', 'dialogue_register_degrading',
+            'focus_balanced', 'focus_self', 'focus_partner'
+        ];
+        for (const blockId of blocksToDisable) {
+            forceState(blockId, false);
+        }
+    } else if (validParams.outline_mode === true) {
         forceState('outline_mode', true);
-        
+        forceState('premises_mode', false);
+
         // Force disable all prose/narrative blocks
         const blocksToDisable = [
             'pov_third', 'pov_first', 'pov_author',
@@ -157,7 +175,8 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote }) {
         }
     } else {
         forceState('outline_mode', false);
-        
+        forceState('premises_mode', false);
+
         // POV mapping
         if (validParams.pov === 'third') {
             forceState('pov_third', true);
@@ -303,12 +322,17 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote }) {
         postParts.push(preset.post_history_body.trim());
     }
 
-    // Always append the word count instruction, but add outlining directives if in Outline Mode
-    if (validParams.outline_mode === true) {
+    // Append mode-specific directives; in prose-bypass modes, skip the word-count instruction.
+    if (validParams.premises_mode === true) {
+        postParts.push("Generate exactly six fully developed story premises based on the user's input. Number them 1 through 6 with a bolded title for each. Each premise must be 3 to 5 substantial paragraphs covering characters, relational dynamic, charged circumstances, psychological tension, and a compelling directional hook. Vary tone across the six: slow-burn, raw, tender, transgressive, power-charged, and a wildcard. Do not write prose chapters. Output only the six premises — no preamble, ranking, or meta-commentary.");
+    } else if (validParams.outline_mode === true) {
         postParts.push("Focus on plotting, outlining, and brainstorming narrative directions or ideas based on the user's input. Do not write full-narrative prose chapters yet. Expand on plot beats, character details, and story structure with depth and detail.");
+        const wordCount = validParams.word_count;
+        postParts.push(`Write approximately ${wordCount} words.`);
+    } else {
+        const wordCount = validParams.word_count;
+        postParts.push(`Write approximately ${wordCount} words.`);
     }
-    const wordCount = validParams.word_count;
-    postParts.push(`Write approximately ${wordCount} words.`);
 
     // If complication_generator is enabled, append the complication instruction
     if (validParams.complication_generator === true) {

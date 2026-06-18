@@ -54,6 +54,7 @@
     "dialogue_register": "teasing",
     "pov_focus": "balanced",
     "pushback": 3,
-    "outline_mode": false
+    "outline_mode": false,
+    "premises_mode": false
   }
 }

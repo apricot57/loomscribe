@@ -138,5 +138,12 @@
     "file": "outline_mode.md",
     "group": "outline",
     "order": 95
+  },
+  {
+    "id": "premises_mode",
+    "title": "Premises & Ideas Mode",
+    "file": "premises_mode.md",
+    "group": "premises",
+    "order": 96
   }
 ]

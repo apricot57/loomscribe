@@ -83,5 +83,12 @@
     "type": "toggle",
     "default": false,
     "slot": "system"
+  },
+  {
+    "id": "premises_mode",
+    "label": "Premises & Ideas Mode",
+    "type": "toggle",
+    "default": false,
+    "slot": "system"
   }
 ]
