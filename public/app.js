@@ -1,4 +1,5 @@
 import { state } from './js/state.js';
+import { initWebSocket } from './js/socket.js';
 import {
     initInputBar,
     initializeModelUI,
@@ -23,6 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initApp() {
+    // Initialize WebSocket connection
+    initWebSocket();
+
     // Fetch server config first
     const configRes = await fetch('/api/config');
     if (configRes.ok) {

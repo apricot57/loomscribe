@@ -71,6 +71,10 @@ app.use((err, req, res, next) => {
     }
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`LoomScribe server running at http://localhost:${PORT}`);
 });
+
+// Setup WebSocket server
+const { initWebSocketServer } = require('./src/server/websocket');
+initWebSocketServer(server);

@@ -7,6 +7,7 @@ import {
 import { showToast } from './modals.js';
 import { safeAsync } from './helpers.js';
 import { createNewConversation, loadConversations } from './sidebar.js';
+import { sendGenerate, sendAbort, socketEvents } from '../socket.js';
 
 const ASSISTANT_DRAFT_STORAGE_PREFIX = 'loomscribe:assistant-drafts:';
 
@@ -859,236 +860,57 @@ export async function streamApiResponse({ conversationId, parentMsgId, stopAfter
         ? await buildApiPayloadUpTo(conversationId, stopAfterMsgId)
         : await buildApiPayload(conversationId);
 
-    if (state.abortControllers[conversationId]) {
-        state.abortControllers[conversationId].abort();
-    }
-    const currentAbortController = new AbortController();
-    state.abortControllers[conversationId] = currentAbortController;
-
-    let streamMsgId = 'stream-msg-' + Date.now();
-    let fullContent = '';
-    let fullReasoning = '';
-
-    const stopBtn = document.getElementById('stop-btn');
-    const sendBtn = document.getElementById('send-btn');
-    const userInput = document.getElementById('user-input');
-
-    if (conversationId === state.currentConversationId) {
-        if (stopBtn) stopBtn.classList.remove('hidden');
-        if (sendBtn) sendBtn.classList.add('hidden');
-        if (userInput) userInput.disabled = true;
-    }
-
-    // Initialize active stream in memory
-    state.activeStreams[conversationId] = {
-        content: '',
-        reasoning: '',
-        streamMsgId: streamMsgId,
-        parentMsgId: parentMsgId || null,
-        versionGroupId: versionGroupId || null,
-        version: version || 1
-    };
-
-    // Load sidebar immediately to show indicator (since abortControllers[conversationId] is set)
-    await loadConversations();
-
-    if (conversationId === state.currentConversationId) {
-        addStreamingBotMessage(streamMsgId);
-    }
-
+    // Update lastAppliedEngineSignature on successful preparation
     try {
-        const selectedModel = state.serverConfig.activeModel || 'deepseek-v4-pro';
-        const thinkingMode = state.serverConfig.thinkingMode || 'enabled';
-        const response = await fetch(state.API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            signal: currentAbortController.signal,
-            body: JSON.stringify({
-                conversationId,
-                model: selectedModel,
-                messages: payloadMessages,
-                temperature: 0.7,
-                stream: true,
-                thinking: {
-                    type: thinkingMode
-                }
-            })
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            console.error("API Error:", errorData);
-            throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
-        }
-
-        // Update lastAppliedEngineSignature on successful API send to clear amber warnings
-        try {
-            const { getEngineSchema } = await import('../api.js');
-            const { renderRightPane } = await import('./right-pane.js');
-            const convRes = await fetch(`/api/conversations/${conversationId}`);
-            if (convRes.ok) {
-                const conv = await convRes.json();
-                if (conv && conv.presetId) {
-                    const schema = await getEngineSchema();
-                    const systemParams = {};
-                    for (const item of schema) {
-                        if (item.slot === 'system') {
-                            systemParams[item.id] = conv.params?.[item.id] !== undefined ? conv.params[item.id] : item.default;
-                        }
-                    }
-                    const signature = JSON.stringify({
-                        presetId: conv.presetId,
-                        params: systemParams,
-                        blockOverrides: conv.blockOverrides || {}
-                    });
-                    
-                    const updatedConv = await fetch(`/api/conversations/${conversationId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ lastAppliedEngineSignature: signature })
-                    }).then(r => r.json());
-                    
-                    if (conversationId === state.currentConversationId) {
-                        await renderRightPane(updatedConv);
+        const { getEngineSchema } = await import('../api.js');
+        const { renderRightPane } = await import('./right-pane.js');
+        const convRes = await fetch(`/api/conversations/${conversationId}`);
+        if (convRes.ok) {
+            const conv = await convRes.json();
+            if (conv && conv.presetId) {
+                const schema = await getEngineSchema();
+                const systemParams = {};
+                for (const item of schema) {
+                    if (item.slot === 'system') {
+                        systemParams[item.id] = conv.params?.[item.id] !== undefined ? conv.params[item.id] : item.default;
                     }
                 }
-            }
-        } catch (sigErr) {
-            console.error("Failed to update engine signature:", sigErr);
-        }
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split('\n');
-            buffer = lines.pop() || '';
-
-            for (const line of lines) {
-                const trimmed = line.trim();
-                if (!trimmed || !trimmed.startsWith('data: ')) continue;
-
-                const payload = trimmed.slice(6);
-                if (payload === '[DONE]') continue;
-
-                try {
-                    const parsed = JSON.parse(payload);
-                    const reasoningDelta = parsed.choices?.[0]?.delta?.reasoning_content;
-                    const delta = parsed.choices?.[0]?.delta?.content;
-                    
-                    if (reasoningDelta) {
-                        fullReasoning += reasoningDelta;
-                        if (state.activeStreams[conversationId]) {
-                            state.activeStreams[conversationId].reasoning = fullReasoning;
-                        }
-                        if (conversationId === state.currentConversationId) {
-                            updateStreamingReasoning(streamMsgId, fullReasoning);
-                        }
-                    }
-                    if (delta) {
-                        fullContent += delta;
-                        if (state.activeStreams[conversationId]) {
-                            state.activeStreams[conversationId].content = fullContent;
-                        }
-                        if (conversationId === state.currentConversationId) {
-                            updateStreamingBotMessage(streamMsgId, fullContent);
-                        }
-                    }
-                } catch (e) {
-                    // Skip malformed JSON lines
+                const signature = JSON.stringify({
+                    presetId: conv.presetId,
+                    params: systemParams,
+                    blockOverrides: conv.blockOverrides || {}
+                });
+                
+                const updatedConv = await fetch(`/api/conversations/${conversationId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ lastAppliedEngineSignature: signature })
+                }).then(r => r.json());
+                
+                if (conversationId === state.currentConversationId) {
+                    await renderRightPane(updatedConv);
                 }
             }
         }
-
-        if (fullContent) {
-            const savedMsg = await persistAssistantMessage({
-                conversationId,
-                role: 'assistant',
-                content: fullContent,
-                reasoning: fullReasoning || undefined,
-                timestamp: Date.now(),
-                parentMsgId: parentMsgId || null,
-                versionGroupId: versionGroupId || null,
-                version: version || 1,
-                isActive: true
-            }, conversationId, streamMsgId);
-
-            if (conversationId === state.currentConversationId) {
-                finalizeStreamingBotMessage(streamMsgId, fullContent, fullReasoning);
-
-                const streamMsgDiv = document.getElementById(streamMsgId);
-                if (streamMsgDiv && savedMsg && savedMsg.id) {
-                    streamMsgDiv.dataset.msgId = savedMsg.id;
-                    if (savedMsg.versionGroupId) {
-                        streamMsgDiv.dataset.versionGroupId = savedMsg.versionGroupId;
-                        streamMsgDiv.dataset.version = savedMsg.version || 1;
-                    }
-                    
-                    const vCountRes = await fetch(`/api/messages?conversationId=${conversationId}`);
-                    const allMsgs = vCountRes.ok ? await vCountRes.json() : [];
-                    const vGroup = savedMsg.versionGroupId;
-                    const versionCount = vGroup ? allMsgs.filter(m => m.versionGroupId === vGroup).length : 1;
-
-                    attachMessageActions(streamMsgDiv, 'bot', {
-                        id: savedMsg.id,
-                        versionGroupId: savedMsg.versionGroupId,
-                        version: savedMsg.version || 1,
-                        versionCount: versionCount
-                    });
-                } else if (streamMsgDiv && !savedMsg) {
-                    streamMsgDiv.dataset.unsaved = 'true';
-                    streamMsgDiv.title = 'Draft message not saved to the server yet.';
-                    showToast('Assistant response was saved locally because the server save failed.', 'warning');
-                }
-            }
-        }
-
-    } catch (error) {
-        if (error.name === 'AbortError') {
-            if (fullContent && conversationId) {
-                await persistAssistantMessage({
-                    conversationId,
-                    role: 'assistant',
-                    content: fullContent,
-                    reasoning: fullReasoning || undefined,
-                    timestamp: Date.now(),
-                    parentMsgId: parentMsgId || null,
-                    versionGroupId: versionGroupId || null,
-                    version: version || 1,
-                    isActive: true
-                }, conversationId, streamMsgId);
-            }
-            if (conversationId === state.currentConversationId && streamMsgId) {
-                finalizeStreamingBotMessage(streamMsgId, fullContent, fullReasoning);
-            }
-            return;
-        }
-        console.error('Error fetching DeepSeek response:', error);
-        if (conversationId === state.currentConversationId) {
-            addMessageToUI('bot', 'Sorry, I encountered an error connecting to the server. Please check your API key or try again later.');
-        }
-    } finally {
-        delete state.abortControllers[conversationId];
-        delete state.activeStreams[conversationId];
-
-        if (conversationId === state.currentConversationId) {
-            if (stopBtn) stopBtn.classList.add('hidden');
-            if (sendBtn) sendBtn.classList.remove('hidden');
-            if (userInput) {
-                userInput.disabled = false;
-                userInput.focus();
-            }
-            await updateContinueButtonVisibility();
-        }
-        await loadConversations();
+    } catch (sigErr) {
+        console.error("Failed to update engine signature:", sigErr);
     }
+
+    const selectedModel = state.serverConfig.activeModel || 'deepseek-v4-pro';
+    const thinkingMode = state.serverConfig.thinkingMode || 'enabled';
+
+    sendGenerate({
+        conversationId,
+        model: selectedModel,
+        messages: payloadMessages,
+        temperature: 0.7,
+        thinking: {
+            type: thinkingMode
+        },
+        parentMsgId,
+        versionGroupId,
+        version
+    });
 }
 
 export function initChatForm() {
@@ -1200,29 +1022,13 @@ export function initChatForm() {
 
 export function initStopButton() {
     const stopBtn = document.getElementById('stop-btn');
-    const userInput = document.getElementById('user-input');
 
     if (stopBtn) {
         stopBtn.addEventListener('click', () => {
             const activeId = state.currentConversationId;
-            if (activeId !== null && state.abortControllers[activeId]) {
-                state.abortControllers[activeId].abort();
-                delete state.abortControllers[activeId];
+            if (activeId !== null) {
+                sendAbort(activeId);
             }
-            const typingIndicator = document.querySelector('.typing-indicator');
-            if (typingIndicator) {
-                const id = typingIndicator.id;
-                if (id) removeTypingIndicator(id);
-                else typingIndicator.remove();
-            }
-            stopBtn.classList.add('hidden');
-            const sendBtn = document.getElementById('send-btn');
-            if (sendBtn) sendBtn.classList.remove('hidden');
-            if (userInput) {
-                userInput.disabled = false;
-                userInput.focus();
-            }
-            updateContinueButtonVisibility();
         });
     }
 }
@@ -1313,3 +1119,125 @@ export function initExportButton() {
         }));
     }
 }
+
+// Register WebSocket event listener to reactively handle response streaming
+socketEvents.subscribe(async (event) => {
+    const { type, conversationId, streamMsgId, content, reasoning, message, error } = event;
+
+    // 1. Handle Init
+    if (type === 'init') {
+        state.activeStreams[conversationId] = {
+            content: '',
+            reasoning: '',
+            streamMsgId: streamMsgId
+        };
+        await loadConversations();
+
+        if (conversationId === state.currentConversationId) {
+            addStreamingBotMessage(streamMsgId);
+            
+            const userInput = document.getElementById('user-input');
+            const stopBtn = document.getElementById('stop-btn');
+            const sendBtn = document.getElementById('send-btn');
+            if (userInput) userInput.disabled = true;
+            if (stopBtn) stopBtn.classList.remove('hidden');
+            if (sendBtn) sendBtn.classList.add('hidden');
+        }
+    }
+
+    // 2. Handle Token
+    else if (type === 'token') {
+        const streamState = state.activeStreams[conversationId];
+        if (!streamState) return;
+
+        if (reasoning) {
+            streamState.reasoning = (streamState.reasoning || '') + reasoning;
+            if (conversationId === state.currentConversationId) {
+                updateStreamingReasoning(streamMsgId, streamState.reasoning);
+            }
+        }
+        if (content) {
+            streamState.content = (streamState.content || '') + content;
+            if (conversationId === state.currentConversationId) {
+                updateStreamingBotMessage(streamMsgId, streamState.content);
+            }
+        }
+    }
+
+    // 3. Handle Done
+    else if (type === 'done') {
+        delete state.activeStreams[conversationId];
+        await loadConversations();
+
+        if (conversationId === state.currentConversationId) {
+            const userInput = document.getElementById('user-input');
+            const stopBtn = document.getElementById('stop-btn');
+            const sendBtn = document.getElementById('send-btn');
+            if (userInput) {
+                userInput.disabled = false;
+                userInput.focus();
+            }
+            if (stopBtn) stopBtn.classList.add('hidden');
+            if (sendBtn) sendBtn.classList.remove('hidden');
+            await updateContinueButtonVisibility();
+
+            const typingIndicator = document.querySelector('.typing-indicator');
+            if (typingIndicator) typingIndicator.remove();
+
+            if (message) {
+                finalizeStreamingBotMessage(streamMsgId, message.content, message.reasoning);
+                const streamMsgDiv = document.getElementById(streamMsgId);
+                if (streamMsgDiv) {
+                    streamMsgDiv.dataset.msgId = message.id;
+                    if (message.versionGroupId) {
+                        streamMsgDiv.dataset.versionGroupId = message.versionGroupId;
+                        streamMsgDiv.dataset.version = message.version || 1;
+                    }
+                    
+                    const vCountRes = await fetch(`/api/messages?conversationId=${conversationId}`);
+                    const allMsgs = vCountRes.ok ? await vCountRes.json() : [];
+                    const vGroup = message.versionGroupId;
+                    const versionCount = vGroup ? allMsgs.filter(m => m.versionGroupId === vGroup).length : 1;
+
+                    attachMessageActions(streamMsgDiv, 'bot', {
+                        id: message.id,
+                        versionGroupId: message.versionGroupId,
+                        version: message.version || 1,
+                        versionCount: versionCount
+                    });
+                }
+            } else {
+                const streamMsgDiv = document.getElementById(streamMsgId);
+                if (streamMsgDiv) {
+                    streamMsgDiv.remove();
+                }
+            }
+        }
+    }
+
+    // 4. Handle Error
+    else if (type === 'error') {
+        delete state.activeStreams[conversationId];
+        await loadConversations();
+
+        if (conversationId === state.currentConversationId) {
+            const userInput = document.getElementById('user-input');
+            const stopBtn = document.getElementById('stop-btn');
+            const sendBtn = document.getElementById('send-btn');
+            if (userInput) {
+                userInput.disabled = false;
+                userInput.focus();
+            }
+            if (stopBtn) stopBtn.classList.add('hidden');
+            if (sendBtn) sendBtn.classList.remove('hidden');
+            await updateContinueButtonVisibility();
+
+            const typingIndicator = document.querySelector('.typing-indicator');
+            if (typingIndicator) typingIndicator.remove();
+
+            if (error) {
+                addMessageToUI('bot', `⚠️ Error: ${error}`);
+            }
+        }
+    }
+});
