@@ -79,11 +79,11 @@ The proxy passes `body` straight through to DeepSeek, but there's no UI to contr
 
 These could live in the right pane under a new "Model Tuning" collapsible, saved per-conversation like the other params.
 
-### 9. Message Copy Button
-Each bot message should have a one-click **copy to clipboard** button (raw markdown) alongside the existing edit and regenerate buttons. Simple to add in `public/js/ui/chat.js` `attachMessageActions()`.
+### 9. Message Copy Button ✅
+Each bot and user message has a one-click **copy to clipboard** button (raw markdown) alongside the message action buttons (edit and regenerate/navigate).
 
-### 10. Auto-Save Drafts for User Input
-If the user is mid-composition and accidentally navigates away or switches chats, their unsaved text input is lost. Save the draft per-conversation to `localStorage` and restore it when they return.
+### 10. Auto-Save Drafts for User Input ✅
+If the user is mid-composition and accidentally navigates away or switches chats, their unsaved text input is preserved. Stored per-conversation in `localStorage` and restored automatically when they return.
 
 ---
 
@@ -172,8 +172,8 @@ The current SSE proxy pipes `proxyRes` directly to the client response. Moving t
 | 6 | Folders / Tags | Medium | 🔥🔥 | DB schema, sidebar |
 | 7 | Keyboard Shortcuts | Low | 🔥 | Event listeners |
 | 8 | Sampling Controls | Low | 🔥🔥 | Schema + right pane |
-| 9 | Copy Button | Low | 🔥 | chat.js |
-| 10 | Auto-Save Drafts | Low | 🔥 | localStorage |
+| 9 | Copy Button ✅ | Low | 🔥 | chat.js |
+| 10 | Auto-Save Drafts ✅ | Low | 🔥 | localStorage |
 | 11 | Token/Cost Estimate | Medium | 🔥 | Tokenizer lib |
 | 12 | Conversation Stats | Low | 🔥 | UI panel |
 | 13 | Visual Preset Editor | High | 🔥🔥 | New modal + API |

@@ -349,6 +349,43 @@ export function attachMessageActions(messageDiv, sender, msgMeta) {
         actionRow.appendChild(regenBtn);
     }
 
+    if (sender === 'user' || sender === 'bot') {
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'message-action-btn copy-btn';
+        copyBtn.title = 'Copy to clipboard';
+        const copyIcon = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+        `;
+        const successIcon = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+        `;
+        copyBtn.innerHTML = copyIcon;
+        copyBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const contentDiv = messageDiv.querySelector('.message-content');
+            const textToCopy = contentDiv ? contentDiv.getAttribute('data-raw-content') : '';
+            if (textToCopy) {
+                try {
+                    await navigator.clipboard.writeText(textToCopy);
+                    copyBtn.innerHTML = successIcon;
+                    copyBtn.title = 'Copied!';
+                    setTimeout(() => {
+                        copyBtn.innerHTML = copyIcon;
+                        copyBtn.title = 'Copy to clipboard';
+                    }, 2000);
+                } catch (err) {
+                    console.error('Failed to copy text: ', err);
+                }
+            }
+        });
+        actionRow.appendChild(copyBtn);
+    }
+
     if (actionRow.children.length > 0) {
         if (sender === 'bot') {
             const bodyDiv = messageDiv.querySelector('.message-body');
@@ -1074,6 +1111,13 @@ export function initChatForm() {
         userInput.addEventListener('input', () => {
             userInput.style.height = 'auto';
             userInput.style.height = Math.min(userInput.scrollHeight, 150) + 'px';
+            
+            const draftKey = state.currentConversationId !== null ? `loomscribe_draft_${state.currentConversationId}` : 'loomscribe_draft_null';
+            if (userInput.value) {
+                localStorage.setItem(draftKey, userInput.value);
+            } else {
+                localStorage.removeItem(draftKey);
+            }
         });
     }
 
@@ -1086,6 +1130,9 @@ export function initChatForm() {
             
             const message = userInput.value.trim();
             if (!message) return;
+
+            const draftKey = state.currentConversationId !== null ? `loomscribe_draft_${state.currentConversationId}` : 'loomscribe_draft_null';
+            localStorage.removeItem(draftKey);
 
             // Verify API key configuration on backend
             if (!state.serverConfig.hasKey) {

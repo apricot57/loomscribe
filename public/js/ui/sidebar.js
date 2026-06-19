@@ -194,6 +194,15 @@ export async function switchConversation(id) {
             if (sendBtn) sendBtn.classList.remove('hidden');
             if (userInput) userInput.disabled = false;
         }
+
+        // Restore conversation draft if exists
+        const userInput = document.getElementById('user-input');
+        if (userInput) {
+            const draft = localStorage.getItem(`loomscribe_draft_${id}`);
+            userInput.value = draft || '';
+            userInput.style.height = 'auto';
+            userInput.style.height = Math.min(userInput.scrollHeight, 150) + 'px';
+        }
     }
     
     scrollToBottom();
@@ -266,6 +275,13 @@ export async function createNewConversation(title = 'New Chat', presetId = null)
     const container = chatContainer ? chatContainer.querySelector('.messages-container') : null;
     if (container) {
         container.innerHTML = '';
+    }
+
+    // Clear input area for the new conversation
+    const userInput = document.getElementById('user-input');
+    if (userInput) {
+        userInput.value = '';
+        userInput.style.height = 'auto';
     }
 
     scrollToBottom();

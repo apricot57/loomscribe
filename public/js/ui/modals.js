@@ -249,6 +249,9 @@ export function initDeleteModal() {
             const id = state.conversationIdToDelete;
             closeDeleteConfirmModal();
 
+            // Clear draft from localStorage on delete
+            localStorage.removeItem(`loomscribe_draft_${id}`);
+
             await fetch(`/api/conversations/${id}`, {
                 method: 'DELETE'
             });
