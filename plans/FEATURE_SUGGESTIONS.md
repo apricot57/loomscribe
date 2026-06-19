@@ -140,12 +140,12 @@ Let users bookmark specific messages (pin icon) within a conversation. Bookmarke
 - Proper concurrent access
 - Transaction safety
 
-### 18. WebSocket for Streaming
-The current SSE proxy pipes `proxyRes` directly to the client response. Moving to WebSockets would enable:
-- Bidirectional communication
-- Better reconnection handling
+### 18. WebSocket for Streaming ✅
+The SSE proxy has been replaced with a WebSocket server (`src/server/websocket.js`). This enables:
+- Bidirectional communication (generate, abort)
+- Reconnection handling with exponential backoff (`public/js/socket.js`)
 - Multiplexed streams for concurrent generations
-- Real-time updates (e.g., another tab/instance sees new messages)
+- Real-time updates (tokens and state updates are broadcasted to all connected tabs/instances)
 
 ### 19. Rate Limiting & Error Recovery
 - **Retry with exponential backoff** on DeepSeek 429/500 errors
@@ -181,7 +181,7 @@ The current SSE proxy pipes `proxyRes` directly to the client response. Moving t
 | 15 | Notification Sounds | Low | 🔥 | Audio API |
 | 16 | Bookmarks | Medium | 🔥🔥 | DB, chat.js |
 | 17 | SQLite Migration | High | 🔥🔥 | DB rewrite |
-| 18 | WebSocket Streaming | High | 🔥 | Server refactor |
+| 18 | WebSocket Streaming ✅ | High | 🔥 | Server refactor |
 | 19 | Rate Limit Recovery | Low | 🔥🔥 | Proxy logic |
 | 20 | Automated Backups | Low | 🔥 | Node cron job |
 
