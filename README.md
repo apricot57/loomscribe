@@ -1,6 +1,6 @@
 # 🌌 LoomScribe
 
-LoomScribe is a premium, highly specialized creative writing workspace designed specifically for DeepSeek models. It provides a dual-slot compiler architecture that maximizes API cache performance while putting granular writing controls (POV, sensory intensity, dialogue register, partner pushback, complications, and outline sandbox mode) directly in your hands. 
+LoomScribe is a premium, highly specialized creative writing workspace designed specifically for DeepSeek models. It provides a dual-slot compiler architecture that maximizes API cache performance while putting granular writing controls (POV, sensory intensity, dialogue register, partner pushback, complications, outline sandbox mode, and premises generation mode) directly in your hands.
 
 Built with a lightweight Node.js/Express backend and a responsive, zero-build vanilla HTML/CSS/JS frontend, LoomScribe serves as a distraction-free desktop environment for drafting, brainstorming, and editing interactive fiction.
 
@@ -11,7 +11,7 @@ Built with a lightweight Node.js/Express backend and a responsive, zero-build va
 ### 🧠 DeepSeek Optimization & Dual-Slot Prompting
 DeepSeek models utilize a key-value (KV) cache of the prefix prompt. To prevent cache-busting, LoomScribe compiles your prompt into two distinct slots:
 *   **Slot 1 (System Prompt - Stable)**: Contains the foundational character, prose, tone, and formatting rules. This stays byte-for-byte identical across turns to maximize cache hits, reducing cost and latency.
-*   **Slot 2 (Post-History - Dynamic)**: Injected *after* all chat history, immediately before the model generates. This holds dynamic turn-based instructions (e.g., word count targets, pushback, complications, and the Director's Note). Changes here never bust the cache.
+*   **Slot 2 (Post-History - Dynamic)**: Injected *after* all chat history, immediately before the model generates. This holds dynamic turn-based instructions such as word count targets, pushback, complications, premises-generation directives, and the Director's Note. Changes here never bust the cache.
 
 ### 🎛️ Dynamic Configuration Panel (Right Pane)
 Loaded directly from a central JSON schema, the right pane provides a live suite of parameters:
@@ -20,6 +20,8 @@ Loaded directly from a central JSON schema, the right pane provides a live suite
     *   **Sensory Intensity**: Adjust from *Romantic*, *Sensual*, *Explicit*, to *Hardcore* narrative tone.
     *   **Dialogue Register**: Control dialogue styling (*Minimal Dialogue / Silent*, *Playful Banter / Subtext*, *Candid / Direct*, *Power / Command*).
     *   **POV Focus Spotlight**: Shift narrative focus between *Balanced*, *POV Interiority*, and *Partner Reaction*.
+    *   **Outline / Brainstorm Mode**: Switch the model into planning mode instead of full prose.
+    *   **Premises & Ideas Mode**: Switch the model into six-premise generation mode instead of prose.
 *   **Post-History Controls (Cache Safe)**:
     *   **Response Length**: Slider targeting a word count between 600 and 3,000 words.
     *   **Pushback / Resistance**: Graded slider (1 to 5) controlling how cooperative the AI-controlled characters are (*Compliant*, *Realistic*, *Resistant*).
@@ -29,13 +31,19 @@ Loaded directly from a central JSON schema, the right pane provides a live suite
 *   **Live Prompt Compiler Preview**: View compiled Slot 1 and Slot 2 prompt states in real-time.
 
 ### 📐 Outline & Brainstorm Mode
-A dedicated toggle shifts LoomScribe from a prose drafting interface into a plotting sandbox. Enabling Outline Mode disables all prose, dialogue, and POV-focus blocks, injecting a custom planning directive that instructs the model to expand on plot structures, scene outline beats, and character trajectories instead of generating chapters.
+A dedicated toggle shifts LoomScribe from prose drafting into a planning sandbox. Enabling Outline Mode disables the prose-focused blocks, then injects directives that ask the model to expand on plot structure, scene beats, and character trajectories instead of writing finished chapters.
+
+### 🧩 Premises & Ideas Mode
+A separate toggle switches the engine into a six-premise brainstorming mode. When enabled, the compiler disables prose-focused blocks and appends a directive that asks the model to generate exactly six fully developed premises, each with a distinct tonal lane and a clear conflict axis. This is for ideation, not chapter writing.
 
 ### ⚡ Concurrency & Multi-Threaded Streaming
-Switch between chat threads while other responses stream in the background. Generating threads show a pulsing `⚡` status dot in the sidebar and reconstruct their streaming views smoothly when revisited. Supports active stream abortion per thread.
+Switch between chat threads while other responses stream in the background. Generating threads show a pulsing `⚡` status dot in the sidebar and rebuild cleanly when revisited. Streaming now runs over WebSockets, which improves reconnects, background updates, and per-thread aborts.
+
+### 🧷 Message Actions & Draft Recovery
+Each message has quick actions for editing, regenerating, and copying raw content to the clipboard. User input drafts are preserved per conversation, so switching threads or refreshing the app does not wipe your draft.
 
 ### 🌿 Version Navigation & Sibling Trees
-LoomScribe tracks conversation history as a branching version tree. Inline editing of any user message branches a new lineage. Travel back and forth between alternative timelines, drafts, and regenerations using intuitive prev/next traversal buttons on any edited turn.
+LoomScribe tracks conversation history as a branching version tree. Inline editing of any user message branches a new lineage, and prev/next controls let you move between alternative timelines, drafts, and regenerations.
 
 ---
 
@@ -85,6 +93,7 @@ loomscribe-prompt-engine/
 │   │   ├── no_meta.md          # Blocks out-of-character comments
 │   │   ├── continuity.md       # Memory retention guidelines
 │   │   ├── outline_mode.md     # Instructions for the brainstorming sandbox
+│   │   ├── premises_mode.md    # Instructions for six-premise generation
 │   │   ├── pov_*.md            # Point-of-view definitions (first, third, author)
 │   │   ├── focus_*.md          # POV spotlight controls (self, partner, balanced)
 │   │   ├── sensory_*.md         # Sensory intensity levels (romantic, sensual, sensory_detailed, hardcore)
@@ -127,7 +136,7 @@ loomscribe-prompt-engine/
 │       │   ├── conversations.js # Chat thread configurations
 │       │   ├── messages.js     # Message logs and version mappings
 │       │   ├── engine.js       # Presets, schema, and preview compiler
-│       │   └── proxy.js        # SSE streaming proxy to DeepSeek API
+│       │   └── websocket.js    # WebSocket streaming bridge to DeepSeek API
 │       ├── services/
 │       │   └── version-tree.js # Prev/next branch traversal service
 │       ├── db.js               # JSON DB read/write routines
@@ -150,14 +159,14 @@ When you send a message, the server processes the payload as follows:
                            │    [Registry Blocks] + [Preset System Body]
                            │
                            └──> Compile Slot 2 (Post-History)
-                                [Preset Post-History Body] + [Outline/WordCount/Pushback/Complications] + [Director's Note]
+                                [Preset Post-History Body] + [Outline/WordCount/Premises/Pushback/Complications] + [Director's Note]
 ```
 
 ### Prompt Assembly Order
 The payload sent upstream to DeepSeek is reconstructed in this sequence:
 1.  **Slot 1 (System Message)**: Foundation prompt block. *Must remain identical to reuse the KV Cache.*
 2.  **Conversation History**: Alternating user and assistant messages.
-3.  **Slot 2 (System Message)**: Word count targets, complication generation, pushback directives, and per-turn Director's Notes. *Highest recency.*
+3.  **Slot 2 (System Message)**: Word count targets, premise-generation instructions, complication generation, pushback directives, and per-turn Director's Notes. *Highest recency.*
 
 ### Cache-Busting UI Indicators
 *   **Amber dot next to settings**: Indicates that changing this slider/select controls Slot 1 blocks and **will invalidate** the KV cache on the next token request.
@@ -171,10 +180,12 @@ A preset is a single JSON file dropped in `engine/presets/`. It will load into t
 
 See [PROMPT_ENGINE.md](PROMPT_ENGINE.md) for instructions on creating new presets. You can use the provided [PRESET_CREATOR.md](engine/PRESET_CREATOR.md) prompt with any LLM to automatically generate a preset for any scenario.
 
+Use `outline_mode` for brainstorming/plotting presets and `premises_mode` for presets that should generate exactly six fully developed premises instead of chapter prose.
+
 ---
 
 ## 📖 Related Documentation
 
 *   **[PROMPT_ENGINE.md](PROMPT_ENGINE.md)**: Deep dive into the prompt compiler, block registry, and custom presets mapping.
-*   **[plans/FUTURE_ROADMAP.md](plans/FUTURE_ROADMAP.md)**: Outline for planned Phase 1-3 features, including Story Continuity Scaffolds ( rolling summaries, pinned facts, character dossiers) and World Info context databases.
+*   **[plans/FUTURE_ROADMAP.md](plans/FUTURE_ROADMAP.md)**: Outline for planned Phase 1-3 features, including Story Continuity Scaffolds (rolling summaries, pinned facts, character dossiers) and World Info context databases.
 *   **[plans/DEFERRED_REFACTOR_PLAN.md](plans/DEFERRED_REFACTOR_PLAN.md)**: Details on the Express/Node server migration and modular UI structure.
