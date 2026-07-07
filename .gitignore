@@ -6,4 +6,5 @@ server.pid
 data/
 
 # Prompt Engine Preset JSON configurations
-# (Removed to allow tracking in this repository)
+engine/presets/
+
