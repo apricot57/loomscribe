@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const logger = require('./logger');
 
 const ROOT = path.resolve(__dirname, '../../');
 const DATA_DIR = path.join(ROOT, 'data');
@@ -24,7 +25,7 @@ function readDb() {
         cachedDb = parsed;
         return parsed;
     } catch (e) {
-        console.error("DB Read Error:", e);
+        logger.error('db_read_error', { file: DB_FILE, message: e.message });
         return cachedDb || createDefaultDb();
     }
 }
@@ -40,7 +41,7 @@ function writeDb(data) {
         cachedDb = data; // Refresh the in-memory cache only after the file write succeeds.
         return true;
     } catch (e) {
-        console.error("DB Write Error:", e);
+        logger.error('db_write_error', { file: DB_FILE, message: e.message });
         return false;
     }
 }

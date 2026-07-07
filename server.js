@@ -4,6 +4,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const { handleApiRoutes } = require('./src/server/routes');
+const logger = require('./src/server/logger');
 
 const PORT = process.env.PORT || 3000;
 
@@ -30,12 +31,15 @@ process.on('SIGTERM', () => {
     process.exit(0);
 });
 process.on('uncaughtException', (err) => {
-    console.error("Uncaught exception:", err);
+    logger.error('uncaught_exception', { message: err.message, stack: err.stack });
     cleanupPid();
     process.exit(1);
 });
 
 const app = express();
+
+// Log every HTTP request/response
+app.use(logger.requestMiddleware());
 
 // Parse JSON bodies with a 5MB limit
 app.use(express.json({ limit: '5mb' }));
@@ -43,10 +47,12 @@ app.use(express.json({ limit: '5mb' }));
 // Custom middleware for handling body parsing errors
 app.use((err, req, res, next) => {
     if (err?.type === 'entity.too.large') {
+        logger.warn('body_too_large', { method: req.method, url: req.url });
         res.status(413).send('Payload Too Large');
         return;
     }
     if (err instanceof SyntaxError && 'body' in err) {
+        logger.warn('body_parse_error', { method: req.method, url: req.url });
         res.status(400).send('Bad Request');
         return;
     }
@@ -65,14 +71,14 @@ app.use(express.static(path.join(__dirname, 'public'), {
 
 // Fallback error handler for other errors
 app.use((err, req, res, next) => {
-    console.error("Server Error:", err);
+    logger.error('server_error', { method: req.method, url: req.url, message: err.message, stack: err.stack });
     if (!res.headersSent) {
         res.status(500).send('Internal Server Error');
     }
 });
 
 const server = app.listen(PORT, () => {
-    console.log(`LoomScribe server running at http://localhost:${PORT}`);
+    logger.info('server_start', { port: PORT, url: `http://localhost:${PORT}` });
 });
 
 // Setup WebSocket server

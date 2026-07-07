@@ -3,6 +3,7 @@ const https = require('https');
 const { readDb, writeDb } = require('./db');
 const { generateUniqueId } = require('./utils');
 const { compilePrompt } = require('../../engine/compiler');
+const logger = require('./logger');
 
 // Set of connected clients
 const clients = new Set();
@@ -21,7 +22,7 @@ function initWebSocketServer(server) {
 
     wss.on('connection', (ws) => {
         clients.add(ws);
-        console.log(`WebSocket client connected. Total clients: ${clients.size}`);
+        logger.info('ws_client_connected', { totalClients: clients.size });
 
         ws.on('message', async (messageData) => {
             try {
@@ -34,7 +35,7 @@ function initWebSocketServer(server) {
                     await handleAbort(payload);
                 }
             } catch (err) {
-                console.error("Error processing WebSocket message:", err);
+                logger.error('ws_message_parse_error', { message: err.message });
                 try {
                     ws.send(JSON.stringify({ type: 'error', error: 'Invalid message payload' }));
                 } catch (e) {}
@@ -43,11 +44,11 @@ function initWebSocketServer(server) {
 
         ws.on('close', () => {
             clients.delete(ws);
-            console.log(`WebSocket client disconnected. Total clients: ${clients.size}`);
+            logger.info('ws_client_disconnected', { totalClients: clients.size });
         });
 
         ws.on('error', (err) => {
-            console.error("WebSocket connection error:", err);
+            logger.error('ws_connection_error', { message: err.message });
             clients.delete(ws);
         });
     });
@@ -120,8 +121,21 @@ async function handleGenerate(ws, payload) {
                     finalMessages.push({ role: 'system', content: postHistory });
                 }
                 apiMessages = finalMessages;
+
+                logger.debug('ws_prompt_compiled', {
+                    conversationId,
+                    presetId,
+                    systemPromptLength: systemPrompt.length,
+                    postHistoryLength: postHistory.length,
+                    totalMessages: apiMessages.length
+                });
             } catch (compileErr) {
-                console.error("WebSocket prompt compilation failed:", compileErr);
+                logger.error('ws_compile_failed', {
+                    conversationId,
+                    presetId,
+                    params,
+                    message: compileErr.message
+                });
                 ws.send(JSON.stringify({
                     type: 'error',
                     conversationId,
@@ -145,6 +159,13 @@ async function handleGenerate(ws, payload) {
     };
 
     activeStreams.set(conversationId, streamState);
+
+    logger.info('ws_stream_start', {
+        conversationId,
+        streamMsgId,
+        model: model || 'deepseek-chat',
+        messageCount: apiMessages.length
+    });
 
     // Broadcast stream initialization
     broadcast({
@@ -247,7 +268,7 @@ async function handleGenerate(ws, payload) {
 
     proxyReq.on('error', (e) => {
         if (activeStreams.has(conversationId)) {
-            console.error("DeepSeek proxy request error:", e);
+            logger.error('ws_api_request_error', { conversationId, message: e.message });
             broadcast({
                 type: 'error',
                 conversationId,
@@ -302,6 +323,15 @@ async function handleStreamFinish(conversationId, aborted = false) {
             db.messages.push(newMsg);
             writeDb(db);
 
+            logger.info('ws_stream_done', {
+                conversationId,
+                streamMsgId: streamState.streamMsgId,
+                aborted,
+                contentLength: streamState.fullContent.length,
+                reasoningLength: streamState.fullReasoning.length,
+                savedMsgId: newMsg.id
+            });
+
             broadcast({
                 type: 'done',
                 conversationId,
@@ -310,7 +340,7 @@ async function handleStreamFinish(conversationId, aborted = false) {
                 aborted
             });
         } catch (saveErr) {
-            console.error('Failed to save message:', saveErr);
+            logger.error('ws_save_message_failed', { conversationId, message: saveErr.message });
         }
     } else {
         broadcast({
