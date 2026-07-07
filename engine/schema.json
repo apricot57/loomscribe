@@ -27,12 +27,12 @@
     "label": "Sensory Intensity",
     "type": "select",
     "options": [
-      { "value": "romantic", "label": "Romantic" },
-      { "value": "sensual",  "label": "Sensual" },
-      { "value": "sensory_detailed", "label": "Explicit" },
-      { "value": "hardcore", "label": "Hardcore" }
+      { "value": "poetic",   "label": "Poetic / Atmospheric" },
+      { "value": "tactile",  "label": "Tactile / Close-up" },
+      { "value": "detailed", "label": "Detailed / Explicit" },
+      { "value": "visceral", "label": "Visceral / Intense" }
     ],
-    "default": "sensory_detailed",
+    "default": "detailed",
     "slot": "system"
   },
   {
@@ -40,12 +40,12 @@
     "label": "Dialogue Register",
     "type": "select",
     "options": [
-      { "value": "none",               "label": "Minimal Dialogue / Silent" },
-      { "value": "teasing",            "label": "Playful Banter / Subtext" },
-      { "value": "filthy",             "label": "Candid / Direct" },
-      { "value": "dominant_degrading", "label": "Power / Command" }
+      { "value": "minimal",    "label": "Minimal Dialogue / Silent" },
+      { "value": "playful",    "label": "Playful Banter / Subtext" },
+      { "value": "candid",     "label": "Candid / Direct" },
+      { "value": "commanding", "label": "Power / Command" }
     ],
-    "default": "teasing",
+    "default": "playful",
     "slot": "system"
   },
   {

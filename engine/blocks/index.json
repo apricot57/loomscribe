@@ -42,30 +42,30 @@
     "order": 43
   },
   {
-    "id": "dialogue_register_none",
+    "id": "dialogue_minimal",
     "title": "Dialogue — Minimal",
-    "file": "dialogue_register_none.md",
+    "file": "dialogue_minimal.md",
     "group": "dialogue_register",
     "order": 44
   },
   {
-    "id": "dialogue_register_teasing",
+    "id": "dialogue_playful",
     "title": "Dialogue — Playful",
-    "file": "dialogue_register_teasing.md",
+    "file": "dialogue_playful.md",
     "group": "dialogue_register",
     "order": 45
   },
   {
-    "id": "dialogue_register_filthy",
+    "id": "dialogue_candid",
     "title": "Dialogue — Candid",
-    "file": "dialogue_register_filthy.md",
+    "file": "dialogue_candid.md",
     "group": "dialogue_register",
     "order": 46
   },
   {
-    "id": "dialogue_register_degrading",
+    "id": "dialogue_commanding",
     "title": "Dialogue — Commanding",
-    "file": "dialogue_register_degrading.md",
+    "file": "dialogue_commanding.md",
     "group": "dialogue_register",
     "order": 47
   },
