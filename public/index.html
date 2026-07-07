@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="css/input.css">
     <link rel="stylesheet" href="css/modals.css">
     <link rel="stylesheet" href="css/right-pane.css">
+    <link rel="stylesheet" href="css/preset-manager.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -320,6 +321,199 @@
                 </div>
                 <div id="preset-categories-container" class="preset-categories-container" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding-right: 4px;">
                     <!-- Populated dynamically -->
+                </div>
+                <!-- Footer: Manage Presets link -->
+                <div class="preset-picker-footer">
+                    <button id="manage-presets-btn" class="manage-presets-link">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                        Manage Presets
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preset Manager Modal -->
+        <div id="preset-manager-modal" class="modal-overlay hidden">
+            <div class="modal-content">
+                <!-- Header -->
+                <div class="pm-header">
+                    <h2>Preset Manager</h2>
+                    <div class="pm-header-actions">
+                        <button id="pm-new-preset-btn" class="btn-sm primary">
+                            + New Preset
+                        </button>
+                        <button id="pm-close-btn" class="close-btn" style="position:static; font-size:22px;" aria-label="Close">&times;</button>
+                    </div>
+                </div>
+
+                <!-- Two-column body -->
+                <div class="pm-body">
+
+                    <!-- LEFT: Preset list -->
+                    <div class="pm-list-panel">
+                        <div class="pm-list-search">
+                            <input type="text" id="pm-search-input" class="pm-search-input" placeholder="Search presets..." autocomplete="off">
+                        </div>
+                        <div id="pm-list-scroll" class="pm-list-scroll">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- RIGHT: Editor -->
+                    <div class="pm-editor-panel">
+                        <!-- Toolbar -->
+                        <div class="pm-editor-toolbar">
+                            <span id="pm-editor-mode-label" class="pm-editor-mode-label">Select a preset to edit</span>
+                            <div id="pm-dirty-indicator" class="pm-dirty-indicator">
+                                <span class="pm-dirty-dot"></span>
+                                Unsaved changes
+                            </div>
+                            <div class="pm-editor-action-bar">
+                                <button id="pm-discard-btn" class="btn-sm ghost hidden">Discard</button>
+                                <button id="pm-save-btn" class="btn-sm primary hidden">Save Preset</button>
+                            </div>
+                        </div>
+
+                        <!-- Scrollable editor area -->
+                        <div class="pm-editor-scroll">
+                            <!-- Empty state (shown when nothing selected) -->
+                            <div id="pm-editor-empty" class="pm-editor-empty">
+                                <div class="pm-editor-empty-icon">✦</div>
+                                <p>Select a preset from the list to edit it, or click <strong>+ New Preset</strong> to create one from scratch.</p>
+                            </div>
+
+                            <!-- Editor form (hidden until preset selected/created) -->
+                            <form id="pm-editor-form" class="pm-form hidden" autocomplete="off" onsubmit="return false;">
+
+                                <!-- Import dropzone (only shown for new presets) -->
+                                <div id="pm-import-zone" class="pm-import-zone hidden">
+                                    <input type="file" id="pm-import-file" accept=".json" tabindex="-1">
+                                    <div class="pm-import-icon">📥</div>
+                                    <p><strong>Drop a .json preset file here</strong><br>or click to browse — the form will be pre-filled for review before saving.</p>
+                                </div>
+
+                                <!-- Identity fields -->
+                                <div class="pm-field-row">
+                                    <div class="pm-field-group">
+                                        <label class="pm-label" for="pm-field-id">
+                                            Preset ID
+                                            <span class="pm-label-hint">lowercase_underscores</span>
+                                        </label>
+                                        <input type="text" id="pm-field-id" class="pm-input" placeholder="my_preset_id">
+                                    </div>
+                                    <div class="pm-field-group">
+                                        <label class="pm-label" for="pm-field-title">Title</label>
+                                        <input type="text" id="pm-field-title" class="pm-input" placeholder="Display title">
+                                    </div>
+                                </div>
+
+                                <div class="pm-field-row">
+                                    <div class="pm-field-group">
+                                        <label class="pm-label" for="pm-field-category">Category</label>
+                                        <input type="text" id="pm-field-category" class="pm-input" placeholder="e.g. power-control" list="pm-category-datalist">
+                                        <datalist id="pm-category-datalist"></datalist>
+                                    </div>
+                                    <div class="pm-field-group">
+                                        <label class="pm-label" for="pm-field-description">Description</label>
+                                        <input type="text" id="pm-field-description" class="pm-input" placeholder="One-line summary">
+                                    </div>
+                                </div>
+
+                                <!-- System body -->
+                                <div class="pm-field-group">
+                                    <label class="pm-label" for="pm-field-system-body">
+                                        System Body
+                                        <span id="pm-word-count-hint" class="pm-label-hint pm-word-count-hint empty">0 words</span>
+                                    </label>
+                                    <textarea id="pm-field-system-body" class="pm-textarea system-body" placeholder="300–500 words of scenario-specific system context..."></textarea>
+                                </div>
+
+                                <!-- Post-history body -->
+                                <div class="pm-field-group">
+                                    <label class="pm-label" for="pm-field-post-history">Post-History Body
+                                        <span class="pm-label-hint">usually empty</span>
+                                    </label>
+                                    <textarea id="pm-field-post-history" class="pm-textarea" placeholder="High-recency standing instructions (optional)..." rows="3"></textarea>
+                                </div>
+
+                                <!-- Defaults section -->
+                                <div class="pm-section-divider">
+                                    <span class="pm-section-divider-label">Default Parameters</span>
+                                    <div class="pm-section-divider-line"></div>
+                                </div>
+
+                                <div class="pm-defaults-grid">
+                                    <div class="pm-field-group">
+                                        <label class="pm-label" for="pm-default-pov">Point of View</label>
+                                        <select id="pm-default-pov" class="pm-select">
+                                            <option value="third">Close Third</option>
+                                            <option value="first">Deep First</option>
+                                            <option value="author">Omniscient</option>
+                                        </select>
+                                    </div>
+                                    <div class="pm-field-group">
+                                        <label class="pm-label" for="pm-default-sensory">Sensory Intensity</label>
+                                        <select id="pm-default-sensory" class="pm-select">
+                                            <option value="romantic">Romantic</option>
+                                            <option value="sensual">Sensual</option>
+                                            <option value="sensory_detailed">Explicit</option>
+                                            <option value="hardcore">Hardcore</option>
+                                        </select>
+                                    </div>
+                                    <div class="pm-field-group">
+                                        <label class="pm-label" for="pm-default-dirty-talk">Dialogue Register</label>
+                                        <select id="pm-default-dirty-talk" class="pm-select">
+                                            <option value="none">Minimal Dialogue / Silent</option>
+                                            <option value="teasing">Teasing &amp; Playful</option>
+                                            <option value="filthy">Filthy &amp; Vulgar</option>
+                                            <option value="dominant_degrading">Dominance &amp; Degradation</option>
+                                        </select>
+                                    </div>
+                                    <div class="pm-field-group">
+                                        <label class="pm-label" for="pm-default-pov-focus">POV Focus</label>
+                                        <select id="pm-default-pov-focus" class="pm-select">
+                                            <option value="balanced">Balanced</option>
+                                            <option value="self">POV Interiority</option>
+                                            <option value="partner">Partner Reaction</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Sliders row -->
+                                <div class="pm-field-row" style="margin-top:4px;">
+                                    <div class="pm-field-group">
+                                        <label class="pm-label" for="pm-default-word-count">
+                                            Response Length
+                                            <span id="pm-word-count-val" class="pm-label-hint">1500 words</span>
+                                        </label>
+                                        <input type="range" id="pm-default-word-count" min="600" max="3000" step="100" value="1500" style="width:100%; accent-color: var(--accent-color);">
+                                    </div>
+                                    <div class="pm-field-group">
+                                        <label class="pm-label" for="pm-default-pushback">
+                                            Pushback / Resistance
+                                            <span id="pm-pushback-val" class="pm-label-hint">3 — Realistic</span>
+                                        </label>
+                                        <input type="range" id="pm-default-pushback" min="1" max="5" step="1" value="3" style="width:100%; accent-color: var(--accent-color);">
+                                    </div>
+                                </div>
+
+                                <!-- Mode toggles -->
+                                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                                    <div class="pm-toggle-row" style="flex:1; min-width: 180px;">
+                                        <span class="pm-toggle-label">Outline Mode</span>
+                                        <div id="pm-toggle-outline" class="pm-toggle-pill" role="switch" aria-checked="false" tabindex="0"></div>
+                                    </div>
+                                    <div class="pm-toggle-row" style="flex:1; min-width: 180px;">
+                                        <span class="pm-toggle-label">Premises Mode</span>
+                                        <div id="pm-toggle-premises" class="pm-toggle-pill" role="switch" aria-checked="false" tabindex="0"></div>
+                                    </div>
+                                </div>
+
+                            </form>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

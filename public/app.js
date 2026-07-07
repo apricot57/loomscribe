@@ -16,7 +16,8 @@ import {
     initStopButton,
     initContinueButton,
     initExportButton,
-    initRightPane
+    initRightPane,
+    initPresetManager
 } from './js/ui.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -44,6 +45,7 @@ async function initApp() {
     initContinueButton();
     initExportButton();
     initRightPane();
+    initPresetManager();
 
     // Initialize UI visuals from serverConfig
     initializeModelUI();
