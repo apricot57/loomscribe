@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const logger = require('../src/server/logger');
 
 const REGISTRY_PATH = path.join(__dirname, 'blocks', 'index.json');
 const SCHEMA_PATH = path.join(__dirname, 'schema.json');
@@ -300,11 +301,17 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote }) {
             for (const match of matches) {
                 const paramName = match.slice(2, -2).trim();
                 if (validParams[paramName] === undefined) {
-                    console.warn(`Warning: Unknown placeholder {{${paramName}}} in block body.`);
+                    logger.warn('compiler_unknown_placeholder', { placeholder: paramName, presetId });
                 }
             }
         }
     }
+
+    logger.debug('compiler_result', {
+        presetId,
+        validParams,
+        activeBlocks: activeBlocks.map(b => b.id)
+    });
 
     // Stage 10: Join block bodies and append preset.system_body
     let systemPrompt = blockBodies.join('\n\n---\n\n');
