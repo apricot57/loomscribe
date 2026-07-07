@@ -46,7 +46,7 @@ Currently you have an export button in the header, but there's no import capabil
 - **Export conversation as Markdown/JSON** (appears partially implemented)
 - **Export preset + settings bundle** — package a conversation's preset, params, block overrides, and character notes into a shareable `.json` file
 - **Import conversations** — restore from exported JSON
-- **Import preset packs** — drag-and-drop new `.json` presets into the app without touching the filesystem
+- **Import preset packs** — drag-and-drop new `.json` presets into the app without touching the filesystem ✅
 
 ---
 
@@ -105,13 +105,13 @@ A small stats popover showing:
 - Session duration
 - Most-used preset settings
 
-### 13. Preset Editor in the UI
-Right now creating presets requires editing JSON files on disk. A **visual preset editor** modal would let users:
-- Duplicate and customize an existing preset
-- Edit the `system_body` and `post_history_body` inline
-- Toggle default blocks
-- Set default parameter values
-- Save to `engine/presets/` via a new API endpoint
+### 13. Preset Editor in the UI ✅
+Right now creating presets requires editing JSON files on disk. A **visual preset editor** modal lets users:
+- Duplicate and customize an existing preset ✅
+- Edit the `system_body` and `post_history_body` inline ✅
+- Toggle default blocks ✅
+- Set default parameter values ✅
+- Save to `engine/presets/` via a new API endpoint ✅
 
 ### 14. Theme Customization
 The dark neon theme is gorgeous, but some users will want options:
@@ -167,7 +167,7 @@ The SSE proxy has been replaced with a WebSocket server (`src/server/websocket.j
 | 1 | Story Continuity Scaffolds | High | 🔥🔥🔥 | DB schema, right pane, compiler |
 | 2 | Conversation Search | Medium | 🔥🔥🔥 | Sidebar refactor |
 | 3 | Multi-Provider Support | Medium | 🔥🔥🔥 | Proxy refactor, settings |
-| 4 | Export/Import System | Medium | 🔥🔥 | API endpoints |
+| 4 | Export/Import System (Presets ✅) | Medium | 🔥🔥 | API endpoints |
 | 5 | Word Count Display | Low | 🔥🔥 | CSS + chat.js |
 | 6 | Folders / Tags | Medium | 🔥🔥 | DB schema, sidebar |
 | 7 | Keyboard Shortcuts | Low | 🔥 | Event listeners |
@@ -176,7 +176,7 @@ The SSE proxy has been replaced with a WebSocket server (`src/server/websocket.j
 | 10 | Auto-Save Drafts ✅ | Low | 🔥 | localStorage |
 | 11 | Token/Cost Estimate | Medium | 🔥 | Tokenizer lib |
 | 12 | Conversation Stats | Low | 🔥 | UI panel |
-| 13 | Visual Preset Editor | High | 🔥🔥 | New modal + API |
+| 13 | Visual Preset Editor ✅ | High | 🔥🔥 | New modal + API |
 | 14 | Theme Customization | Medium | 🔥 | CSS variables |
 | 15 | Notification Sounds | Low | 🔥 | Audio API |
 | 16 | Bookmarks | Medium | 🔥🔥 | DB, chat.js |
