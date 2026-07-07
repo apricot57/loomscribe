@@ -148,5 +148,3 @@ Use `outline_mode` for brainstorming/plotting presets and `premises_mode` for pr
 ## 📖 Related Documentation
 
 *   **[PROMPT_ENGINE.md](PROMPT_ENGINE.md)**: Deep dive into the prompt compiler, block registry, and custom presets mapping.
-*   **[plans/FUTURE_ROADMAP.md](plans/FUTURE_ROADMAP.md)**: Outline for planned Phase 1-3 features, including Story Continuity Scaffolds (rolling summaries, pinned facts, character dossiers) and World Info context databases.
-*   **[plans/DEFERRED_REFACTOR_PLAN.md](plans/DEFERRED_REFACTOR_PLAN.md)**: Details on the Express/Node server migration and modular UI structure.
