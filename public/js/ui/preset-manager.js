@@ -480,69 +480,79 @@ function handleDiscard() {
 // ─── Delete ───────────────────────────────────────────────────────────────────
 
 function confirmDeletePreset(id, title, rowEl) {
-    // Remove any existing confirm banner
-    const existing = el('pm-editor-scroll')?.querySelector('.pm-delete-confirm');
-    if (existing) existing.remove();
+    // Remove any existing confirm banner anywhere in the list
+    el('pm-list-scroll').querySelectorAll('.pm-delete-confirm').forEach(b => b.remove());
 
-    // Build inline confirm banner
     const banner = document.createElement('div');
     banner.className = 'pm-delete-confirm';
+    banner.style.margin = '4px 0 6px';
     banner.innerHTML = `
         <p>Delete <strong>${escHtml(title)}</strong>? This cannot be undone.</p>
         <div class="pm-delete-confirm-actions">
-            <button class="btn-sm secondary" id="pm-del-cancel">Cancel</button>
-            <button class="btn-sm danger" id="pm-del-confirm">Delete</button>
+            <button class="btn-sm secondary pm-del-cancel">Cancel</button>
+            <button class="btn-sm danger pm-del-confirm">Delete</button>
         </div>
     `;
 
-    // Load preset into editor to give context, then append banner
-    const editorScroll = el('pm-editor-scroll');
-    editorScroll.appendChild(banner);
-    editorScroll.scrollTop = editorScroll.scrollHeight;
+    // Insert right after the row in the list panel
+    rowEl.insertAdjacentElement('afterend', banner);
+    banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-    banner.querySelector('#pm-del-cancel').addEventListener('click', () => banner.remove());
-    banner.querySelector('#pm-del-confirm').addEventListener('click', safeAsync(async () => {
-        banner.querySelector('#pm-del-confirm').textContent = 'Deleting…';
-        banner.querySelector('#pm-del-confirm').disabled = true;
+    banner.querySelector('.pm-del-cancel').addEventListener('click', () => banner.remove());
+    banner.querySelector('.pm-del-confirm').addEventListener('click', safeAsync(async () => {
+        const confirmBtn = banner.querySelector('.pm-del-confirm');
+        confirmBtn.textContent = 'Deleting…';
+        confirmBtn.disabled = true;
 
         try {
             await deletePreset(id);
             banner.remove();
 
-            // If we were editing the deleted preset, reset
+            // If we were editing the deleted preset, reset the editor
             if (currentPresetId === id) {
                 resetEditor();
             }
             await renderList();
             showToast(`Preset "${title}" deleted`, 'success');
         } catch (err) {
-            // If in-use, offer force-delete
+            banner.remove();
             if (err.message && err.message.includes('conversations')) {
-                banner.remove();
-                confirmForceDelete(id, title);
+                confirmForceDelete(id, title, rowEl);
             } else {
                 showToast(err.message || 'Delete failed', 'error');
-                banner.remove();
             }
         }
     }));
 }
 
-function confirmForceDelete(id, title) {
-    const editorScroll = el('pm-editor-scroll');
+function confirmForceDelete(id, title, rowEl) {
+    el('pm-list-scroll').querySelectorAll('.pm-delete-confirm').forEach(b => b.remove());
+
     const banner = document.createElement('div');
     banner.className = 'pm-delete-confirm';
+    banner.style.margin = '4px 0 6px';
     banner.innerHTML = `
         <p><strong>${escHtml(title)}</strong> is used by existing conversations. Force delete anyway?</p>
         <div class="pm-delete-confirm-actions">
-            <button class="btn-sm secondary" id="pm-fd-cancel">Cancel</button>
-            <button class="btn-sm danger" id="pm-fd-confirm">Force Delete</button>
+            <button class="btn-sm secondary pm-fd-cancel">Cancel</button>
+            <button class="btn-sm danger pm-fd-confirm">Force Delete</button>
         </div>
     `;
-    editorScroll.appendChild(banner);
 
-    banner.querySelector('#pm-fd-cancel').addEventListener('click', () => banner.remove());
-    banner.querySelector('#pm-fd-confirm').addEventListener('click', safeAsync(async () => {
+    // Try to find the row; fall back to appending to the list scroll
+    const targetRow = rowEl || el('pm-list-scroll').querySelector(`[data-id="${id}"]`);
+    if (targetRow) {
+        targetRow.insertAdjacentElement('afterend', banner);
+    } else {
+        el('pm-list-scroll').appendChild(banner);
+    }
+    banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    banner.querySelector('.pm-fd-cancel').addEventListener('click', () => banner.remove());
+    banner.querySelector('.pm-fd-confirm').addEventListener('click', safeAsync(async () => {
+        const confirmBtn = banner.querySelector('.pm-fd-confirm');
+        confirmBtn.textContent = 'Deleting…';
+        confirmBtn.disabled = true;
         try {
             await deletePreset(id, true);
             banner.remove();
