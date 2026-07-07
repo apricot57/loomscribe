@@ -173,14 +173,47 @@ export async function getEngineSchema() {
     throw new Error("Failed to load parameters schema");
 }
 
-export async function getEnginePresets() {
-    if (state.enginePresets) return state.enginePresets;
+export async function getEnginePresets(forceRefresh = false) {
+    if (state.enginePresets && !forceRefresh) return state.enginePresets;
     const res = await fetch('/api/engine/presets');
     if (res.ok) {
         state.enginePresets = await res.json();
         return state.enginePresets;
     }
     throw new Error("Failed to load presets");
+}
+
+export async function createOrImportPreset(presetJson) {
+    const res = await fetch('/api/engine/presets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(presetJson)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to create preset');
+    state.enginePresets = null; // bust cache
+    return data;
+}
+
+export async function updatePreset(id, presetJson) {
+    const res = await fetch(`/api/engine/presets/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(presetJson)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update preset');
+    state.enginePresets = null; // bust cache
+    return data;
+}
+
+export async function deletePreset(id, force = false) {
+    const url = `/api/engine/presets/${id}${force ? '?force=1' : ''}`;
+    const res = await fetch(url, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to delete preset');
+    state.enginePresets = null; // bust cache
+    return data;
 }
 
 export async function getEnginePreset(presetId) {
