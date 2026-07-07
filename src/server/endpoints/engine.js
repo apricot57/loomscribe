@@ -4,6 +4,33 @@ const { compilePrompt } = require('../../../engine/compiler');
 
 const PRESETS_DIR = path.resolve(__dirname, '../../../engine/presets');
 const SCHEMA_PATH = path.resolve(__dirname, '../../../engine/schema.json');
+const DB_PATH = path.resolve(__dirname, '../../../data/db.json');
+
+// Keys allowed in a preset file (strip everything else)
+const ALLOWED_KEYS = ['id', 'title', 'category', 'description', 'system_body', 'post_history_body', 'blocks', 'defaults'];
+
+function sanitizePreset(body) {
+    const out = {};
+    for (const key of ALLOWED_KEYS) {
+        if (body[key] !== undefined) out[key] = body[key];
+    }
+    return out;
+}
+
+function validatePresetId(id) {
+    return /^[a-z0-9_]+$/.test(id);
+}
+
+function isPresetUsedByConversation(id) {
+    try {
+        if (!fs.existsSync(DB_PATH)) return false;
+        const db = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+        const conversations = db.conversations || [];
+        return conversations.some(c => c.presetId === id);
+    } catch {
+        return false;
+    }
+}
 
 function registerEngineRoutes(app) {
     // GET /api/engine/presets
@@ -64,6 +91,98 @@ function registerEngineRoutes(app) {
             res.json(preset);
         } catch (err) {
             console.error(`Error reading preset ${id}:`, err);
+            res.status(500).send("Internal Server Error");
+        }
+    });
+
+    // POST /api/engine/presets — create or import a new preset
+    app.post('/api/engine/presets', (req, res) => {
+        try {
+            const body = req.body;
+            const id = (body.id || '').trim();
+
+            if (!id || !validatePresetId(id)) {
+                return res.status(400).json({ error: 'Invalid or missing preset ID. Use lowercase letters, numbers and underscores only.' });
+            }
+            if (!body.title || !body.title.trim()) {
+                return res.status(400).json({ error: 'Missing required field: title' });
+            }
+
+            const filePath = path.join(PRESETS_DIR, `${id}.json`);
+            if (fs.existsSync(filePath) && !body.overwrite) {
+                return res.status(409).json({ error: `A preset with id "${id}" already exists.` });
+            }
+
+            const preset = sanitizePreset(body);
+            preset.id = id; // ensure id field is correct
+
+            if (!fs.existsSync(PRESETS_DIR)) {
+                fs.mkdirSync(PRESETS_DIR, { recursive: true });
+            }
+
+            fs.writeFileSync(filePath, JSON.stringify(preset, null, 2), 'utf-8');
+            res.status(201).json(preset);
+        } catch (err) {
+            console.error("Error creating preset:", err);
+            res.status(500).send("Internal Server Error");
+        }
+    });
+
+    // PUT /api/engine/presets/:id — update an existing preset
+    app.put('/api/engine/presets/:id', (req, res) => {
+        try {
+            const id = req.params.id;
+            if (!validatePresetId(id)) {
+                return res.status(400).json({ error: 'Invalid preset ID.' });
+            }
+
+            const filePath = path.join(PRESETS_DIR, `${id}.json`);
+            if (!fs.existsSync(filePath)) {
+                return res.status(404).json({ error: `Preset "${id}" not found.` });
+            }
+
+            const body = req.body;
+            if (!body.title || !body.title.trim()) {
+                return res.status(400).json({ error: 'Missing required field: title' });
+            }
+
+            const preset = sanitizePreset(body);
+            preset.id = id; // never allow changing the id via PUT
+
+            fs.writeFileSync(filePath, JSON.stringify(preset, null, 2), 'utf-8');
+            res.json(preset);
+        } catch (err) {
+            console.error(`Error updating preset ${req.params.id}:`, err);
+            res.status(500).send("Internal Server Error");
+        }
+    });
+
+    // DELETE /api/engine/presets/:id — delete a preset
+    app.delete('/api/engine/presets/:id', (req, res) => {
+        try {
+            const id = req.params.id;
+            if (!validatePresetId(id)) {
+                return res.status(400).json({ error: 'Invalid preset ID.' });
+            }
+
+            const filePath = path.join(PRESETS_DIR, `${id}.json`);
+            if (!fs.existsSync(filePath)) {
+                return res.status(404).json({ error: `Preset "${id}" not found.` });
+            }
+
+            // Warn if this preset is referenced by active conversations
+            const inUse = isPresetUsedByConversation(id);
+            if (inUse && !req.query.force) {
+                return res.status(409).json({
+                    error: `Preset "${id}" is used by one or more conversations. Pass ?force=1 to delete anyway.`,
+                    inUse: true
+                });
+            }
+
+            fs.unlinkSync(filePath);
+            res.json({ deleted: id });
+        } catch (err) {
+            console.error(`Error deleting preset ${req.params.id}:`, err);
             res.status(500).send("Internal Server Error");
         }
     });
