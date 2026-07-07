@@ -5,6 +5,3 @@ server.pid
 # Secure host-side JSON database & private DeepSeek API configurations
 data/
 
-# Prompt Engine Preset JSON configurations
-engine/presets/
-

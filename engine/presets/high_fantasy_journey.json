@@ -1,0 +1,29 @@
+{
+  "id": "high_fantasy_journey",
+  "title": "High Fantasy Journey",
+  "category": "Fantasy & Adventure",
+  "description": "Epic fantasy quest setting with focus on magical lore, companion dynamics, and atmospheric world-building.",
+  "system_body": "This scenario operates under the lens of epic high fantasy. The narrative focuses on journeying through vast, ancient landscapes, uncovering lost magical lore, and navigating the close-knit bonds and conflicts of an adventuring party. Emphasize the weight of ancient history, the strangeness of magic, and the immediate physical challenges of the wild. Dialogue should reflect the diverse backgrounds of the companions—ranging from formal elven phrasing to rough, pragmatic dwarven dialects. Maintain high tension regarding external threats, such as looming monstrous beasts or corrupt arcane forces, while exploring the quiet moments of respite around campfires.",
+  "post_history_body": "",
+  "blocks": [
+    { "id": "base_writer",   "enabled": true,  "order": 10 },
+    { "id": "tone_register", "enabled": true,  "order": 20 },
+    { "id": "format_rules",  "enabled": true,  "order": 50 },
+    { "id": "no_meta",       "enabled": true,  "order": 60 },
+    { "id": "continuity",    "enabled": true,  "order": 70 },
+    { "id": "pov_third",     "enabled": true,  "order": 80 },
+    { "id": "pov_first",     "enabled": false, "order": 81 },
+    { "id": "pov_author",    "enabled": false, "order": 82 }
+  ],
+  "defaults": {
+    "word_count": 1500,
+    "pov": "third",
+    "sensory_intensity": "detailed",
+    "dialogue_register": "playful",
+    "pov_focus": "balanced",
+    "pushback": 3,
+    "complication_generator": false,
+    "outline_mode": false,
+    "premises_mode": false
+  }
+}

@@ -1,5 +1,7 @@
 # 🌌 LoomScribe
 
+![LoomScribe Main Interface](screenshots/main_interface.png)
+
 LoomScribe is a premium, highly specialized creative writing workspace designed specifically for DeepSeek models. It provides a dual-slot compiler architecture that maximizes API cache performance while putting granular writing controls (POV, sensory intensity, dialogue register, character pushback, complications, outline sandbox mode, and premises generation mode) directly in your hands.
 
 Built with a lightweight Node.js/Express backend and a responsive, zero-build vanilla HTML/CSS/JS frontend, LoomScribe serves as a distraction-free desktop environment for drafting, brainstorming, and editing interactive fiction.
@@ -31,10 +33,15 @@ Loaded directly from a central JSON schema, the right pane provides a live suite
 *   **Live Prompt Compiler Preview**: View compiled Slot 1 and Slot 2 prompt states in real-time.
 
 ### 📁 Interactive Preset Manager
+
+![LoomScribe Preset Manager](screenshots/preset_manager.png)
+
 A built-in preset manager interface allows you to create, edit, duplicate, delete, and import narrative presets directly.
 *   **Two-Column Editor**: Modify system body prompts, metadata, categories, and parameter overrides.
 *   **File Dropzone**: Drag and drop JSON preset files to import them instantly.
 *   **Server CRUD Endpoints**: Fully backed by API routes for managing local presets on the fly.
+
+![LoomScribe Preset Picker](screenshots/preset_selection_modal.png)
 
 ### 📐 Outline & Brainstorm Mode
 A dedicated toggle shifts LoomScribe from prose drafting into a planning sandbox. Enabling Outline Mode disables the prose-focused blocks, then injects directives that ask the model to expand on plot structure, scene beats, and character trajectories instead of writing finished chapters.
@@ -75,6 +82,8 @@ cp .env.example .env
 Open `.env` and configure your settings:
 *   `PORT`: Port to host the app (defaults to `3000`).
 *   `DEEPSEEK_API_KEY`: Set your `sk-...` API key here. (Alternatively, configure it securely in the UI sidebar settings).
+
+![LoomScribe API Key Configuration](screenshots/api_config_modal.png)
 
 ### 3. Running LoomScribe
 Run the development command:
