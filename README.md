@@ -30,6 +30,12 @@ Loaded directly from a central JSON schema, the right pane provides a live suite
 *   **Advanced Block Overrides**: Manually override individual system-prompt markdown files inside your preset.
 *   **Live Prompt Compiler Preview**: View compiled Slot 1 and Slot 2 prompt states in real-time.
 
+### 📁 Interactive Preset Manager
+A built-in preset manager interface allows you to create, edit, duplicate, delete, and import narrative presets directly.
+*   **Two-Column Editor**: Modify system body prompts, metadata, categories, and parameter overrides.
+*   **File Dropzone**: Drag and drop JSON preset files to import them instantly.
+*   **Server CRUD Endpoints**: Fully backed by API routes for managing local presets on the fly.
+
 ### 📐 Outline & Brainstorm Mode
 A dedicated toggle shifts LoomScribe from prose drafting into a planning sandbox. Enabling Outline Mode disables the prose-focused blocks, then injects directives that ask the model to expand on plot structure, scene beats, and character trajectories instead of writing finished chapters.
 
@@ -44,6 +50,9 @@ Each message has quick actions for editing, regenerating, and copying raw conten
 
 ### 🌿 Version Navigation & Sibling Trees
 LoomScribe tracks conversation history as a branching version tree. Inline editing of any user message branches a new lineage, and prev/next controls let you move between alternative timelines, drafts, and regenerations.
+
+### 📊 Structured JSON Logging
+A server-side logger format writes HTTP requests, WebSocket connection updates, and prompt compilation details as structured JSON events. This standardizes local application logging and eases troubleshooting.
 
 ---
 
@@ -113,6 +122,7 @@ loomscribe-prompt-engine/
 │   │   ├── messages.css        # Chat bubbles and version trees
 │   │   ├── input.css           # Model and text input areas
 │   │   ├── modals.css          # Pop-up overlays (API key, presets, delete)
+│   │   ├── preset-manager.css  # Styles for the two-column preset editor & list
 │   │   └── right-pane.css      # Live compiler panels and settings
 │   ├── js/                     # Client application logic
 │   │   ├── ui/                 # Component layout handlers
@@ -121,6 +131,7 @@ loomscribe-prompt-engine/
 │   │   │   ├── right-pane.js   # Parameter bindings & compiler preview
 │   │   │   ├── input.js        # Model list, thinking state, & continue
 │   │   │   ├── modals.js       # Popup overlays & notifications
+│   │   │   ├── preset-manager.js # Preset list, editor form, & drag-drop import
 │   │   │   └── helpers.js      # Timing and layout utilities
 │   │   ├── api.js              # Fetch requests to backend routes
 │   │   ├── state.js            # Reactive global client store
@@ -140,6 +151,7 @@ loomscribe-prompt-engine/
 │       ├── services/
 │       │   └── version-tree.js # Prev/next branch traversal service
 │       ├── db.js               # JSON DB read/write routines
+│       ├── logger.js           # Structured JSON logging library
 │       ├── routes.js           # Express API router registration
 │       └── utils.js            # Node utilities
 ├── server.js                   # Application entry point
