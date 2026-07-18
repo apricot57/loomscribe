@@ -1,7 +1,7 @@
 node_modules/
 prompt_cards/
 server.pid
+.env
 
 # Secure host-side JSON database & private DeepSeek API configurations
 data/
-

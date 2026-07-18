@@ -1,3 +1,5 @@
+import { getToken } from './auth.js';
+
 const listeners = new Set();
 let socket = null;
 let reconnectDelay = 1000;
@@ -20,7 +22,8 @@ export const socketEvents = {
 
 export function initWebSocket() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}`;
+    const token = getToken() || '';
+    const wsUrl = `${protocol}//${window.location.host}?token=${encodeURIComponent(token)}`;
 
     console.log(`Connecting to WebSocket: ${wsUrl}`);
     socket = new WebSocket(wsUrl);

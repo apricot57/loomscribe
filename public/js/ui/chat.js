@@ -1,3 +1,4 @@
+import { authFetch } from '../auth.js';
 import { state, escapeHtml } from '../state.js';
 import {
     buildApiPayload,
@@ -230,7 +231,7 @@ export async function updateContinueButtonVisibility(activeMessages = null) {
     try {
         let messages = activeMessages;
         if (!messages) {
-            const mRes = await fetch(`/api/messages?conversationId=${state.currentConversationId}`);
+            const mRes = await authFetch(`/api/messages?conversationId=${state.currentConversationId}`);
             const allMessages = mRes.ok ? await mRes.json() : [];
             allMessages.sort((a, b) => a.timestamp - b.timestamp);
             messages = allMessages.filter(m => m.isActive !== false);
@@ -481,7 +482,7 @@ export function cancelInlineEdit(messageDiv, contentDiv, textarea, editActions, 
 }
 
 export async function startBotInlineEdit(messageDiv, msgId) {
-    const mRes = await fetch(`/api/messages?conversationId=${state.currentConversationId}`);
+    const mRes = await authFetch(`/api/messages?conversationId=${state.currentConversationId}`);
     const allMessages = mRes.ok ? await mRes.json() : [];
     const botMsg = allMessages.find(m => String(m.id) === String(msgId));
     if (!botMsg) return;
@@ -567,7 +568,7 @@ export function cancelBotInlineEdit(messageDiv, contentDiv, editActions, actionR
 }
 
 export async function editBotMessageOnly(msgId, newText, messageDiv) {
-    const res = await fetch(`/api/messages/${msgId}/version`, {
+    const res = await authFetch(`/api/messages/${msgId}/version`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: newText, role: 'assistant' })
@@ -578,7 +579,7 @@ export async function editBotMessageOnly(msgId, newText, messageDiv) {
 }
 
 export async function editMessageAndRegenerate(msgId, newText, messageDiv) {
-    const res = await fetch(`/api/messages/${msgId}/version`, {
+    const res = await authFetch(`/api/messages/${msgId}/version`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: newText, role: 'user' })
@@ -596,13 +597,13 @@ export async function editMessageAndRegenerate(msgId, newText, messageDiv) {
 }
 
 export async function regenerateResponse(msgId) {
-    const res = await fetch(`/api/messages/${msgId}/deactivate-tree`, {
+    const res = await authFetch(`/api/messages/${msgId}/deactivate-tree`, {
         method: 'POST'
     });
     if (res.ok) {
         const data = await res.json();
         
-        const mRes = await fetch(`/api/messages?conversationId=${state.currentConversationId}`);
+        const mRes = await authFetch(`/api/messages?conversationId=${state.currentConversationId}`);
         const allMessages = mRes.ok ? await mRes.json() : [];
         const assistantMsg = allMessages.find(m => String(m.id) === String(msgId));
         const parentUserMsg = assistantMsg && assistantMsg.parentMsgId ? allMessages.find(m => m.id === assistantMsg.parentMsgId) : null;
@@ -623,7 +624,7 @@ export async function regenerateResponse(msgId) {
 }
 
 export async function navigateVersion(versionGroupId, targetVersion) {
-    const res = await fetch(`/api/messages/${versionGroupId}/navigate?version=${targetVersion}`, {
+    const res = await authFetch(`/api/messages/${versionGroupId}/navigate?version=${targetVersion}`, {
         method: 'POST'
     });
     if (res.ok) {
@@ -752,7 +753,7 @@ export async function refreshConversationMessages() {
     if (state.currentConversationId === null) return;
     
     const id = state.currentConversationId;
-    const mRes = await fetch(`/api/messages?conversationId=${id}`);
+    const mRes = await authFetch(`/api/messages?conversationId=${id}`);
     const allMessages = mRes.ok ? await mRes.json() : [];
     allMessages.sort((a, b) => a.timestamp - b.timestamp);
     const activeMessages = allMessages.filter(m => m.isActive !== false);
@@ -827,7 +828,7 @@ export function renderAssistantDrafts(conversationId) {
 }
 
 async function persistAssistantMessage(payload, conversationId, tempId) {
-    const saveRes = await fetch('/api/messages', {
+    const saveRes = await authFetch('/api/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -864,7 +865,7 @@ export async function streamApiResponse({ conversationId, parentMsgId, stopAfter
     try {
         const { getEngineSchema } = await import('../api.js');
         const { renderRightPane } = await import('./right-pane.js');
-        const convRes = await fetch(`/api/conversations/${conversationId}`);
+        const convRes = await authFetch(`/api/conversations/${conversationId}`);
         if (convRes.ok) {
             const conv = await convRes.json();
             if (conv && conv.presetId) {
@@ -881,7 +882,7 @@ export async function streamApiResponse({ conversationId, parentMsgId, stopAfter
                     blockOverrides: conv.blockOverrides || {}
                 });
                 
-                const updatedConv = await fetch(`/api/conversations/${conversationId}`, {
+                const updatedConv = await authFetch(`/api/conversations/${conversationId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ lastAppliedEngineSignature: signature })
@@ -968,7 +969,7 @@ export function initChatForm() {
             }
 
             // Find the previous active message to set parentMsgId
-            const mRes = await fetch(`/api/messages?conversationId=${state.currentConversationId}`);
+            const mRes = await authFetch(`/api/messages?conversationId=${state.currentConversationId}`);
             const prevMsgs = mRes.ok ? await mRes.json() : [];
             const lastActive = prevMsgs.filter(m => m.isActive !== false).sort((a, b) => a.timestamp - b.timestamp).pop();
             const parentMsgIdVal = lastActive ? lastActive.id : null;
@@ -981,7 +982,7 @@ export function initChatForm() {
             userInput.style.height = 'auto';
 
             // Write message record to server side DB
-            const addRes = await fetch('/api/messages', {
+            const addRes = await authFetch('/api/messages', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -1060,12 +1061,12 @@ export function initExportButton() {
                 return;
             }
 
-            const cRes = await fetch('/api/conversations');
+            const cRes = await authFetch('/api/conversations');
             const conversations = cRes.ok ? await cRes.json() : [];
             const conv = conversations.find(c => c.id === state.currentConversationId);
             if (!conv) return;
 
-            const mRes = await fetch(`/api/messages?conversationId=${state.currentConversationId}`);
+            const mRes = await authFetch(`/api/messages?conversationId=${state.currentConversationId}`);
             const allMessages = mRes.ok ? await mRes.json() : [];
             allMessages.sort((a, b) => a.timestamp - b.timestamp);
             const activeMessages = allMessages.filter(m => m.isActive !== false);
@@ -1194,7 +1195,7 @@ socketEvents.subscribe(async (event) => {
                         streamMsgDiv.dataset.version = message.version || 1;
                     }
                     
-                    const vCountRes = await fetch(`/api/messages?conversationId=${conversationId}`);
+                    const vCountRes = await authFetch(`/api/messages?conversationId=${conversationId}`);
                     const allMsgs = vCountRes.ok ? await vCountRes.json() : [];
                     const vGroup = message.versionGroupId;
                     const versionCount = vGroup ? allMsgs.filter(m => m.versionGroupId === vGroup).length : 1;

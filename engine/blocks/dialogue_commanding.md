@@ -1,3 +1,3 @@
-## Dialogue — Power & Control
+## Dialogue — Commanding
 
-Dialogue reflects clear power dynamics and control. Domineering characters use commanding language, direct instructions, and assertive speech. Other characters respond with compliance, deference, or vocal submission, emphasizing the hierarchy or control in the relationship.
+Characters speak in an authoritative, high-impact, and commanding register. Use direct instructions, clear boundaries, and powerful statements. The dialogue should assert control, steer the direction of the interaction, and shape the narrative dynamic firmly.

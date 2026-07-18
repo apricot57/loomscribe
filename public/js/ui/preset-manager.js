@@ -10,7 +10,7 @@ let isDirty = false;          // unsaved changes flag
 let savedSnapshot = null;     // JSON snapshot of last-saved form state
 
 // Pushback label map
-const PUSHBACK_LABELS = ['Compliant', 'Hesitant', 'Realistic', 'Reluctant', 'Resistant'];
+const PUSHBACK_LABELS = ['Off', 'Compliant', 'Hesitant', 'Realistic', 'Reluctant', 'Resistant'];
 
 // ─── DOM helpers ──────────────────────────────────────────────────────────────
 
@@ -77,8 +77,8 @@ export function initPresetManager() {
     // Live dirty tracking on all inputs
     const watchedIds = [
         'pm-field-id', 'pm-field-title', 'pm-field-category', 'pm-field-description',
-        'pm-field-post-history', 'pm-default-pov', 'pm-default-sensory',
-        'pm-default-dirty-talk', 'pm-default-pov-focus',
+        'pm-field-post-history', 'pm-default-pov', 'pm-default-intensity',
+        'pm-default-dialogue-style', 'pm-default-pov-focus',
         'pm-default-word-count', 'pm-default-pushback'
     ];
     watchedIds.forEach(id => {
@@ -99,13 +99,13 @@ export function initPresetManager() {
     const pbSlider = el('pm-default-pushback');
     if (pbSlider) {
         pbSlider.addEventListener('input', () => {
-            const idx = parseInt(pbSlider.value, 10) - 1;
+            const idx = parseInt(pbSlider.value, 10);
             el('pm-pushback-val').textContent = `${pbSlider.value} — ${PUSHBACK_LABELS[idx] || ''}`;
         });
     }
 
     // Toggle pills
-    ['pm-toggle-outline', 'pm-toggle-premises'].forEach(id => {
+    ['pm-toggle-outline', 'pm-toggle-premises', 'pm-toggle-choices'].forEach(id => {
         const pill = el(id);
         if (!pill) return;
         pill.addEventListener('click', () => togglePill(pill));
@@ -291,8 +291,8 @@ function populateForm(preset) {
 
     // Defaults
     el('pm-default-pov').value          = d.pov || 'third';
-    el('pm-default-sensory').value       = d.sensory_intensity || 'sensory_detailed';
-    el('pm-default-dirty-talk').value   = d.dialogue_register || 'teasing';
+    el('pm-default-intensity').value       = d.scene_intensity || 'charged';
+    el('pm-default-dialogue-style').value   = d.dialogue_style || 'playful';
     el('pm-default-pov-focus').value    = d.pov_focus || 'balanced';
 
     const wc = d.word_count || 1500;
@@ -301,10 +301,12 @@ function populateForm(preset) {
 
     const pb = d.pushback !== undefined ? d.pushback : 3;
     el('pm-default-pushback').value = pb;
-    el('pm-pushback-val').textContent = `${pb} — ${PUSHBACK_LABELS[pb - 1] || ''}`;
+    el('pm-pushback-val').textContent = `${pb} — ${PUSHBACK_LABELS[pb] || ''}`;
 
     setPillState(el('pm-toggle-outline'), !!d.outline_mode);
     setPillState(el('pm-toggle-premises'), !!d.premises_mode);
+    setPillState(el('pm-toggle-choices'), !!d.suggest_choices);
+    setPillState(el('pm-toggle-choices'), !!d.suggest_choices);
 
     updateWordCountHint(preset.system_body || '');
 
@@ -340,8 +342,8 @@ function resetEditor() {
         if (el_) el_.value = '';
     });
     el('pm-default-pov').value = 'third';
-    el('pm-default-sensory').value = 'sensory_detailed';
-    el('pm-default-dirty-talk').value = 'teasing';
+    el('pm-default-intensity').value = 'charged';
+    el('pm-default-dialogue-style').value = 'playful';
     el('pm-default-pov-focus').value = 'balanced';
     el('pm-default-word-count').value = 1500;
     el('pm-word-count-val').textContent = '1500 words';
@@ -349,6 +351,7 @@ function resetEditor() {
     el('pm-pushback-val').textContent = '3 — Realistic';
     setPillState(el('pm-toggle-outline'), false);
     setPillState(el('pm-toggle-premises'), false);
+    setPillState(el('pm-toggle-choices'), false);
     updateWordCountHint('');
 
     if (el('pm-search-input')) el('pm-search-input').value = '';
@@ -638,12 +641,13 @@ function collectFormData() {
         defaults: {
             word_count: parseInt(el('pm-default-word-count').value, 10),
             pov: el('pm-default-pov').value,
-            sensory_intensity: el('pm-default-sensory').value,
-            dialogue_register: el('pm-default-dirty-talk').value,
+            scene_intensity: el('pm-default-intensity').value,
+            dialogue_style: el('pm-default-dialogue-style').value,
             pov_focus: el('pm-default-pov-focus').value,
             pushback: parseInt(el('pm-default-pushback').value, 10),
             outline_mode: el('pm-toggle-outline').classList.contains('on'),
             premises_mode: el('pm-toggle-premises').classList.contains('on'),
+            suggest_choices: el('pm-toggle-choices').classList.contains('on'),
         }
     };
 }
@@ -663,8 +667,8 @@ function populateFormFromSnapshot(snap) {
 
     const d = snap.defaults || {};
     el('pm-default-pov').value        = d.pov || 'third';
-    el('pm-default-sensory').value     = d.sensory_intensity || 'sensory_detailed';
-    el('pm-default-dirty-talk').value = d.dialogue_register || 'teasing';
+    el('pm-default-intensity').value     = d.scene_intensity || 'charged';
+    el('pm-default-dialogue-style').value = d.dialogue_style || 'playful';
     el('pm-default-pov-focus').value  = d.pov_focus || 'balanced';
 
     const wc = d.word_count || 1500;
@@ -673,7 +677,7 @@ function populateFormFromSnapshot(snap) {
 
     const pb = d.pushback !== undefined ? d.pushback : 3;
     el('pm-default-pushback').value = pb;
-    el('pm-pushback-val').textContent = `${pb} — ${PUSHBACK_LABELS[pb - 1] || ''}`;
+    el('pm-pushback-val').textContent = `${pb} — ${PUSHBACK_LABELS[pb] || ''}`;
 
     setPillState(el('pm-toggle-outline'), !!d.outline_mode);
     setPillState(el('pm-toggle-premises'), !!d.premises_mode);
@@ -686,8 +690,6 @@ function getDefaultBlocks() {
         { id: 'base_writer',  enabled: true,  order: 10 },
         { id: 'tone_register', enabled: true,  order: 20 },
         { id: 'format_rules', enabled: true,  order: 50 },
-        { id: 'no_meta',      enabled: true,  order: 60 },
-        { id: 'continuity',   enabled: true,  order: 70 },
         { id: 'pov_third',    enabled: true,  order: 80 },
         { id: 'pov_first',    enabled: false, order: 81 },
         { id: 'pov_author',   enabled: false, order: 82 },

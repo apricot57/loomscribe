@@ -24,7 +24,7 @@
     display: flex;
     gap: 12px;
     background-color: var(--bg-input);
-    padding: 10px 12px 10px 24px;
+    padding: 10px 12px 10px 16px;
     border-radius: 12px; /* Rectangle with curved corners */
     border: 1px solid var(--border-color);
     transition: var(--transition-m3);
@@ -36,6 +36,39 @@
 #chat-form:focus-within {
     border-color: var(--accent-color);
     box-shadow: 0 0 16px rgba(56, 189, 248, 0.2);
+}
+
+/* Gear toggle button for chips */
+#toggle-chips-btn {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    transition: var(--transition-m3);
+    flex-shrink: 0;
+}
+
+#toggle-chips-btn:hover {
+    color: var(--accent-color);
+    background-color: rgba(56, 189, 248, 0.08);
+    transform: rotate(45deg);
+}
+
+#toggle-chips-btn.active {
+    color: var(--accent-color);
+}
+
+#toggle-chips-btn svg {
+    width: 18px;
+    height: 18px;
 }
 
 #user-input {
@@ -138,6 +171,27 @@
     margin-left: 12px;
     align-self: flex-start;
     flex-wrap: wrap;
+    
+    /* Premium Slide-Down & Fade-In transition */
+    max-height: 52px;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    transition: max-height 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                margin-bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                padding 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+}
+
+.chat-config-row.collapsed {
+    max-height: 0 !important;
+    opacity: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    transform: translateY(-10px) scale(0.95) !important;
+    pointer-events: none !important;
 }
 
 .model-select-wrapper {
@@ -602,5 +656,84 @@
 
 .thinking-toggle-btn.active .thinking-icon {
     color: #38bdf8;
+}
+
+/* Mobile configurations for input elements */
+@media (max-width: 768px) {
+    .chat-config-row {
+        align-self: stretch;
+        margin-left: 0;
+        padding: 4px 10px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; /* Firefox */
+        width: 100%;
+        gap: 6px;
+    }
+    
+    .chat-config-row::-webkit-scrollbar {
+        display: none; /* Hide scrollbars */
+    }
+
+    /* Collapse labels to fit cleanly or let them scroll */
+    #thinking-status-text {
+        display: none; /* Just show the brain icon on mobile */
+    }
+    
+    .thinking-toggle-btn {
+        width: 38px;
+        padding: 0;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    #active-preset-indicator-name {
+        max-width: 90px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    #active-model-name {
+        max-width: 90px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .continue-btn span {
+        display: none; /* Just show the play icon on mobile */
+    }
+    
+    .continue-btn {
+        width: 38px;
+        padding: 0;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    /* Fixed bottom-sheet dropdown menus on mobile to avoid overflow/scroll clipping */
+    .model-dropdown-menu,
+    .prompt-dropdown-menu {
+        position: fixed !important;
+        bottom: 80px !important;
+        left: 12px !important;
+        right: 12px !important;
+        width: auto !important;
+        max-width: none !important;
+        z-index: 1001 !important;
+        box-shadow: var(--shadow-m3-high);
+    }
+    
+    #chat-form {
+        padding: 8px 10px 8px 16px;
+        gap: 8px;
+        border-radius: 12px;
+    }
+    
+    .chat-footer {
+        padding: 6px 10px 14px;
+    }
 }
 

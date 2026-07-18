@@ -16,6 +16,9 @@
 </head>
 <body>
     <div class="app-layout">
+        <!-- Backdrop for mobile drawers -->
+        <div id="layout-backdrop" class="layout-backdrop hidden"></div>
+
         <!-- Sidebar Navigation -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
@@ -92,6 +95,13 @@
                             <line x1="12" y1="15" x2="12" y2="3"></line>
                         </svg>
                     </button>
+                    <button id="logout-btn" class="header-btn" aria-label="Log Out" title="Log Out" style="color: var(--accent-danger, #f43f5e); display: none;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="header-icon">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                    </button>
                 </div>
             </header>
             
@@ -158,6 +168,12 @@
                         </button>
                     </div>
                     <form id="chat-form">
+                        <button type="button" id="toggle-chips-btn" aria-label="Toggle settings chips" title="Toggle settings chips">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                            </svg>
+                        </button>
                         <textarea id="user-input" placeholder="Message DeepSeek..." rows="1" required></textarea>
                         <button type="submit" id="send-btn" aria-label="Send message">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -173,7 +189,6 @@
                             </svg>
                         </button>
                     </form>
-                    <p class="input-disclaimer">Direct to DeepSeek. Your key and chats persist securely on the host server.</p>
                 </div>
             </footer>
         </main>
@@ -451,24 +466,27 @@
                                             <option value="third">Close Third</option>
                                             <option value="first">Deep First</option>
                                             <option value="author">Omniscient</option>
+                                            <option value="off">Off</option>
                                         </select>
                                     </div>
                                     <div class="pm-field-group">
-                                        <label class="pm-label" for="pm-default-sensory">Sensory Intensity</label>
-                                        <select id="pm-default-sensory" class="pm-select">
-                                            <option value="romantic">Romantic</option>
-                                            <option value="sensual">Sensual</option>
-                                            <option value="sensory_detailed">Explicit</option>
-                                            <option value="hardcore">Hardcore</option>
+                                        <label class="pm-label" for="pm-default-intensity">Scene Intensity</label>
+                                        <select id="pm-default-intensity" class="pm-select">
+                                            <option value="tender">Tender</option>
+                                            <option value="sensory">Sensory</option>
+                                            <option value="charged">Charged</option>
+                                            <option value="raw">Raw</option>
+                                            <option value="off">Off</option>
                                         </select>
                                     </div>
                                     <div class="pm-field-group">
-                                        <label class="pm-label" for="pm-default-dirty-talk">Dialogue Register</label>
-                                        <select id="pm-default-dirty-talk" class="pm-select">
-                                            <option value="none">Minimal Dialogue / Silent</option>
-                                            <option value="teasing">Teasing &amp; Playful</option>
-                                            <option value="filthy">Filthy &amp; Vulgar</option>
-                                            <option value="dominant_degrading">Dominance &amp; Degradation</option>
+                                        <label class="pm-label" for="pm-default-dialogue-style">Dialogue Style</label>
+                                        <select id="pm-default-dialogue-style" class="pm-select">
+                                            <option value="silent">Silent</option>
+                                            <option value="playful">Playful</option>
+                                            <option value="candid">Candid</option>
+                                            <option value="commanding">Commanding</option>
+                                            <option value="off">Off</option>
                                         </select>
                                     </div>
                                     <div class="pm-field-group">
@@ -477,6 +495,7 @@
                                             <option value="balanced">Balanced</option>
                                             <option value="self">POV Interiority</option>
                                             <option value="partner">Partner Reaction</option>
+                                            <option value="off">Off</option>
                                         </select>
                                     </div>
                                 </div>
@@ -495,7 +514,7 @@
                                             Pushback / Resistance
                                             <span id="pm-pushback-val" class="pm-label-hint">3 — Realistic</span>
                                         </label>
-                                        <input type="range" id="pm-default-pushback" min="1" max="5" step="1" value="3" style="width:100%; accent-color: var(--accent-color);">
+                                        <input type="range" id="pm-default-pushback" min="0" max="5" step="1" value="3" style="width:100%; accent-color: var(--accent-color);">
                                     </div>
                                 </div>
 
@@ -508,6 +527,10 @@
                                     <div class="pm-toggle-row" style="flex:1; min-width: 180px;">
                                         <span class="pm-toggle-label">Premises Mode</span>
                                         <div id="pm-toggle-premises" class="pm-toggle-pill" role="switch" aria-checked="false" tabindex="0"></div>
+                                    </div>
+                                    <div class="pm-toggle-row" style="flex:1; min-width: 180px;">
+                                        <span class="pm-toggle-label">Suggest Choices</span>
+                                        <div id="pm-toggle-choices" class="pm-toggle-pill" role="switch" aria-checked="false" tabindex="0"></div>
                                     </div>
                                 </div>
 

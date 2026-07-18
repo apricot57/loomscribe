@@ -153,8 +153,8 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote }) {
         // Force disable all prose/narrative blocks
         const blocksToDisable = [
             'pov_third', 'pov_first', 'pov_author',
-            'sensory_poetic', 'sensory_tactile', 'sensory_detailed', 'sensory_visceral',
-            'dialogue_register_none', 'dialogue_register_teasing', 'dialogue_register_filthy', 'dialogue_register_degrading',
+            'intensity_tender', 'intensity_sensory', 'intensity_charged', 'intensity_raw',
+            'dialogue_silent', 'dialogue_playful', 'dialogue_candid', 'dialogue_commanding',
             'focus_balanced', 'focus_self', 'focus_partner'
         ];
         for (const blockId of blocksToDisable) {
@@ -167,8 +167,8 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote }) {
         // Force disable all prose/narrative blocks
         const blocksToDisable = [
             'pov_third', 'pov_first', 'pov_author',
-            'sensory_poetic', 'sensory_tactile', 'sensory_detailed', 'sensory_visceral',
-            'dialogue_register_none', 'dialogue_register_teasing', 'dialogue_register_filthy', 'dialogue_register_degrading',
+            'intensity_tender', 'intensity_sensory', 'intensity_charged', 'intensity_raw',
+            'dialogue_silent', 'dialogue_playful', 'dialogue_candid', 'dialogue_commanding',
             'focus_balanced', 'focus_self', 'focus_partner'
         ];
         for (const blockId of blocksToDisable) {
@@ -191,52 +191,66 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote }) {
             forceState('pov_author', true);
             forceState('pov_third', false);
             forceState('pov_first', false);
+        } else if (validParams.pov === 'off') {
+            forceState('pov_third', false);
+            forceState('pov_first', false);
+            forceState('pov_author', false);
         }
 
-        // Sensory intensity mapping
-        if (validParams.sensory_intensity === 'romantic') {
-            forceState('sensory_poetic', true);
-            forceState('sensory_tactile', false);
-            forceState('sensory_detailed', false);
-            forceState('sensory_visceral', false);
-        } else if (validParams.sensory_intensity === 'sensual') {
-            forceState('sensory_tactile', true);
-            forceState('sensory_poetic', false);
-            forceState('sensory_detailed', false);
-            forceState('sensory_visceral', false);
-        } else if (validParams.sensory_intensity === 'sensory_detailed') {
-            forceState('sensory_detailed', true);
-            forceState('sensory_poetic', false);
-            forceState('sensory_tactile', false);
-            forceState('sensory_visceral', false);
-        } else if (validParams.sensory_intensity === 'hardcore') {
-            forceState('sensory_visceral', true);
-            forceState('sensory_poetic', false);
-            forceState('sensory_tactile', false);
-            forceState('sensory_detailed', false);
+        // Scene intensity mapping
+        if (validParams.scene_intensity === 'tender') {
+            forceState('intensity_tender', true);
+            forceState('intensity_sensory', false);
+            forceState('intensity_charged', false);
+            forceState('intensity_raw', false);
+        } else if (validParams.scene_intensity === 'sensory') {
+            forceState('intensity_sensory', true);
+            forceState('intensity_tender', false);
+            forceState('intensity_charged', false);
+            forceState('intensity_raw', false);
+        } else if (validParams.scene_intensity === 'charged') {
+            forceState('intensity_charged', true);
+            forceState('intensity_tender', false);
+            forceState('intensity_sensory', false);
+            forceState('intensity_raw', false);
+        } else if (validParams.scene_intensity === 'raw') {
+            forceState('intensity_raw', true);
+            forceState('intensity_tender', false);
+            forceState('intensity_sensory', false);
+            forceState('intensity_charged', false);
+        } else if (validParams.scene_intensity === 'off') {
+            forceState('intensity_tender', false);
+            forceState('intensity_sensory', false);
+            forceState('intensity_charged', false);
+            forceState('intensity_raw', false);
         }
 
-        // Dialogue register mapping
-        if (validParams.dialogue_register === 'none') {
-            forceState('dialogue_register_none', true);
-            forceState('dialogue_register_teasing', false);
-            forceState('dialogue_register_filthy', false);
-            forceState('dialogue_register_degrading', false);
-        } else if (validParams.dialogue_register === 'teasing') {
-            forceState('dialogue_register_teasing', true);
-            forceState('dialogue_register_none', false);
-            forceState('dialogue_register_filthy', false);
-            forceState('dialogue_register_degrading', false);
-        } else if (validParams.dialogue_register === 'filthy') {
-            forceState('dialogue_register_filthy', true);
-            forceState('dialogue_register_none', false);
-            forceState('dialogue_register_teasing', false);
-            forceState('dialogue_register_degrading', false);
-        } else if (validParams.dialogue_register === 'dominant_degrading') {
-            forceState('dialogue_register_degrading', true);
-            forceState('dialogue_register_none', false);
-            forceState('dialogue_register_teasing', false);
-            forceState('dialogue_register_filthy', false);
+        // Dialogue style mapping
+        if (validParams.dialogue_style === 'silent') {
+            forceState('dialogue_silent', true);
+            forceState('dialogue_playful', false);
+            forceState('dialogue_candid', false);
+            forceState('dialogue_commanding', false);
+        } else if (validParams.dialogue_style === 'playful') {
+            forceState('dialogue_playful', true);
+            forceState('dialogue_silent', false);
+            forceState('dialogue_candid', false);
+            forceState('dialogue_commanding', false);
+        } else if (validParams.dialogue_style === 'candid') {
+            forceState('dialogue_candid', true);
+            forceState('dialogue_silent', false);
+            forceState('dialogue_playful', false);
+            forceState('dialogue_commanding', false);
+        } else if (validParams.dialogue_style === 'commanding') {
+            forceState('dialogue_commanding', true);
+            forceState('dialogue_silent', false);
+            forceState('dialogue_playful', false);
+            forceState('dialogue_candid', false);
+        } else if (validParams.dialogue_style === 'off') {
+            forceState('dialogue_silent', false);
+            forceState('dialogue_playful', false);
+            forceState('dialogue_candid', false);
+            forceState('dialogue_commanding', false);
         }
 
         // POV focus mapping
@@ -252,6 +266,10 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote }) {
             forceState('focus_partner', true);
             forceState('focus_balanced', false);
             forceState('focus_self', false);
+        } else if (validParams.pov_focus === 'off') {
+            forceState('focus_balanced', false);
+            forceState('focus_self', false);
+            forceState('focus_partner', false);
         }
     }
 
@@ -331,7 +349,7 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote }) {
 
     // Append mode-specific directives; in prose-bypass modes, skip the word-count instruction.
     if (validParams.premises_mode === true) {
-        postParts.push("Generate exactly six fully developed story premises based on the user's input. Number them 1 through 6 with a bolded title for each. Each premise must be 3 to 5 substantial paragraphs covering characters, relational dynamic, charged circumstances, psychological tension, and a compelling directional hook. Vary tone across the six: slow-burn, raw, tender, transgressive, power-charged, and a wildcard. Do not write prose chapters. Output only the six premises — no preamble, ranking, or meta-commentary.");
+        postParts.push("Generate exactly six fully developed story premises based on the user's input. Number them 1 through 6 with a bolded title for each.\n\nFor each premise, output:\n- **Scenario Setup**: 2-3 substantial paragraphs covering the specific characters, their relational dynamic, the psychological tension/desire, and the charged circumstances.\n- **Starting Prompt**: Highly specific scene-starting prompts using the 'Guidelines for Scene-Starting Prompts'. Ensure these prompts are concrete, immediate scene anchors featuring tactile details rather than plot summaries.\n\nVary tone and emotional dynamic across the six options to offer a diverse range of narrative styles. Do not write full prose chapters. Output only the six premises with their setups and starting prompts — no preamble, ranking, or meta-commentary.");
     } else if (validParams.outline_mode === true) {
         postParts.push("Focus on plotting, outlining, and brainstorming narrative directions or ideas based on the user's input. Do not write full-narrative prose chapters yet. Expand on plot beats, character details, and story structure with depth and detail.");
         const wordCount = validParams.word_count;
@@ -343,15 +361,22 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote }) {
 
     // If complication_generator is enabled, append the complication instruction
     if (validParams.complication_generator === true) {
-        postParts.push("Introduce a minor immediate complication, hesitation, or external distraction (e.g., a sudden sound, a flash of guilt, a boundary hesitation, or a realization) to disrupt the smooth flow of the scene.");
+        postParts.push("Before the scene resolves or escalates cleanly, introduce one specific complication that creates friction. Choose the type that best fits the scene:\n- **External interruption:** A sound from outside the room, a phone notification, footsteps, a door — something that forces a pause or a decision.\n- **Emotional rupture:** A flash of guilt, doubt, or recognition of what they are doing — an internal moment that surfaces visibly and cannot be immediately suppressed.\n- **Physical hesitation:** A body that does not cooperate with intention — hands that stop, a voice that comes out wrong, a physical reaction that reveals something unintended.\n- **Power shift:** A moment where the dynamic between the characters tilts unexpectedly — something said or done that neither anticipated.\nWrite the complication as a scene beat, not an announcement. It must feel earned and specific to these characters in this moment.");
+    }
+
+    // If suggest_choices is enabled, append the choices instruction
+    if (validParams.suggest_choices === true) {
+        postParts.push("At the very end of your response, after a divider line (---), provide exactly 3 distinct, numbered choices (1, 2, 3) about how to proceed with the story. Keep each choice brief, specific, and evocative, offering diverse paths for the next scene or character actions.");
     }
 
     // Add pushback slider mapping
     const pushbackVal = validParams.pushback;
-    if (pushbackVal <= 2) {
+    if (pushbackVal === 0) {
+        // Intentionally empty — pushback is turned off entirely (no instruction).
+    } else if (pushbackVal >= 1 && pushbackVal <= 2) {
         postParts.push("Character Behavior: Receptive and highly compliant. The AI-controlled characters should easily go along with the user character's initiatives, suggestions, and physical advances with minimal hesitation.");
     } else if (pushbackVal === 3) {
-        postParts.push("Character Behavior: Realistic agency. Characters act on their own beliefs, immediate mood, and comfort levels. They will show natural hesitation, boundary checks, or mild pushback if the user character pushes them too fast or acts out of character.");
+        // Intentionally empty — level 3 is the model's natural default; no instruction needed.
     } else if (pushbackVal >= 4) {
         postParts.push("Character Behavior: Guarded and resistant. Characters prioritize their own secret motivations, strict boundaries, fears, or independent goals. They will actively push back, refuse, express doubt, or create friction against the user character's advances and suggestions.");
     }

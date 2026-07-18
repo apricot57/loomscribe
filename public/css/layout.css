@@ -3,6 +3,7 @@
     display: flex;
     width: 100%;
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
     position: relative;
 }
@@ -438,6 +439,18 @@
     display: flex !important;
 }
 
+/* Layout Backdrop Overlay (Mobile) */
+.layout-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(11, 15, 25, 0.6); /* Oceanic obsidian background tint */
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 950; /* Sits behind active sidebar (1000) and right-pane (999) but above main workspace */
+    opacity: 1;
+    transition: opacity 0.25s ease-out;
+}
+
 /* ==========================================================================
    Responsive Breakpoints
    ========================================================================== */
@@ -449,6 +462,7 @@
         bottom: 0;
         transform: translateX(-100%);
         box-shadow: none;
+        z-index: 1000; /* Ensure drawer sits above backdrop */
     }
 
     .sidebar.active {
@@ -462,6 +476,22 @@
 
     .header-btn {
         display: flex; /* Show menu toggle bars */
+    }
+
+    input, textarea, select, .custom-select-trigger, .pm-input, .pm-textarea, .pm-select, #user-input {
+        font-size: 16px !important;
+    }
+
+    /* Make edit/delete buttons visible on mobile sidebar items where hover is unavailable */
+    .chat-delete-btn,
+    .chat-rename-btn {
+        opacity: 0.5 !important;
+    }
+
+    /* Make them slightly more visible on the active item */
+    .chat-list-item.active .chat-delete-btn,
+    .chat-list-item.active .chat-rename-btn {
+        opacity: 0.8 !important;
     }
 }
 

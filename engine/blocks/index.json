@@ -14,60 +14,60 @@
     "order": 20
   },
   {
-    "id": "sensory_poetic",
-    "title": "Sensory — Poetic",
-    "file": "sensory_poetic.md",
-    "group": "sensory_intensity",
-    "order": 40
+    "id": "intensity_tender",
+    "title": "Intensity — Tender",
+    "file": "intensity_tender.md",
+    "group": "scene_intensity",
+    "order": 65
   },
   {
-    "id": "sensory_tactile",
-    "title": "Sensory — Tactile",
-    "file": "sensory_tactile.md",
-    "group": "sensory_intensity",
-    "order": 41
+    "id": "intensity_sensory",
+    "title": "Intensity — Sensory",
+    "file": "intensity_sensory.md",
+    "group": "scene_intensity",
+    "order": 66
   },
   {
-    "id": "sensory_detailed",
-    "title": "Sensory — Detailed",
-    "file": "sensory_detailed.md",
-    "group": "sensory_intensity",
-    "order": 42
+    "id": "intensity_charged",
+    "title": "Intensity — Charged",
+    "file": "intensity_charged.md",
+    "group": "scene_intensity",
+    "order": 67
   },
   {
-    "id": "sensory_visceral",
-    "title": "Sensory — Visceral",
-    "file": "sensory_visceral.md",
-    "group": "sensory_intensity",
-    "order": 43
+    "id": "intensity_raw",
+    "title": "Intensity — Raw",
+    "file": "intensity_raw.md",
+    "group": "scene_intensity",
+    "order": 68
   },
   {
-    "id": "dialogue_minimal",
-    "title": "Dialogue — Minimal",
-    "file": "dialogue_minimal.md",
-    "group": "dialogue_register",
-    "order": 44
+    "id": "dialogue_silent",
+    "title": "Dialogue — Silent",
+    "file": "dialogue_silent.md",
+    "group": "dialogue_style",
+    "order": 69
   },
   {
     "id": "dialogue_playful",
     "title": "Dialogue — Playful",
     "file": "dialogue_playful.md",
-    "group": "dialogue_register",
-    "order": 45
+    "group": "dialogue_style",
+    "order": 70
   },
   {
     "id": "dialogue_candid",
     "title": "Dialogue — Candid",
     "file": "dialogue_candid.md",
-    "group": "dialogue_register",
-    "order": 46
+    "group": "dialogue_style",
+    "order": 71
   },
   {
     "id": "dialogue_commanding",
     "title": "Dialogue — Commanding",
     "file": "dialogue_commanding.md",
-    "group": "dialogue_register",
-    "order": 47
+    "group": "dialogue_style",
+    "order": 72
   },
   {
     "id": "format_rules",
@@ -75,20 +75,6 @@
     "file": "format_rules.md",
     "group": "core",
     "order": 50
-  },
-  {
-    "id": "no_meta",
-    "title": "No Meta",
-    "file": "no_meta.md",
-    "group": "core",
-    "order": 60
-  },
-  {
-    "id": "continuity",
-    "title": "Continuity",
-    "file": "continuity.md",
-    "group": "core",
-    "order": 70
   },
   {
     "id": "pov_third",

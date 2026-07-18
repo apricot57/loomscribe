@@ -1,3 +1,3 @@
-## Dialogue — Playful Banter
+## Dialogue — Playful
 
-Use lighthearted, witty, and playful dialogue. Characters exchange banter, use subtext, tease one another, and drop suggestive hints. Dialogue should build tension, chemistry, and playfulness through verbal sparring.
+Characters speak in suggestive, teasing, and playful banter. Focus on double meanings, wit, and lightness on the surface while maintaining underlying tension. Use deflection, humor, and unfinished thoughts to build conversational engagement.

@@ -15,35 +15,80 @@
     "label": "Point of View",
     "type": "select",
     "options": [
-      { "value": "third",  "label": "Close Third" },
-      { "value": "first",  "label": "Deep First" },
-      { "value": "author", "label": "Omniscient" }
+      {
+        "value": "third",
+        "label": "Close Third"
+      },
+      {
+        "value": "first",
+        "label": "Deep First"
+      },
+      {
+        "value": "author",
+        "label": "Omniscient"
+      },
+      {
+        "value": "off",
+        "label": "Off"
+      }
     ],
     "default": "third",
     "slot": "system"
   },
   {
-    "id": "sensory_intensity",
-    "label": "Sensory Intensity",
+    "id": "scene_intensity",
+    "label": "Scene Intensity",
     "type": "select",
     "options": [
-      { "value": "poetic",   "label": "Poetic / Atmospheric" },
-      { "value": "tactile",  "label": "Tactile / Close-up" },
-      { "value": "detailed", "label": "Detailed / Explicit" },
-      { "value": "visceral", "label": "Visceral / Intense" }
+      {
+        "value": "tender",
+        "label": "Tender"
+      },
+      {
+        "value": "sensory",
+        "label": "Sensory"
+      },
+      {
+        "value": "charged",
+        "label": "Charged"
+      },
+      {
+        "value": "raw",
+        "label": "Raw"
+      },
+      {
+        "value": "off",
+        "label": "Off"
+      }
     ],
-    "default": "detailed",
+    "default": "charged",
     "slot": "system"
   },
   {
-    "id": "dialogue_register",
-    "label": "Dialogue Register",
+    "id": "dialogue_style",
+    "label": "Dialogue Style",
     "type": "select",
     "options": [
-      { "value": "minimal",    "label": "Minimal Dialogue / Silent" },
-      { "value": "playful",    "label": "Playful Banter / Subtext" },
-      { "value": "candid",     "label": "Candid / Direct" },
-      { "value": "commanding", "label": "Power / Command" }
+      {
+        "value": "silent",
+        "label": "Silent"
+      },
+      {
+        "value": "playful",
+        "label": "Playful"
+      },
+      {
+        "value": "candid",
+        "label": "Candid"
+      },
+      {
+        "value": "commanding",
+        "label": "Commanding"
+      },
+      {
+        "value": "off",
+        "label": "Off"
+      }
     ],
     "default": "playful",
     "slot": "system"
@@ -53,9 +98,22 @@
     "label": "POV Focus Spotlight",
     "type": "select",
     "options": [
-      { "value": "balanced", "label": "Balanced" },
-      { "value": "self",     "label": "POV Interiority" },
-      { "value": "partner",  "label": "Partner Reaction" }
+      {
+        "value": "balanced",
+        "label": "Balanced"
+      },
+      {
+        "value": "self",
+        "label": "POV Interiority"
+      },
+      {
+        "value": "partner",
+        "label": "Partner Reaction"
+      },
+      {
+        "value": "off",
+        "label": "Off"
+      }
     ],
     "default": "balanced",
     "slot": "system"
@@ -68,12 +126,26 @@
     "slot": "post_history"
   },
   {
+    "id": "suggest_choices",
+    "label": "Suggest Next Choices",
+    "type": "toggle",
+    "default": false,
+    "slot": "post_history"
+  },
+  {
     "id": "pushback",
     "label": "Pushback / Resistance",
     "type": "slider",
-    "min": 1,
+    "min": 0,
     "max": 5,
-    "labels": ["Compliant", "", "Realistic", "", "Resistant"],
+    "labels": [
+      "Off",
+      "Compliant",
+      "Hesitant",
+      "Realistic",
+      "Reluctant",
+      "Resistant"
+    ],
     "default": 3,
     "slot": "post_history"
   },

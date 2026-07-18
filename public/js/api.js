@@ -1,4 +1,5 @@
 import { state } from './state.js';
+import { authFetch } from './auth.js';
 
 /**
  * Fetches all messages for a conversation, sorted chronologically,
@@ -6,7 +7,7 @@ import { state } from './state.js';
  * System prompt injection is handled server-side by compilePrompt().
  */
 export async function buildApiPayload(conversationId) {
-    const mRes = await fetch(`/api/messages?conversationId=${conversationId}`);
+    const mRes = await authFetch(`/api/messages?conversationId=${conversationId}`);
     const all = mRes.ok ? await mRes.json() : [];
     all.sort((a, b) => a.timestamp - b.timestamp);
     const active = all.filter(m => m.isActive !== false);
@@ -22,7 +23,7 @@ export async function buildApiPayload(conversationId) {
  * Used for regeneration.
  */
 export async function buildApiPayloadUpTo(conversationId, stopAfterMsgId) {
-    const mRes = await fetch(`/api/messages?conversationId=${conversationId}`);
+    const mRes = await authFetch(`/api/messages?conversationId=${conversationId}`);
     const all = mRes.ok ? await mRes.json() : [];
     all.sort((a, b) => a.timestamp - b.timestamp);
     const active = all.filter(m => m.isActive !== false);
@@ -36,7 +37,7 @@ export async function buildApiPayloadUpTo(conversationId, stopAfterMsgId) {
 
 export async function checkIsLastActiveAssistant(msgId) {
     if (!state.currentConversationId) return false;
-    const mRes = await fetch(`/api/messages?conversationId=${state.currentConversationId}`);
+    const mRes = await authFetch(`/api/messages?conversationId=${state.currentConversationId}`);
     const all = mRes.ok ? await mRes.json() : [];
     all.sort((a, b) => a.timestamp - b.timestamp);
     const activeAssistants = all.filter(m => m.role === 'assistant' && m.isActive !== false);
@@ -49,7 +50,7 @@ export async function autoTitleConversation(convId, promptText) {
     if (!title) return;
 
     try {
-        const convRes = await fetch(`/api/conversations/${convId}`);
+        const convRes = await authFetch(`/api/conversations/${convId}`);
         if (convRes.ok) {
             const conv = await convRes.json();
             const currentTitle = (conv?.title || '').trim();
@@ -61,7 +62,7 @@ export async function autoTitleConversation(convId, promptText) {
         console.warn('Skipping auto-title check because conversation lookup failed:', err);
     }
 
-    await fetch(`/api/conversations/${convId}`, {
+    await authFetch(`/api/conversations/${convId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title })
@@ -165,7 +166,7 @@ function syncConversationTitleInUI(convId, title) {
 
 export async function getEngineSchema() {
     if (state.engineSchema) return state.engineSchema;
-    const res = await fetch('/api/engine/schema');
+    const res = await authFetch('/api/engine/schema');
     if (res.ok) {
         state.engineSchema = await res.json();
         return state.engineSchema;
@@ -175,7 +176,7 @@ export async function getEngineSchema() {
 
 export async function getEnginePresets(forceRefresh = false) {
     if (state.enginePresets && !forceRefresh) return state.enginePresets;
-    const res = await fetch('/api/engine/presets');
+    const res = await authFetch('/api/engine/presets');
     if (res.ok) {
         state.enginePresets = await res.json();
         return state.enginePresets;
@@ -184,7 +185,7 @@ export async function getEnginePresets(forceRefresh = false) {
 }
 
 export async function createOrImportPreset(presetJson) {
-    const res = await fetch('/api/engine/presets', {
+    const res = await authFetch('/api/engine/presets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(presetJson)
@@ -196,7 +197,7 @@ export async function createOrImportPreset(presetJson) {
 }
 
 export async function updatePreset(id, presetJson) {
-    const res = await fetch(`/api/engine/presets/${id}`, {
+    const res = await authFetch(`/api/engine/presets/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(presetJson)
@@ -209,7 +210,7 @@ export async function updatePreset(id, presetJson) {
 
 export async function deletePreset(id, force = false) {
     const url = `/api/engine/presets/${id}${force ? '?force=1' : ''}`;
-    const res = await fetch(url, { method: 'DELETE' });
+    const res = await authFetch(url, { method: 'DELETE' });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to delete preset');
     state.enginePresets = null; // bust cache
@@ -217,7 +218,7 @@ export async function deletePreset(id, force = false) {
 }
 
 export async function getEnginePreset(presetId) {
-    const res = await fetch(`/api/engine/presets/${presetId}`);
+    const res = await authFetch(`/api/engine/presets/${presetId}`);
     if (res.ok) {
         return await res.json();
     }
@@ -225,7 +226,7 @@ export async function getEnginePreset(presetId) {
 }
 
 export async function compilePromptPreview({ presetId, params, blockOverrides, directorNote }) {
-    const res = await fetch('/api/engine/compile', {
+    const res = await authFetch('/api/engine/compile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ presetId, params, blockOverrides, directorNote })

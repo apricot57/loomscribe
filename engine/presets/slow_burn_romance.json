@@ -1,0 +1,28 @@
+{
+  "id": "slow_burn_romance",
+  "title": "Slow Burn Romance",
+  "category": "Romance & Drama",
+  "description": "Character-driven romantic drama focusing on subtle emotional progression, growing intimacy, and unspoken feelings.",
+  "system_body": "This scenario focuses on the gradual buildup of romantic feelings and emotional connection. Emphasize small gestures, shared looks, subtext in conversation, and the physical awareness of being near one another. Write with a warm, intimate tone, focusing heavily on character thoughts, vulnerabilities, and internal conflict. Keep physical descriptions tender and focused on connection rather than raw speed or physical mechanics.",
+  "post_history_body": "",
+  "blocks": [
+    { "id": "base_writer",   "enabled": true,  "order": 10 },
+    { "id": "tone_register", "enabled": true,  "order": 20 },
+    { "id": "format_rules",  "enabled": true,  "order": 50 },
+    { "id": "pov_third",     "enabled": true,  "order": 80 },
+    { "id": "pov_first",     "enabled": false, "order": 81 },
+    { "id": "pov_author",    "enabled": false, "order": 82 }
+  ],
+  "defaults": {
+    "word_count": 1500,
+    "pov": "third",
+    "scene_intensity": "tender",
+    "dialogue_style": "playful",
+    "pov_focus": "balanced",
+    "pushback": 3,
+    "complication_generator": true,
+    "suggest_choices": false,
+    "outline_mode": false,
+    "premises_mode": false
+  }
+}

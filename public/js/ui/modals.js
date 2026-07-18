@@ -1,3 +1,4 @@
+import { authFetch } from '../auth.js';
 import { state, escapeHtml } from '../state.js';
 import { safeAsync } from './helpers.js';
 import { updateKeyStatusUI } from './input.js';
@@ -146,7 +147,7 @@ export function initKeyModal() {
                 showToast('Please enter a valid DeepSeek API key.', 'warning');
                 return;
             }
-            const res = await fetch('/api/config', {
+            const res = await authFetch('/api/config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ apiKey: keyVal })
@@ -165,7 +166,7 @@ export function initKeyModal() {
 
     if (deleteKeyBtn) {
         deleteKeyBtn.addEventListener('click', safeAsync(async () => {
-            const res = await fetch('/api/config', {
+            const res = await authFetch('/api/config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ apiKey: "" })
@@ -214,7 +215,7 @@ export function initPromptEditorModal() {
             if (state.editingPromptId) {
                 payload.id = state.editingPromptId;
             }
-            await fetch('/api/user-prompts', {
+            await authFetch('/api/user-prompts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -252,12 +253,12 @@ export function initDeleteModal() {
             // Clear draft from localStorage on delete
             localStorage.removeItem(`loomscribe_draft_${id}`);
 
-            await fetch(`/api/conversations/${id}`, {
+            await authFetch(`/api/conversations/${id}`, {
                 method: 'DELETE'
             });
             
             if (state.currentConversationId === id) {
-                const cRes = await fetch('/api/conversations');
+                const cRes = await authFetch('/api/conversations');
                 const conversations = cRes.ok ? await cRes.json() : [];
                 conversations.sort((a, b) => b.createdAt - a.createdAt);
                 const latest = conversations[0];

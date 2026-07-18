@@ -1,3 +1,4 @@
+import { authFetch } from '../auth.js';
 import { state } from '../state.js';
 import { initializeModelUI } from './input.js';
 import { renderRightPane, clearPendingSave } from './right-pane.js';
@@ -19,7 +20,7 @@ export async function loadConversations() {
     const sidebar = document.getElementById('sidebar');
     if (!chatsList) return;
 
-    const res = await fetch('/api/conversations');
+    const res = await authFetch('/api/conversations');
     let conversations = [];
     if (res.ok) {
         conversations = await res.json();
@@ -125,7 +126,7 @@ export async function switchConversation(id) {
         }
     });
 
-    const cRes = await fetch(`/api/conversations/${id}`);
+    const cRes = await authFetch(`/api/conversations/${id}`);
     const conv = cRes.ok ? await cRes.json() : null;
 
     if (conv && conv.activeModel) {
@@ -136,7 +137,7 @@ export async function switchConversation(id) {
     clearPendingSave();
     await renderRightPane(conv);
 
-    const mRes = await fetch(`/api/messages?conversationId=${id}`);
+    const mRes = await authFetch(`/api/messages?conversationId=${id}`);
     const allMessages = mRes.ok ? await mRes.json() : [];
     allMessages.sort((a, b) => a.timestamp - b.timestamp);
     const activeMessages = allMessages.filter(m => m.isActive !== false);
@@ -212,6 +213,12 @@ export async function switchConversation(id) {
     const sidebar = document.getElementById('sidebar');
     if (window.innerWidth <= 768 && sidebar) {
         sidebar.classList.remove('active');
+        const backdrop = document.getElementById('layout-backdrop');
+        if (backdrop) {
+            const rightPane = document.getElementById('right-pane');
+            const isRightActive = rightPane && rightPane.classList.contains('active');
+            if (!isRightActive) backdrop.classList.add('hidden');
+        }
     }
 }
 
@@ -230,7 +237,7 @@ export async function createNewConversation(title = 'New Chat', presetId = null)
         }
     }
 
-    const res = await fetch('/api/conversations', {
+    const res = await authFetch('/api/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -290,6 +297,12 @@ export async function createNewConversation(title = 'New Chat', presetId = null)
     const sidebar = document.getElementById('sidebar');
     if (window.innerWidth <= 768 && sidebar) {
         sidebar.classList.remove('active');
+        const backdrop = document.getElementById('layout-backdrop');
+        if (backdrop) {
+            const rightPane = document.getElementById('right-pane');
+            const isRightActive = rightPane && rightPane.classList.contains('active');
+            if (!isRightActive) backdrop.classList.add('hidden');
+        }
     }
 
     return newId;
@@ -339,7 +352,7 @@ export function startInlineRename(item, titleSpan, id, currentTitle) {
             if (deleteBtn) deleteBtn.style.display = '';
             item.title = newTitle;
             
-            await fetch(`/api/conversations/${id}`, {
+            await authFetch(`/api/conversations/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ title: newTitle })
@@ -374,17 +387,47 @@ export function initSidebar() {
     const sidebar = document.getElementById('sidebar');
     const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
     const sidebarCloseBtn = document.getElementById('sidebar-close-btn');
+    const backdrop = document.getElementById('layout-backdrop');
+
+    const updateBackdrop = () => {
+        if (!backdrop) return;
+        const rightPane = document.getElementById('right-pane');
+        const isRightActive = rightPane && rightPane.classList.contains('active');
+        const isSidebarActive = sidebar && sidebar.classList.contains('active');
+        if (isRightActive || isSidebarActive) {
+            backdrop.classList.remove('hidden');
+        } else {
+            backdrop.classList.add('hidden');
+        }
+    };
 
     // Toggle Sidebar on mobile viewports
     if (sidebarToggleBtn && sidebar) {
         sidebarToggleBtn.addEventListener('click', () => {
             sidebar.classList.add('active');
+            // Ensure right-pane is closed when sidebar opens on mobile
+            const rightPane = document.getElementById('right-pane');
+            if (rightPane) {
+                rightPane.classList.add('collapsed');
+                rightPane.classList.remove('active');
+            }
+            updateBackdrop();
         });
     }
 
     if (sidebarCloseBtn && sidebar) {
         sidebarCloseBtn.addEventListener('click', () => {
             sidebar.classList.remove('active');
+            updateBackdrop();
+        });
+    }
+
+    if (backdrop) {
+        backdrop.addEventListener('click', () => {
+            if (sidebar) {
+                sidebar.classList.remove('active');
+            }
+            updateBackdrop();
         });
     }
 }
