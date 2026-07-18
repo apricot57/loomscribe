@@ -19,8 +19,8 @@ DeepSeek models utilize a key-value (KV) cache of the prefix prompt. To prevent 
 Loaded directly from a central JSON schema, the right pane provides a live suite of parameters:
 *   **System-Slot Controls (Busts Cache - Amber Warning Dot)**:
     *   **Point of View**: Toggle between *Close Third*, *Deep First*, and *Omniscient* POV blocks.
-    *   **Sensory Intensity**: Adjust from *Poetic*, *Tactile*, *Detailed*, to *Visceral* narrative tone and description level.
-    *   **Dialogue Register**: Control dialogue styling (*Minimal*, *Playful*, *Candid*, *Commanding*).
+    *   **Scene Intensity**: Adjust from *Tender*, *Sensory*, *Charged*, to *Raw* narrative tone and description depth.
+    *   **Dialogue Style**: Control dialogue styling (*Silent*, *Playful*, *Candid*, *Commanding*).
     *   **POV Focus Spotlight**: Shift narrative focus between *Balanced*, *POV Interiority*, and *Partner Reaction*.
     *   **Outline / Brainstorm Mode**: Switch the model into planning mode instead of full prose.
     *   **Premises & Ideas Mode**: Switch the model into six-premise generation mode instead of prose.
@@ -82,6 +82,7 @@ cp .env.example .env
 Open `.env` and configure your settings:
 *   `PORT`: Port to host the app (defaults to `3000`).
 *   `DEEPSEEK_API_KEY`: Set your `sk-...` API key here. (Alternatively, configure it securely in the UI sidebar settings).
+*   `APP_PASSWORD`: Set a password to protect the LoomScribe workspace interface. (If left blank, authentication check is skipped).
 
 ![LoomScribe API Key Configuration](screenshots/api_config_modal.png)
 
@@ -108,22 +109,21 @@ loomscribe/
 │   │   ├── base_writer.md      # Core AI identity
 │   │   ├── tone_register.md    # Baseline prose standards
 │   │   ├── format_rules.md     # Layout, markdown formatting, paragraph structures
-│   │   ├── no_meta.md          # Avoid disclaimers, notes, and AI warnings
-│   │   ├── continuity.md       # Adhere to story state
 │   │   ├── premises_mode.md    # Instructions for six-premise generation
 │   │   ├── pov_*.md            # Point-of-view definitions (first, third, author)
 │   │   ├── focus_*.md          # POV spotlight controls (self, partner, balanced)
-│   │   ├── sensory_*.md        # Sensory intensity levels (poetic, tactile, detailed, visceral)
-│   │   └── dialogue_*.md       # Dialogue speech registers (minimal, playful, candid, commanding)
+│   │   ├── intensity_*.md      # Scene intensity levels (tender, sensory, charged, raw)
+│   │   └── dialogue_*.md       # Dialogue styles (silent, playful, candid, commanding)
 │   ├── presets/                # Preset JSON files (defining categories & defaults)
 │   ├── compiler.js             # Resolves schema parameters and compiles dual-slot output
 │   ├── schema.json             # Parameter definitions loaded by the UI to render inputs
 ├── public/                     # Zero-build frontend files
 │   ├── css/                    # Modular stylesheet components (layout, chat, sidebar, right-pane)
-│   ├── js/                     # Domain modules (api, ui, chat, version-tree, preset-manager)
+│   ├── js/                     # Domain modules (api, ui, auth, chat, version-tree, preset-manager)
 │   ├── index.html              # Main application entry point
+│   └── login.html              # Authentication login screen
 ├── src/server/                 # Express backend source code
-│   ├── endpoints/              # Modular REST endpoint routes (conversations, config, presets)
+│   ├── endpoints/              # Modular REST endpoint routes (conversations, config, presets, auth)
 │   └── routes.js               # API router integration
 └── server.js                   # Application main runner file
 ```
@@ -134,7 +134,7 @@ loomscribe/
 
 When compiling a turn's prompt, `engine/compiler.js` automatically groups instructions to maximize caching:
 
-1.  **Block Selection**: The compiler selects the appropriate POV, sensory intensity, dialogue register, and focus spotlight blocks based on settings.
+1.  **Block Selection**: The compiler selects the appropriate POV, scene intensity, dialogue style, and focus spotlight blocks based on settings.
 2.  **Concat Slot 1**: Integrates the stable preset body and foundational blocks.
 3.  **Concat Slot 2**: Integrates the dynamic length targets, character pushback settings, complications, and the user's Director's Note.
 
