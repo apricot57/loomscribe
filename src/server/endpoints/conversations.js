@@ -82,6 +82,89 @@ function registerConversationsRoutes(app) {
         }
     });
 
+    app.post('/api/conversations/:id/fork', (req, res) => {
+        const idStr = req.params.id;
+        const id = isNaN(idStr) ? idStr : parseInt(idStr, 10);
+        const { messageId: targetMsgIdRaw, title: customTitle } = req.body || {};
+        
+        if (targetMsgIdRaw === undefined || targetMsgIdRaw === null) {
+            res.status(400).send('Missing messageId');
+            return;
+        }
+
+        const targetMsgId = isNaN(targetMsgIdRaw) ? targetMsgIdRaw : parseInt(targetMsgIdRaw, 10);
+
+        const db = readDb();
+        const origConv = (db.conversations || []).find(c => c.id === id);
+        if (!origConv) {
+            res.status(404).send('Conversation Not Found');
+            return;
+        }
+
+        const allMessages = db.messages || [];
+        const targetMsg = allMessages.find(m => m.id === targetMsgId && m.conversationId === id);
+        if (!targetMsg) {
+            res.status(404).send('Target message not found');
+            return;
+        }
+
+        // Build active message chain up to targetMsg
+        const activeMessages = allMessages.filter(m => m.conversationId === id && m.isActive !== false);
+        const activeMap = new Map();
+        activeMessages.forEach(m => activeMap.set(m.id, m));
+
+        const chain = [];
+        let current = activeMap.get(targetMsgId) || targetMsg;
+        while (current) {
+            chain.unshift(current);
+            if (!current.parentMsgId) break;
+            current = activeMap.get(current.parentMsgId) || allMessages.find(m => m.id === current.parentMsgId);
+        }
+
+        // Create new conversation
+        if (!db.conversations) db.conversations = [];
+        const newConvTitle = customTitle || (origConv.title ? `Fork of ${origConv.title}` : 'Forked Chat');
+        const newConv = {
+            id: generateUniqueId(db, 'conversations'),
+            title: newConvTitle,
+            activeModel: origConv.activeModel || 'deepseek-v4-pro',
+            systemPromptId: origConv.systemPromptId || null,
+            presetId: origConv.presetId || null,
+            params: origConv.params ? { ...origConv.params } : {},
+            blockOverrides: origConv.blockOverrides ? { ...origConv.blockOverrides } : {},
+            directorNote: origConv.directorNote || '',
+            lastAppliedEngineSignature: origConv.lastAppliedEngineSignature || '',
+            createdAt: Date.now()
+        };
+        db.conversations.push(newConv);
+
+        // Copy message chain
+        if (!db.messages) db.messages = [];
+        const idMap = new Map();
+        for (const msg of chain) {
+            const newMsgId = generateUniqueId(db, 'messages');
+            idMap.set(msg.id, newMsgId);
+
+            const newParentId = msg.parentMsgId ? (idMap.get(msg.parentMsgId) || null) : null;
+            const newMsg = {
+                id: newMsgId,
+                conversationId: newConv.id,
+                role: msg.role,
+                content: msg.content,
+                reasoning: msg.reasoning,
+                timestamp: msg.timestamp,
+                parentMsgId: newParentId,
+                versionGroupId: newMsgId,
+                version: 1,
+                isActive: true
+            };
+            db.messages.push(newMsg);
+        }
+
+        writeDb(db);
+        res.json(newConv);
+    });
+
     app.delete('/api/conversations/:id', (req, res) => {
         const idStr = req.params.id;
         const id = isNaN(idStr) ? idStr : parseInt(idStr, 10);

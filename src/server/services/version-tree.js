@@ -26,7 +26,7 @@ function showDescendants(db, msgId) {
         
         let bestChild = children[0];
         for (let i = 1; i < children.length; i++) {
-            if (children[i].versionGroupId === bestChild.versionGroupId) {
+            if (children[i].versionGroupId && children[i].versionGroupId === bestChild.versionGroupId) {
                 if ((children[i].version || 1) > (bestChild.version || 1)) {
                     bestChild = children[i];
                 }
@@ -38,12 +38,43 @@ function showDescendants(db, msgId) {
         }
         
         bestChild.isActive = true;
+        
+        // Deactivate all other siblings and their descendants
+        for (const child of children) {
+            if (child.id !== bestChild.id) {
+                child.isActive = false;
+                deactivateMessageTree(db, child.id);
+            }
+        }
+        
         currentId = bestChild.id;
     }
+}
+
+function deleteVersionGroupAndDescendants(db, versionGroupId) {
+    const versions = (db.messages || []).filter(m => m.versionGroupId === versionGroupId || m.id === versionGroupId);
+    const idsToDelete = new Set(versions.map(v => v.id));
+
+    const queue = Array.from(idsToDelete);
+    while (queue.length > 0) {
+        const currentId = queue.shift();
+        const descendants = (db.messages || []).filter(m => m.parentMsgId != null && String(m.parentMsgId) === String(currentId));
+        for (const child of descendants) {
+            if (!idsToDelete.has(child.id)) {
+                idsToDelete.add(child.id);
+                queue.push(child.id);
+            }
+        }
+    }
+
+    db.messages = (db.messages || []).filter(m => !idsToDelete.has(m.id));
+    return Array.from(idsToDelete);
 }
 
 module.exports = {
     deactivateMessageTree,
     deactivateVersionGroupAndDescendants,
-    showDescendants
+    showDescendants,
+    deleteVersionGroupAndDescendants
 };
+

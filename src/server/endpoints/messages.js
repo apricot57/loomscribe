@@ -3,7 +3,8 @@ const { generateUniqueId } = require('../utils');
 const {
     deactivateMessageTree,
     deactivateVersionGroupAndDescendants,
-    showDescendants
+    showDescendants,
+    deleteVersionGroupAndDescendants
 } = require('../services/version-tree');
 
 function registerMessagesRoutes(app) {
@@ -156,6 +157,68 @@ function registerMessagesRoutes(app) {
         res.json({ success: true });
     });
 
+    // Sub-route: /api/messages/navigate-turn
+    app.post('/api/messages/navigate-turn', (req, res) => {
+        const { userMsgId: userMsgIdRaw, assistantMsgId: assistantMsgIdRaw } = req.body;
+        if (!userMsgIdRaw) {
+            res.status(400).send('Missing userMsgId');
+            return;
+        }
+
+        const userMsgId = isNaN(userMsgIdRaw) ? userMsgIdRaw : parseInt(userMsgIdRaw, 10);
+        const assistantMsgId = assistantMsgIdRaw === undefined || assistantMsgIdRaw === null
+            ? null
+            : (isNaN(assistantMsgIdRaw) ? assistantMsgIdRaw : parseInt(assistantMsgIdRaw, 10));
+
+        const db = readDb();
+        const userMsg = db.messages.find(m => m.id === userMsgId);
+        if (!userMsg) {
+            res.status(404).send('User message not found');
+            return;
+        }
+
+        // 1. Handle user message version group
+        const userVGId = userMsg.versionGroupId || userMsg.id;
+        const userVersions = db.messages.filter(m => m.role === 'user' && (m.versionGroupId === userVGId || m.id === userVGId));
+        for (const u of userVersions) {
+            u.isActive = (u.id === userMsg.id);
+        }
+
+        // 2. Handle assistant messages for the target user message
+        const assistantVersions = db.messages.filter(m => m.role === 'assistant' && m.parentMsgId === userMsg.id);
+        
+        let targetAssistantMsg = null;
+        if (assistantMsgId) {
+            targetAssistantMsg = assistantVersions.find(m => m.id === assistantMsgId);
+        }
+
+        for (const r of assistantVersions) {
+            r.isActive = (targetAssistantMsg && r.id === targetAssistantMsg.id);
+        }
+
+        // 3. Deactivate descendants of all deactivated versions
+        for (const u of userVersions) {
+            if (u.id !== userMsg.id) {
+                deactivateMessageTree(db, u.id);
+            }
+        }
+        for (const r of assistantVersions) {
+            if (!targetAssistantMsg || r.id !== targetAssistantMsg.id) {
+                deactivateMessageTree(db, r.id);
+            }
+        }
+
+        // 4. Activate descendants of the active path
+        if (targetAssistantMsg) {
+            showDescendants(db, targetAssistantMsg.id);
+        } else {
+            showDescendants(db, userMsg.id);
+        }
+
+        writeDb(db);
+        res.json({ success: true });
+    });
+
     // Base route: /api/messages/:id (PUT)
     app.put('/api/messages/:id', (req, res) => {
         const idStr = req.params.id;
@@ -177,6 +240,24 @@ function registerMessagesRoutes(app) {
         } else {
             res.status(404).send('Not Found');
         }
+    });
+
+    app.delete('/api/messages/:id/version-group', (req, res) => {
+        const msgIdStr = req.params.id;
+        const msgId = isNaN(msgIdStr) ? msgIdStr : parseInt(msgIdStr, 10);
+        const db = readDb();
+        
+        const msg = db.messages.find(m => m.id === msgId);
+        if (!msg) {
+            res.status(404).send('Message Not Found');
+            return;
+        }
+        
+        const versionGroupId = msg.versionGroupId || msg.id;
+        const deletedIds = deleteVersionGroupAndDescendants(db, versionGroupId);
+        
+        writeDb(db);
+        res.json({ success: true, deletedIds });
     });
 }
 
