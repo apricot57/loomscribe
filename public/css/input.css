@@ -2,21 +2,37 @@
    Chat Input Footer
    ========================================================================== */
 .chat-footer {
-    padding: 10px 20px 24px;
+    padding: 16px 24px 24px;
     display: flex;
     justify-content: center;
-    background: linear-gradient(180deg, transparent 0%, var(--bg-main) 40%);
+    background: transparent;
     position: relative;
     z-index: 10;
 }
 
 .input-area-container {
-    max-width: 720px;
+    max-width: 900px;
     width: 100%;
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 8px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-highlight), var(--shadow-m3-mid);
+    border-radius: 20px;
+    padding: 12px 16px;
+    transition: var(--transition-m3);
+    max-height: 60vh;
+    overflow: visible;
+}
+
+.input-area-container:focus-within {
+    border-color: rgba(56, 189, 248, 0.4);
+    box-shadow: 0 0 24px rgba(56, 189, 248, 0.15), var(--shadow-m3-high);
 }
 
 /* Cozy pill-shaped chat container */
@@ -72,18 +88,19 @@
 }
 
 #user-input {
+    width: 100%;
     flex: 1;
     background: transparent;
     border: none;
     outline: none;
     color: var(--text-primary);
-    font-size: 0.975rem;
+    font-family: var(--font-body);
+    font-size: 0.98rem;
+    line-height: 1.5;
     padding: 8px 0;
-    font-family: inherit;
     resize: none;
     overflow-y: auto;
-    max-height: 150px;
-    line-height: 1.5;
+    max-height: 200px;
 }
 
 #user-input::placeholder {
@@ -91,27 +108,26 @@
     opacity: 0.65;
 }
 
-/* Tactile Send Button */
-#send-btn {
-    background-color: var(--accent-color);
-    border: none;
-    width: 40px;
-    height: 40px;
-    border-radius: 8px; /* Curved corner square to match chatbox */
-    display: flex;
-    justify-content: center;
-    align-items: center;
+/* Tactile Control Buttons */
+#send-btn, #stop-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--accent-color);
     color: var(--accent-text);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
     transition: var(--transition-m3);
-    box-shadow: 0 4px 10px rgba(56, 189, 248, 0.3);
+    flex-shrink: 0;
 }
 
 #send-btn:hover {
-    background-color: var(--accent-hover);
-    color: var(--accent-text);
-    box-shadow: 0 6px 14px rgba(56, 189, 248, 0.5);
+    background: var(--accent-hover);
     transform: scale(1.05);
+    box-shadow: 0 0 16px var(--accent-glow);
 }
 
 #send-btn:active {
@@ -123,21 +139,10 @@
     height: 18px;
 }
 
-/* Stop Generation Button */
 #stop-btn {
     background-color: #ef4444;
-    border: none;
-    width: 40px;
-    height: 40px;
-    border-radius: 8px; /* Curved corner square to match chatbox */
-    display: flex;
-    justify-content: center;
-    align-items: center;
     color: #fff;
-    cursor: pointer;
-    transition: var(--transition-m3);
     box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
-    flex-shrink: 0;
 }
 
 #stop-btn:hover {
@@ -161,12 +166,12 @@
 }
 
 /* ==========================================================================
-   Material 3 Floating Model Dropdown Selector
+   Material 3 Floating Model Dropdown Selector & Control Pills
    ========================================================================== */
 .chat-config-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     margin-bottom: 8px;
     margin-left: 12px;
     align-self: flex-start;
@@ -181,7 +186,7 @@
                 transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
                 margin-bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1),
                 padding 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    overflow: hidden;
+    overflow: visible;
 }
 
 .chat-config-row.collapsed {
@@ -192,106 +197,59 @@
     padding-bottom: 0 !important;
     transform: translateY(-10px) scale(0.95) !important;
     pointer-events: none !important;
+    overflow: hidden !important;
 }
 
-.model-select-wrapper {
-    position: relative;
-}
-
-.model-dropdown-btn {
-    height: 38px;
-    box-sizing: border-box;
-    background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(168, 85, 247, 0.1));
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(56, 189, 248, 0.3);
-    color: var(--text-primary);
-    padding: 0 18px;
-    border-radius: var(--border-radius-pill); /* Pill shaped buttons */
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: var(--transition-m3);
-    font-family: inherit;
-    outline: none;
-    box-shadow: 0 4px 15px rgba(56, 189, 248, 0.15);
-}
-
-.model-dropdown-btn:hover {
-    background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(168, 85, 247, 0.2));
-    color: #ffffff;
-    border-color: rgba(56, 189, 248, 0.6);
-    box-shadow: 0 6px 20px rgba(56, 189, 248, 0.25);
-    transform: translateY(-1px);
-}
-
-.model-dropdown-btn:focus {
-    border-color: var(--accent-color);
-    box-shadow: 0 0 10px var(--accent-glow);
-}
-
-.model-dropdown-btn:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 10px rgba(56, 189, 248, 0.15);
-}
-
-.dropdown-chevron {
-    width: 14px;
-    height: 14px;
-    color: var(--text-secondary);
-    transition: transform 0.2s ease;
-}
-
-/* Prompt Selector Button (pill, matches model dropdown pattern) */
+.model-select-wrapper,
 .prompt-select-wrapper {
     position: relative;
 }
 
-.prompt-select-btn {
-    height: 38px;
+.model-dropdown-btn, .thinking-toggle-btn, .prompt-select-btn {
+    height: 34px;
     box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(168, 85, 247, 0.1));
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(56, 189, 248, 0.3);
-    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--glass-border);
     border-radius: var(--border-radius-pill);
-    padding: 0 18px;
-    font-family: inherit;
-    font-size: 0.85rem;
-    font-weight: 600;
+    padding: 0 14px;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     cursor: pointer;
     transition: var(--transition-m3);
-    white-space: nowrap;
-    max-width: 220px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    box-shadow: 0 4px 15px rgba(56, 189, 248, 0.15);
+    font-family: inherit;
     outline: none;
+    white-space: nowrap;
 }
 
-.prompt-select-btn:hover {
-    background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(168, 85, 247, 0.2));
-    color: #ffffff;
-    border-color: rgba(56, 189, 248, 0.6);
-    box-shadow: 0 6px 20px rgba(56, 189, 248, 0.25);
-    transform: translateY(-1px);
+.model-dropdown-btn:hover, .thinking-toggle-btn:hover, .prompt-select-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    border-color: rgba(56, 189, 248, 0.3);
 }
 
-.prompt-select-btn:focus {
+.thinking-toggle-btn.active {
+    background: rgba(56, 189, 248, 0.15);
     border-color: var(--accent-color);
-    box-shadow: 0 0 10px var(--accent-glow);
+    color: var(--accent-hover);
+    box-shadow: 0 0 12px var(--accent-glow);
 }
 
-.prompt-select-btn:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 10px rgba(56, 189, 248, 0.15);
+.thinking-icon {
+    flex-shrink: 0;
+    animation: brainPulse 2s infinite ease-in-out;
+}
+
+@keyframes brainPulse {
+    0%, 100% { opacity: 0.7; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.1); }
+}
+
+.prompt-select-btn {
+    max-width: 220px;
 }
 
 .prompt-select-btn #active-prompt-name {
@@ -305,10 +263,14 @@
     flex-shrink: 0;
 }
 
-.prompt-select-wrapper.open .dropdown-chevron {
-    transform: rotate(180deg);
+.dropdown-chevron {
+    width: 14px;
+    height: 14px;
+    color: var(--text-secondary);
+    transition: transform 0.2s ease;
 }
 
+.prompt-select-wrapper.open .dropdown-chevron,
 .model-select-wrapper.open .dropdown-chevron {
     transform: rotate(180deg);
 }
@@ -542,25 +504,26 @@
    Premium Glassmorphic Continue Button
    ========================================================================== */
 .continue-btn {
-    height: 38px;
+    height: 34px;
     box-sizing: border-box;
     background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(168, 85, 247, 0.1));
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(56, 189, 248, 0.3);
     color: var(--text-primary);
-    padding: 0 18px;
+    padding: 0 14px;
     border-radius: var(--border-radius-pill);
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     font-weight: 600;
     cursor: pointer;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     transition: var(--transition-m3);
     font-family: inherit;
     outline: none;
     box-shadow: 0 4px 15px rgba(56, 189, 248, 0.15);
+    white-space: nowrap;
 }
 
 .continue-btn:hover {
@@ -590,74 +553,6 @@
     filter: drop-shadow(0 0 4px var(--accent-glow));
 }
 
-/* Thinking Mode Toggle Button styling */
-.thinking-toggle-btn {
-    height: 38px;
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(168, 85, 247, 0.1));
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(56, 189, 248, 0.3);
-    color: var(--text-primary);
-    border-radius: var(--border-radius-pill);
-    padding: 0 18px;
-    font-family: inherit;
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: var(--transition-m3);
-    white-space: nowrap;
-    box-shadow: 0 4px 15px rgba(56, 189, 248, 0.15);
-    outline: none;
-}
-
-.thinking-toggle-btn:hover {
-    background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(168, 85, 247, 0.2));
-    color: #ffffff;
-    border-color: rgba(56, 189, 248, 0.6);
-    box-shadow: 0 6px 20px rgba(56, 189, 248, 0.25);
-    transform: translateY(-1px);
-}
-
-.thinking-toggle-btn:focus {
-    border-color: var(--accent-color);
-    box-shadow: 0 0 10px var(--accent-glow);
-}
-
-.thinking-toggle-btn:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 10px rgba(56, 189, 248, 0.15);
-}
-
-.thinking-toggle-btn.active {
-    background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(14, 165, 233, 0.2));
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-color: rgba(56, 189, 248, 0.5);
-    color: #38bdf8;
-    box-shadow: 0 4px 15px rgba(56, 189, 248, 0.25);
-}
-
-.thinking-toggle-btn.active:hover {
-    background: linear-gradient(135deg, rgba(56, 189, 248, 0.3), rgba(14, 165, 233, 0.3));
-    border-color: rgba(56, 189, 248, 0.75);
-    color: #38bdf8;
-    box-shadow: 0 6px 20px rgba(56, 189, 248, 0.35);
-    transform: translateY(-1px);
-}
-
-.thinking-icon {
-    flex-shrink: 0;
-    opacity: 0.8;
-}
-
-.thinking-toggle-btn.active .thinking-icon {
-    color: #38bdf8;
-}
-
 /* Mobile configurations for input elements */
 @media (max-width: 768px) {
     .chat-config-row {
@@ -682,10 +577,21 @@
     }
     
     .thinking-toggle-btn {
-        width: 38px;
+        height: 34px;
+        width: 34px;
         padding: 0;
         justify-content: center;
         flex-shrink: 0;
+        box-sizing: border-box;
+    }
+
+    .model-dropdown-btn,
+    .prompt-select-btn {
+        height: 34px;
+        padding: 0 12px;
+        flex-shrink: 0;
+        box-sizing: border-box;
+        align-items: center;
     }
 
     #active-preset-indicator-name {
@@ -736,4 +642,3 @@
         padding: 6px 10px 14px;
     }
 }
-

@@ -6,11 +6,35 @@ import {
     autoTitleConversation
 } from '../api.js';
 import { showToast } from './modals.js';
-import { safeAsync } from './helpers.js';
-import { createNewConversation, loadConversations } from './sidebar.js';
+import { safeAsync, renderMarkdown } from './helpers.js';
+import { createNewConversation, loadConversations, switchConversation } from './sidebar.js';
 import { sendGenerate, sendAbort, socketEvents } from '../socket.js';
 
 const ASSISTANT_DRAFT_STORAGE_PREFIX = 'loomscribe:assistant-drafts:';
+let isSubmitting = false;
+
+export function lockUIForSubmission() {
+    isSubmitting = true;
+    const userInput = document.getElementById('user-input');
+    const sendBtn = document.getElementById('send-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    if (userInput) userInput.disabled = true;
+    if (sendBtn) sendBtn.classList.add('hidden');
+    if (stopBtn) stopBtn.classList.remove('hidden');
+}
+
+export function unlockUIAfterSubmission() {
+    isSubmitting = false;
+    const userInput = document.getElementById('user-input');
+    const sendBtn = document.getElementById('send-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    if (userInput) {
+        userInput.disabled = false;
+        userInput.focus();
+    }
+    if (sendBtn) sendBtn.classList.remove('hidden');
+    if (stopBtn) stopBtn.classList.add('hidden');
+}
 
 export function addMessageToUI(sender, text, reasoning, msgMeta = {}, skipScroll = false) {
     const chatContainer = document.getElementById('chat-container');
@@ -41,17 +65,25 @@ export function addMessageToUI(sender, text, reasoning, msgMeta = {}, skipScroll
             reasoningBlock.appendChild(reasoningHeader);
             reasoningBlock.appendChild(reasoningContent);
             reasoningHeader.addEventListener('click', () => {
-                reasoningBlock.classList.toggle('collapsed');
+                toggleReasoningBlock(reasoningBlock);
             });
             bodyDiv.appendChild(reasoningBlock);
         }
 
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
-        contentDiv.innerHTML = typeof marked !== 'undefined' ? marked.parse(text) : text;
+        contentDiv.innerHTML = renderMarkdown(text);
         contentDiv.setAttribute('data-raw-content', text);
 
         bodyDiv.appendChild(contentDiv);
+
+        if (msgMeta.error) {
+            const errorBanner = document.createElement('div');
+            errorBanner.className = 'message-error-banner';
+            errorBanner.innerHTML = `⚠️ Error: ${escapeHtml(msgMeta.error)}`;
+            bodyDiv.appendChild(errorBanner);
+        }
+
         messageDiv.appendChild(bodyDiv);
     } else {
         const contentDiv = document.createElement('div');
@@ -142,7 +174,7 @@ export function addStreamingBotMessage(customId) {
     reasoningBlock.appendChild(reasoningContent);
 
     reasoningHeader.addEventListener('click', () => {
-        reasoningBlock.classList.toggle('collapsed');
+        toggleReasoningBlock(reasoningBlock);
     });
 
     const contentDiv = document.createElement('div');
@@ -164,10 +196,11 @@ export function updateStreamingReasoning(id, reasoning) {
     if (!msg) return;
     const block = msg.querySelector('.reasoning-content');
     if (!block) return;
+    const wasNear = isNearBottom();
     block.textContent = reasoning;
     const parent = msg.querySelector('.reasoning-block');
     if (parent) parent.classList.remove('collapsed');
-    scrollToBottom();
+    if (wasNear) scrollToBottom();
 }
 
 export function updateStreamingBotMessage(id, content) {
@@ -175,12 +208,19 @@ export function updateStreamingBotMessage(id, content) {
     if (!msg) return;
     const contentDiv = msg.querySelector('.message-content');
     if (!contentDiv) return;
-    contentDiv.innerHTML = typeof marked !== 'undefined' ? marked.parse(content || '') : (content || '');
+    const wasNear = isNearBottom();
+    contentDiv.innerHTML = renderMarkdown(content || '');
+    if (wasNear) scrollToBottom();
 }
 
 export function finalizeStreamingBotMessage(id, content, reasoning) {
     const msg = document.getElementById(id);
     if (!msg) return;
+
+    const chatContainer = document.getElementById('chat-container');
+    const wasNear = isNearBottom();
+
+    const block = msg.querySelector('.reasoning-block');
 
     const header = msg.querySelector('.reasoning-header span');
     if (header) header.textContent = 'Thought';
@@ -188,18 +228,73 @@ export function finalizeStreamingBotMessage(id, content, reasoning) {
     const reasoningContent = msg.querySelector('.reasoning-content');
     if (reasoningContent && reasoning) {
         reasoningContent.textContent = reasoning;
-        const block = msg.querySelector('.reasoning-block');
         if (block) block.classList.add('collapsed');
     } else if (reasoningContent) {
-        const block = msg.querySelector('.reasoning-block');
         if (block) block.remove();
     }
 
     const contentDiv = msg.querySelector('.message-content');
-    if (!contentDiv) return;
-    contentDiv.classList.remove('streaming');
-    contentDiv.innerHTML = typeof marked !== 'undefined' ? marked.parse(content || '') : (content || '');
-    contentDiv.setAttribute('data-raw-content', content || '');
+    const startTop = contentDiv ? contentDiv.getBoundingClientRect().top : 0;
+
+    if (contentDiv) {
+        contentDiv.classList.remove('streaming');
+        contentDiv.innerHTML = renderMarkdown(content || '');
+        contentDiv.setAttribute('data-raw-content', content || '');
+    }
+
+    if (chatContainer) {
+        if (wasNear) {
+            scrollToBottom();
+        } else if (contentDiv) {
+            const endTop = contentDiv.getBoundingClientRect().top;
+            const diff = endTop - startTop;
+            chatContainer.scrollTop += diff;
+        }
+    }
+}
+
+export function isNearBottom() {
+    const chatContainer = document.getElementById('chat-container');
+    if (!chatContainer) return false;
+    const threshold = 15;
+    const distanceToBottom = chatContainer.scrollHeight - chatContainer.clientHeight - chatContainer.scrollTop;
+    return distanceToBottom <= threshold;
+}
+
+export function getRequiredHeight(textarea, fallbackWidth = null) {
+    const clone = textarea.cloneNode(false);
+    clone.style.position = 'absolute';
+    clone.style.visibility = 'hidden';
+    clone.style.height = 'auto';
+    const width = textarea.clientWidth || fallbackWidth || 500;
+    clone.style.width = width + 'px';
+    clone.value = textarea.value;
+    document.body.appendChild(clone);
+    const height = clone.scrollHeight;
+    document.body.removeChild(clone);
+    return height;
+}
+
+export function toggleReasoningBlock(reasoningBlock) {
+    const chatContainer = document.getElementById('chat-container');
+    if (!chatContainer) {
+        reasoningBlock.classList.toggle('collapsed');
+        return;
+    }
+    const wasNear = isNearBottom();
+    const previousScrollTop = chatContainer.scrollTop;
+    const beforeHeight = reasoningBlock.offsetHeight;
+
+    reasoningBlock.classList.toggle('collapsed');
+
+    const afterHeight = reasoningBlock.offsetHeight;
+    const heightDifference = beforeHeight - afterHeight;
+
+    if (wasNear) {
+        scrollToBottom();
+    } else {
+        chatContainer.scrollTop = previousScrollTop - heightDifference;
+    }
 }
 
 let scrollPending = false;
@@ -248,17 +343,26 @@ export async function updateContinueButtonVisibility(activeMessages = null) {
     }
 }
 
+export function enterInlineEditUser(messageDiv, msgId) {
+    return startInlineEdit(messageDiv, msgId);
+}
+
+export function enterInlineEditAssistant(messageDiv, msgId) {
+    return startBotInlineEdit(messageDiv, msgId);
+}
+
 export function attachMessageActions(messageDiv, sender, msgMeta) {
     const msgId = msgMeta.id;
     if (!msgId) return;
 
-    const existing = messageDiv.querySelector('.message-action-row');
-    if (existing) existing.remove();
+    const existingRow = messageDiv.querySelector('.message-action-row');
+    if (existingRow) existingRow.remove();
 
     const actionRow = document.createElement('div');
     actionRow.className = 'message-action-row';
 
-    if (msgMeta.versionCount && msgMeta.versionCount > 1) {
+    const turnInfo = getTurnVersions(msgId, state.allMessages || [], state.activeMessages || []);
+    if (turnInfo && turnInfo.totalCount > 1) {
         const versionNav = document.createElement('div');
         versionNav.className = 'version-nav';
 
@@ -270,14 +374,22 @@ export function attachMessageActions(messageDiv, sender, msgMeta) {
             </svg>
         `;
         prevBtn.title = 'Previous version';
+        if (turnInfo.currentIndex <= 1) {
+            prevBtn.disabled = true;
+            prevBtn.style.opacity = '0.4';
+            prevBtn.style.cursor = 'not-allowed';
+        }
         prevBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            navigateVersion(msgMeta.versionGroupId, (msgMeta.version || 1) - 1);
+            if (turnInfo.currentIndex > 1) {
+                const targetTurn = turnInfo.versions[turnInfo.currentIndex - 2];
+                navigateTurn(targetTurn.userMsg.id, targetTurn.assistantMsg?.id);
+            }
         });
 
         const label = document.createElement('span');
         label.className = 'version-nav-label';
-        label.textContent = `${msgMeta.version || 1}/${msgMeta.versionCount}`;
+        label.textContent = `${turnInfo.currentIndex}/${turnInfo.totalCount}`;
 
         const nextBtn = document.createElement('button');
         nextBtn.className = 'version-nav-btn';
@@ -287,9 +399,17 @@ export function attachMessageActions(messageDiv, sender, msgMeta) {
             </svg>
         `;
         nextBtn.title = 'Next version';
+        if (turnInfo.currentIndex >= turnInfo.totalCount) {
+            nextBtn.disabled = true;
+            nextBtn.style.opacity = '0.4';
+            nextBtn.style.cursor = 'not-allowed';
+        }
         nextBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            navigateVersion(msgMeta.versionGroupId, (msgMeta.version || 1) + 1);
+            if (turnInfo.currentIndex < turnInfo.totalCount) {
+                const targetTurn = turnInfo.versions[turnInfo.currentIndex];
+                navigateTurn(targetTurn.userMsg.id, targetTurn.assistantMsg?.id);
+            }
         });
 
         versionNav.appendChild(prevBtn);
@@ -313,9 +433,21 @@ export function attachMessageActions(messageDiv, sender, msgMeta) {
             startInlineEdit(messageDiv, msgId);
         });
         actionRow.appendChild(editBtn);
-    }
+    } else {
+        const regenBtn = document.createElement('button');
+        regenBtn.className = 'message-action-btn regen-btn';
+        regenBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+            </svg>
+        `;
+        regenBtn.title = 'Regenerate response';
+        regenBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            regenerateResponse(msgId);
+        });
+        actionRow.appendChild(regenBtn);
 
-    if (sender === 'bot') {
         const editBtn = document.createElement('button');
         editBtn.className = 'message-action-btn edit-btn';
         editBtn.innerHTML = `
@@ -324,7 +456,7 @@ export function attachMessageActions(messageDiv, sender, msgMeta) {
                 <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 9.5-9.5z"></path>
             </svg>
         `;
-        editBtn.title = 'Edit response';
+        editBtn.title = 'Edit assistant response';
         editBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             startBotInlineEdit(messageDiv, msgId);
@@ -332,70 +464,116 @@ export function attachMessageActions(messageDiv, sender, msgMeta) {
         actionRow.appendChild(editBtn);
     }
 
-    if (sender === 'bot') {
-        const regenBtn = document.createElement('button');
-        regenBtn.className = 'message-action-btn regen-btn';
-        regenBtn.innerHTML = `
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                <path d="M3 3v5h5"></path>
-                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path>
-                <path d="M16 16h5v5"></path>
-            </svg>
-        `;
-        regenBtn.title = 'Regenerate response';
-        regenBtn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            await regenerateResponse(msgId);
-        });
-        actionRow.appendChild(regenBtn);
-    }
-
-    if (sender === 'user' || sender === 'bot') {
-        const copyBtn = document.createElement('button');
-        copyBtn.className = 'message-action-btn copy-btn';
-        copyBtn.title = 'Copy to clipboard';
-        const copyIcon = `
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg>
-        `;
-        const successIcon = `
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-        `;
-        copyBtn.innerHTML = copyIcon;
-        copyBtn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const contentDiv = messageDiv.querySelector('.message-content');
-            const textToCopy = contentDiv ? contentDiv.getAttribute('data-raw-content') : '';
-            if (textToCopy) {
-                try {
-                    await navigator.clipboard.writeText(textToCopy);
-                    copyBtn.innerHTML = successIcon;
-                    copyBtn.title = 'Copied!';
-                    setTimeout(() => {
-                        copyBtn.innerHTML = copyIcon;
-                        copyBtn.title = 'Copy to clipboard';
-                    }, 2000);
-                } catch (err) {
-                    console.error('Failed to copy text: ', err);
-                }
+    const forkBtn = document.createElement('button');
+    forkBtn.className = 'message-action-btn fork-btn';
+    forkBtn.title = 'Fork conversation from here';
+    forkBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="18" r="3"></circle>
+            <circle cx="6" cy="6" r="3"></circle>
+            <circle cx="18" cy="6" r="3"></circle>
+            <path d="M18 9v2a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9"></path>
+            <path d="M12 12v3"></path>
+        </svg>
+    `;
+    forkBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (!state.currentConversationId) return;
+        try {
+            const res = await authFetch(`/api/conversations/${state.currentConversationId}/fork`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ messageId: msgId })
+            });
+            if (res.ok) {
+                const newConv = await res.json();
+                showToast('Conversation forked');
+                await loadConversations();
+                await switchConversation(newConv.id);
+            } else {
+                const errText = await res.text();
+                showToast(`Failed to fork conversation: ${errText}`, 'error');
             }
-        });
-        actionRow.appendChild(copyBtn);
-    }
+        } catch (err) {
+            console.error('Error forking conversation:', err);
+            showToast('Error forking conversation', 'error');
+        }
+    });
+    actionRow.appendChild(forkBtn);
+
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'message-action-btn copy-btn';
+    copyBtn.title = 'Copy to clipboard';
+    const copyIcon = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+    `;
+    const successIcon = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+    `;
+    copyBtn.innerHTML = copyIcon;
+    copyBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const contentDiv = messageDiv.querySelector('.message-content');
+        const textToCopy = contentDiv ? contentDiv.getAttribute('data-raw-content') : '';
+        if (textToCopy) {
+            try {
+                await navigator.clipboard.writeText(textToCopy);
+                copyBtn.innerHTML = successIcon;
+                copyBtn.title = 'Copied!';
+                setTimeout(() => {
+                    copyBtn.innerHTML = copyIcon;
+                    copyBtn.title = 'Copy to clipboard';
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+            }
+        }
+    });
+    actionRow.appendChild(copyBtn);
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'message-action-btn delete-btn';
+    deleteBtn.title = 'Delete message';
+    deleteBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 6h18"></path>
+            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+        </svg>
+    `;
+    deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteMessageVersionGroup(msgId);
+    });
+    actionRow.appendChild(deleteBtn);
 
     if (actionRow.children.length > 0) {
         if (sender === 'bot') {
             const bodyDiv = messageDiv.querySelector('.message-body');
-            if (bodyDiv) bodyDiv.insertBefore(actionRow, bodyDiv.firstChild);
+            if (bodyDiv) bodyDiv.appendChild(actionRow);
+            else messageDiv.appendChild(actionRow);
         } else {
             const contentDiv = messageDiv.querySelector('.message-content');
             if (contentDiv) contentDiv.after(actionRow);
+            else messageDiv.appendChild(actionRow);
         }
+    }
+}
+
+export function deleteMessageVersionGroup(msgId) {
+    state.messageIdToDelete = msgId;
+    state.conversationIdToDelete = null;
+    const deleteConfirmModal = document.getElementById('delete-confirm-modal');
+    if (deleteConfirmModal) {
+        deleteConfirmModal.querySelector('h2').textContent = 'Delete Message?';
+        deleteConfirmModal.querySelector('.modal-description').textContent = 'Are you sure you want to delete this message? This will permanently erase all versions of it and all subsequent messages in this thread. This action cannot be undone.';
+        deleteConfirmModal.querySelector('#delete-confirm-btn').textContent = 'Delete Message';
+        deleteConfirmModal.classList.remove('hidden');
     }
 }
 
@@ -405,6 +583,10 @@ export function startInlineEdit(messageDiv, msgId) {
 
     const actionRow = messageDiv.querySelector('.message-action-row');
     if (actionRow) actionRow.style.display = 'none';
+
+    // Save scroll state before any DOM modification
+    const chatContainer = document.getElementById('chat-container');
+    const startTop = messageDiv.getBoundingClientRect().top;
 
     const originalContent = contentDiv.textContent;
 
@@ -459,17 +641,39 @@ export function startInlineEdit(messageDiv, msgId) {
     contentDiv.replaceWith(editContainer);
 
     const adjustHeight = () => {
-        textarea.style.height = 'auto';
-        textarea.style.height = Math.min(textarea.scrollHeight + 4, 450) + 'px';
+        const chatContainer = document.getElementById('chat-container');
+        const previousScrollTop = chatContainer ? chatContainer.scrollTop : 0;
+        const wasNear = isNearBottom();
+
+        const targetHeight = getRequiredHeight(textarea, contentDiv.clientWidth);
+        textarea.style.height = (targetHeight + 6) + 'px';
+        textarea.style.overflowY = 'hidden';
+
+        if (chatContainer) {
+            if (wasNear) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            } else {
+                chatContainer.scrollTop = previousScrollTop;
+            }
+        }
     };
     textarea.addEventListener('input', adjustHeight);
     adjustHeight();
 
-    textarea.focus();
+    textarea.focus({ preventScroll: true });
     textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+
+    // Restore scroll state by anchoring to message top coordinate
+    if (chatContainer) {
+        const endTop = messageDiv.getBoundingClientRect().top;
+        chatContainer.scrollTop += (endTop - startTop);
+    }
 }
 
 export function cancelInlineEdit(messageDiv, contentDiv, textarea, editActions, actionRow) {
+    const chatContainer = document.getElementById('chat-container');
+    const startTop = messageDiv.getBoundingClientRect().top;
+
     messageDiv.classList.remove('editing');
     const editContainer = messageDiv.querySelector('.inline-edit-container');
     if (editContainer) {
@@ -479,21 +683,25 @@ export function cancelInlineEdit(messageDiv, contentDiv, textarea, editActions, 
         editActions.remove();
     }
     if (actionRow) actionRow.style.display = '';
+
+    if (chatContainer) {
+        const endTop = messageDiv.getBoundingClientRect().top;
+        chatContainer.scrollTop += (endTop - startTop);
+    }
 }
 
-export async function startBotInlineEdit(messageDiv, msgId) {
-    const mRes = await authFetch(`/api/messages?conversationId=${state.currentConversationId}`);
-    const allMessages = mRes.ok ? await mRes.json() : [];
-    const botMsg = allMessages.find(m => String(m.id) === String(msgId));
-    if (!botMsg) return;
-
+export function startBotInlineEdit(messageDiv, msgId) {
     const contentDiv = messageDiv.querySelector('.message-content');
     if (!contentDiv) return;
 
     const actionRow = messageDiv.querySelector('.message-action-row');
     if (actionRow) actionRow.style.display = 'none';
 
-    const originalRaw = botMsg.content;
+    // Save scroll state before any DOM modification
+    const chatContainer = document.getElementById('chat-container');
+    const startTop = messageDiv.getBoundingClientRect().top;
+
+    const originalRaw = contentDiv.getAttribute('data-raw-content') || '';
 
     const textarea = document.createElement('textarea');
     textarea.className = 'inline-edit-textarea';
@@ -509,7 +717,7 @@ export async function startBotInlineEdit(messageDiv, msgId) {
         e.stopPropagation();
         const newText = textarea.value.trim();
         if (newText && newText !== originalRaw) {
-            await editBotMessageOnly(msgId, newText, messageDiv);
+            await editBotMessageOnly(msgId, newText, messageDiv, contentDiv, editActions, actionRow);
         } else {
             cancelBotInlineEdit(messageDiv, contentDiv, editActions, actionRow);
         }
@@ -546,17 +754,39 @@ export async function startBotInlineEdit(messageDiv, msgId) {
     contentDiv.replaceWith(editContainer);
 
     const adjustHeight = () => {
-        textarea.style.height = 'auto';
-        textarea.style.height = Math.min(textarea.scrollHeight + 4, 600) + 'px';
+        const chatContainer = document.getElementById('chat-container');
+        const previousScrollTop = chatContainer ? chatContainer.scrollTop : 0;
+        const wasNear = isNearBottom();
+
+        const targetHeight = getRequiredHeight(textarea, contentDiv.clientWidth);
+        textarea.style.height = (targetHeight + 6) + 'px';
+        textarea.style.overflowY = 'hidden';
+
+        if (chatContainer) {
+            if (wasNear) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            } else {
+                chatContainer.scrollTop = previousScrollTop;
+            }
+        }
     };
     textarea.addEventListener('input', adjustHeight);
     adjustHeight();
 
-    textarea.focus();
+    textarea.focus({ preventScroll: true });
     textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+
+    // Restore scroll state by anchoring to message top coordinate
+    if (chatContainer) {
+        const endTop = messageDiv.getBoundingClientRect().top;
+        chatContainer.scrollTop += (endTop - startTop);
+    }
 }
 
 export function cancelBotInlineEdit(messageDiv, contentDiv, editActions, actionRow) {
+    const chatContainer = document.getElementById('chat-container');
+    const startTop = messageDiv.getBoundingClientRect().top;
+
     messageDiv.classList.remove('editing');
     const editContainer = messageDiv.querySelector('.inline-edit-container');
     if (editContainer) {
@@ -565,70 +795,155 @@ export function cancelBotInlineEdit(messageDiv, contentDiv, editActions, actionR
         editActions.remove();
     }
     if (actionRow) actionRow.style.display = '';
+
+    if (chatContainer) {
+        const endTop = messageDiv.getBoundingClientRect().top;
+        chatContainer.scrollTop += (endTop - startTop);
+    }
 }
 
-export async function editBotMessageOnly(msgId, newText, messageDiv) {
-    const res = await authFetch(`/api/messages/${msgId}/version`, {
-        method: 'POST',
+export async function editBotMessageOnly(msgId, newText, messageDiv, contentDiv, editActions, actionRow) {
+    const res = await authFetch(`/api/messages/${msgId}`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: newText, role: 'assistant' })
+        body: JSON.stringify({ content: newText })
     });
     if (res.ok) {
+        if (contentDiv) {
+            contentDiv.setAttribute('data-raw-content', newText);
+            contentDiv.innerHTML = renderMarkdown(newText);
+        }
+        cancelBotInlineEdit(messageDiv, contentDiv, editActions, actionRow);
         await refreshConversationView();
     }
 }
 
 export async function editMessageAndRegenerate(msgId, newText, messageDiv) {
-    const res = await authFetch(`/api/messages/${msgId}/version`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: newText, role: 'user' })
-    });
-    if (res.ok) {
-        const newMsg = await res.json();
-        await refreshConversationView();
-        await streamApiResponse({
-            conversationId: newMsg.conversationId,
-            parentMsgId: newMsg.id,
-            stopAfterMsgId: newMsg.id
+    if (isSubmitting) return;
+    lockUIForSubmission();
+    try {
+        const res = await authFetch(`/api/messages/${msgId}/version`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: newText, role: 'user' })
         });
-        await refreshConversationView();
+        if (res.ok) {
+            const newMsg = await res.json();
+            await refreshConversationView();
+            await streamApiResponse({
+                conversationId: newMsg.conversationId,
+                parentMsgId: newMsg.id,
+                stopAfterMsgId: newMsg.id
+            });
+            await refreshConversationView();
+        } else {
+            unlockUIAfterSubmission();
+        }
+    } catch (err) {
+        console.error(err);
+        unlockUIAfterSubmission();
     }
 }
 
 export async function regenerateResponse(msgId) {
-    const res = await authFetch(`/api/messages/${msgId}/deactivate-tree`, {
-        method: 'POST'
-    });
-    if (res.ok) {
-        const data = await res.json();
-        
-        const mRes = await authFetch(`/api/messages?conversationId=${state.currentConversationId}`);
-        const allMessages = mRes.ok ? await mRes.json() : [];
-        const assistantMsg = allMessages.find(m => String(m.id) === String(msgId));
-        const parentUserMsg = assistantMsg && assistantMsg.parentMsgId ? allMessages.find(m => m.id === assistantMsg.parentMsgId) : null;
-        const stopAtId = parentUserMsg ? parentUserMsg.id : msgId;
-
-        await refreshConversationView();
-
-        await streamApiResponse({
-            conversationId: state.currentConversationId,
-            parentMsgId: stopAtId === msgId ? (parentUserMsg?.id || null) : stopAtId,
-            stopAfterMsgId: stopAtId,
-            versionGroupId: data.versionGroupId,
-            version: data.nextVersion
+    if (isSubmitting) return;
+    lockUIForSubmission();
+    try {
+        const res = await authFetch(`/api/messages/${msgId}/deactivate-tree`, {
+            method: 'POST'
         });
+        if (res.ok) {
+            const data = await res.json();
+            
+            const mRes = await authFetch(`/api/messages?conversationId=${state.currentConversationId}`);
+            const allMessages = mRes.ok ? await mRes.json() : [];
+            const assistantMsg = allMessages.find(m => String(m.id) === String(msgId));
+            const parentUserMsg = assistantMsg && assistantMsg.parentMsgId ? allMessages.find(m => m.id === assistantMsg.parentMsgId) : null;
+            const stopAtId = parentUserMsg ? parentUserMsg.id : msgId;
 
-        await refreshConversationView();
+            await refreshConversationView();
+
+            await streamApiResponse({
+                conversationId: state.currentConversationId,
+                parentMsgId: stopAtId === msgId ? (parentUserMsg?.id || null) : stopAtId,
+                stopAfterMsgId: stopAtId,
+                versionGroupId: data.versionGroupId,
+                version: data.nextVersion
+            });
+
+            await refreshConversationView();
+        } else {
+            unlockUIAfterSubmission();
+        }
+    } catch (err) {
+        console.error(err);
+        unlockUIAfterSubmission();
     }
 }
 
-export async function navigateVersion(versionGroupId, targetVersion) {
-    const res = await authFetch(`/api/messages/${versionGroupId}/navigate?version=${targetVersion}`, {
-        method: 'POST'
-    });
-    if (res.ok) {
-        await refreshConversationView();
+export function getTurnVersions(msgId, allMessages, activeMessages) {
+    const msg = allMessages.find(m => m.id === msgId);
+    if (!msg) return null;
+
+    let userMsg = null;
+    let activeAssistantMsg = null;
+
+    if (msg.role === 'user') {
+        userMsg = msg;
+        activeAssistantMsg = activeMessages.find(m => m.role === 'assistant' && m.parentMsgId === msg.id) || null;
+    } else if (msg.role === 'assistant') {
+        userMsg = allMessages.find(m => m.id === msg.parentMsgId) || null;
+        activeAssistantMsg = msg;
+    }
+
+    if (!userMsg) return null;
+
+    const userVGId = userMsg.versionGroupId || userMsg.id;
+    const U = allMessages.filter(m => m.role === 'user' && (m.versionGroupId === userVGId || m.id === userVGId));
+    U.sort((a, b) => (a.version || 1) - (b.version || 1) || a.timestamp - b.timestamp);
+
+    const T = [];
+    for (const u of U) {
+        const responses = allMessages.filter(m => m.role === 'assistant' && m.parentMsgId === u.id);
+        responses.sort((a, b) => (a.version || 1) - (b.version || 1) || a.timestamp - b.timestamp);
+        if (responses.length === 0) {
+            T.push({ userMsg: u, assistantMsg: null });
+        } else {
+            for (const r of responses) {
+                T.push({ userMsg: u, assistantMsg: r });
+            }
+        }
+    }
+
+    const activeIdx = T.findIndex(item => 
+        item.userMsg.id === userMsg.id && 
+        (!item.assistantMsg || item.assistantMsg.id === activeAssistantMsg?.id)
+    );
+
+    return {
+        versions: T,
+        currentIndex: activeIdx !== -1 ? activeIdx + 1 : 1,
+        totalCount: T.length
+    };
+}
+
+export async function navigateTurn(userMsgId, assistantMsgId) {
+    try {
+        const res = await authFetch(`/api/messages/navigate-turn`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userMsgId, assistantMsgId })
+        });
+        if (res.ok) {
+            await refreshConversationView();
+        } else {
+            const errText = await res.text();
+            console.error('Failed to navigate version turn:', errText);
+            alert(`Error navigating version: ${errText}`);
+        }
+    } catch (err) {
+        console.error('Error during turn navigation:', err);
+        alert('Network error during version navigation.');
     }
 }
 
@@ -637,7 +952,7 @@ export function updateMessageNodeInPlace(node, msg) {
     if (contentDiv) {
         contentDiv.setAttribute('data-raw-content', msg.content);
         if (msg.role === 'assistant') {
-            contentDiv.innerHTML = typeof marked !== 'undefined' ? marked.parse(msg.content) : msg.content;
+            contentDiv.innerHTML = renderMarkdown(msg.content);
         } else {
             contentDiv.textContent = msg.content;
         }
@@ -662,7 +977,7 @@ export function updateMessageNodeInPlace(node, msg) {
             reasoningBlock.appendChild(reasoningHeader);
             reasoningBlock.appendChild(reasoningContent);
             reasoningHeader.addEventListener('click', () => {
-                reasoningBlock.classList.toggle('collapsed');
+                toggleReasoningBlock(reasoningBlock);
             });
             const bodyDiv = node.querySelector('.message-body');
             if (bodyDiv) bodyDiv.insertBefore(reasoningBlock, bodyDiv.firstChild);
@@ -678,6 +993,19 @@ export function updateMessageNodeInPlace(node, msg) {
     if (msg.id != null) {
         node.dataset.msgId = msg.id;
         node.id = msg.id;
+    }
+
+    let errorBanner = node.querySelector('.message-error-banner');
+    if (msg.error) {
+        if (!errorBanner) {
+            errorBanner = document.createElement('div');
+            errorBanner.className = 'message-error-banner';
+            const bodyDiv = node.querySelector('.message-body');
+            if (bodyDiv) bodyDiv.appendChild(errorBanner);
+        }
+        errorBanner.innerHTML = `⚠️ Error: ${escapeHtml(msg.error)}`;
+    } else if (errorBanner) {
+        errorBanner.remove();
     }
 
     const sender = msg.role === 'assistant' ? 'bot' : 'user';
@@ -712,7 +1040,8 @@ export function reconcileMessages(activeMessages) {
                 id: msg.id,
                 versionGroupId: msg.versionGroupId,
                 version: msg.version || 1,
-                versionCount: msg.versionCount || 1
+                versionCount: msg.versionCount || 1,
+                error: msg.error
             }, true);
             continue;
         }
@@ -731,7 +1060,8 @@ export function reconcileMessages(activeMessages) {
                     id: m.id,
                     versionGroupId: m.versionGroupId,
                     version: m.version || 1,
-                    versionCount: m.versionCount || 1
+                    versionCount: m.versionCount || 1,
+                    error: m.error
                 }, true);
             }
             break;
@@ -749,14 +1079,20 @@ export function reconcileMessages(activeMessages) {
     }
 }
 
-export async function refreshConversationMessages() {
+export async function refreshConversationMessages(forceScroll = false) {
     if (state.currentConversationId === null) return;
+    
+    const wasNear = isNearBottom();
     
     const id = state.currentConversationId;
     const mRes = await authFetch(`/api/messages?conversationId=${id}`);
     const allMessages = mRes.ok ? await mRes.json() : [];
     allMessages.sort((a, b) => a.timestamp - b.timestamp);
     const activeMessages = allMessages.filter(m => m.isActive !== false);
+
+    // Sync to state
+    state.allMessages = allMessages;
+    state.activeMessages = activeMessages;
 
     const versionCounts = new Map();
     for (const msg of allMessages) {
@@ -771,12 +1107,14 @@ export async function refreshConversationMessages() {
 
     reconcileMessages(activeMessages);
     
-    scrollToBottom();
+    if (forceScroll || wasNear) {
+        scrollToBottom();
+    }
     await updateContinueButtonVisibility(activeMessages);
 }
 
-export async function refreshConversationView() {
-    await refreshConversationMessages();
+export async function refreshConversationView(forceScroll = false) {
+    await refreshConversationMessages(forceScroll);
 }
 
 function getAssistantDraftStorageKey(conversationId) {
@@ -853,7 +1191,7 @@ async function persistAssistantMessage(payload, conversationId, tempId) {
 
 export async function streamApiResponse({ conversationId, parentMsgId, stopAfterMsgId, versionGroupId, version }) {
     if (!state.serverConfig.hasKey) {
-        addMessageToUI('bot', '⚠️ API Key is missing! Please configure your DeepSeek API key in the sidebar under Settings (🔑).');
+        addMessageToUI('bot', '⚠️ API Key is missing! Please configure your DeepSeek API key in the sidebar under Settings (⚙️).');
         return;
     }
 
@@ -932,9 +1270,21 @@ export function initChatForm() {
         });
 
         userInput.addEventListener('input', () => {
-            userInput.style.height = 'auto';
-            userInput.style.height = Math.min(userInput.scrollHeight, 150) + 'px';
+            const chatContainer = document.getElementById('chat-container');
+            const previousScrollTop = chatContainer ? chatContainer.scrollTop : 0;
+            const wasNear = isNearBottom();
+
+            const targetHeight = getRequiredHeight(userInput);
+            userInput.style.height = Math.min(targetHeight, 150) + 'px';
             
+            if (chatContainer) {
+                if (wasNear) {
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                } else {
+                    chatContainer.scrollTop = previousScrollTop;
+                }
+            }
+
             const draftKey = state.currentConversationId !== null ? `loomscribe_draft_${state.currentConversationId}` : 'loomscribe_draft_null';
             if (userInput.value) {
                 localStorage.setItem(draftKey, userInput.value);
@@ -949,74 +1299,95 @@ export function initChatForm() {
         chatForm.addEventListener('submit', safeAsync(async (e) => {
             e.preventDefault();
             
+            if (isSubmitting) return;
+            
             if (continueBtn) continueBtn.classList.add('hidden');
             
             const message = userInput.value.trim();
             if (!message) return;
+
+            lockUIForSubmission();
 
             const draftKey = state.currentConversationId !== null ? `loomscribe_draft_${state.currentConversationId}` : 'loomscribe_draft_null';
             localStorage.removeItem(draftKey);
 
             // Verify API key configuration on backend
             if (!state.serverConfig.hasKey) {
-                addMessageToUI('bot', '⚠️ API Key is missing! Please configure your DeepSeek API key in the sidebar under Settings (🔑).');
+                addMessageToUI('bot', '⚠️ API Key is missing! Please configure your DeepSeek API key in the sidebar under Settings (⚙️).');
+                unlockUIAfterSubmission();
                 return;
             }
 
-            // Auto-create active thread if none exists
-            if (state.currentConversationId === null) {
-                await createNewConversation();
-            }
+            try {
+                // Auto-create active thread if none exists
+                if (state.currentConversationId === null) {
+                    await createNewConversation();
+                }
 
-            // Find the previous active message to set parentMsgId
-            const mRes = await authFetch(`/api/messages?conversationId=${state.currentConversationId}`);
-            const prevMsgs = mRes.ok ? await mRes.json() : [];
-            const lastActive = prevMsgs.filter(m => m.isActive !== false).sort((a, b) => a.timestamp - b.timestamp).pop();
-            const parentMsgIdVal = lastActive ? lastActive.id : null;
+                // Find the previous active message to set parentMsgId
+                const mRes = await authFetch(`/api/messages?conversationId=${state.currentConversationId}`);
+                const prevMsgs = mRes.ok ? await mRes.json() : [];
+                const lastActive = prevMsgs.filter(m => m.isActive !== false).sort((a, b) => a.timestamp - b.timestamp).pop();
+                const parentMsgIdVal = lastActive ? lastActive.id : null;
 
-            // Add user message to UI
-            const userMsgDiv = addMessageToUI('user', message);
+                // Add user message to UI
+                const userMsgDiv = addMessageToUI('user', message);
 
-            // Clear input early
-            userInput.value = '';
-            userInput.style.height = 'auto';
+                // Clear input early
+                userInput.value = '';
+                userInput.style.height = 'auto';
 
-            // Write message record to server side DB
-            const addRes = await authFetch('/api/messages', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+                // Write message record to server side DB
+                const addRes = await authFetch('/api/messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        conversationId: state.currentConversationId,
+                        role: 'user',
+                        content: message,
+                        timestamp: Date.now(),
+                        parentMsgId: parentMsgIdVal,
+                        isActive: true
+                    })
+                });
+                let newMsg = {};
+                if (addRes.ok) {
+                    newMsg = await addRes.json();
+                }
+                const userMsgId = newMsg.id;
+
+                // Attach edit actions directly to the user message div instead of re-rendering
+                if (userMsgDiv && userMsgId) {
+                    userMsgDiv.id = userMsgId;
+                    userMsgDiv.dataset.msgId = userMsgId;
+                    
+                    // Fetch and sync state to ensure switcher computes immediately
+                    const mRes = await authFetch(`/api/messages?conversationId=${state.currentConversationId}`);
+                    if (mRes.ok) {
+                        const allMessages = await mRes.json();
+                        allMessages.sort((a, b) => a.timestamp - b.timestamp);
+                        state.allMessages = allMessages;
+                        state.activeMessages = allMessages.filter(m => m.isActive !== false);
+                    }
+                    
+                    attachMessageActions(userMsgDiv, 'user', { id: userMsgId });
+                }
+
+                // Trigger auto-titling if this is the very first message
+                if (prevMsgs.length === 0) {
+                    await autoTitleConversation(state.currentConversationId, message);
+                }
+
+                // Stream AI response using shared function
+                await streamApiResponse({
                     conversationId: state.currentConversationId,
-                    role: 'user',
-                    content: message,
-                    timestamp: Date.now(),
-                    parentMsgId: parentMsgIdVal,
-                    isActive: true
-                })
-            });
-            let newMsg = {};
-            if (addRes.ok) {
-                newMsg = await addRes.json();
+                    parentMsgId: userMsgId
+                });
+            } catch (err) {
+                console.error("Submission failed:", err);
+                showToast("Failed to submit message", "error");
+                unlockUIAfterSubmission();
             }
-            const userMsgId = newMsg.id;
-
-            // Attach edit actions directly to the user message div instead of re-rendering
-            if (userMsgDiv && userMsgId) {
-                userMsgDiv.id = userMsgId;
-                userMsgDiv.dataset.msgId = userMsgId;
-                attachMessageActions(userMsgDiv, 'user', { id: userMsgId });
-            }
-
-            // Trigger auto-titling if this is the very first message
-            if (prevMsgs.length === 0) {
-                await autoTitleConversation(state.currentConversationId, message);
-            }
-
-            // Stream AI response using shared function
-            await streamApiResponse({
-                conversationId: state.currentConversationId,
-                parentMsgId: userMsgId
-            });
         }));
     }
 }
@@ -1077,13 +1448,7 @@ export function initExportButton() {
             }
 
             const title = conv.title || 'Untitled Conversation';
-            const systemPrompt = getSystemPromptContentSync();
-
-            let mdContent = `# ${title}\n\n`;
-            if (systemPrompt) {
-                mdContent += `> **System Prompt:** ${systemPrompt}\n\n`;
-            }
-            mdContent += `---\n\n`;
+            let mdContent = `# ${title}\n\n---\n\n`;
 
             activeMessages.forEach(msg => {
                 if (msg.role !== 'system') {
@@ -1125,6 +1490,20 @@ export function initExportButton() {
 socketEvents.subscribe(async (event) => {
     const { type, conversationId, streamMsgId, content, reasoning, message, error } = event;
 
+    // 0. Handle Close/Disconnect
+    if (type === 'close') {
+        const wasStreaming = Object.keys(state.activeStreams || {}).length > 0;
+        state.activeStreams = {};
+        unlockUIAfterSubmission();
+        const typingIndicator = document.querySelector('.typing-indicator');
+        if (typingIndicator) typingIndicator.remove();
+        document.querySelectorAll('.message.bot-message[id^="stream-msg-"]').forEach(el => el.remove());
+        if (wasStreaming) {
+            showToast("Connection lost. Stream aborted.", "error");
+        }
+        return;
+    }
+
     // 1. Handle Init
     if (type === 'init') {
         state.activeStreams[conversationId] = {
@@ -1136,13 +1515,7 @@ socketEvents.subscribe(async (event) => {
 
         if (conversationId === state.currentConversationId) {
             addStreamingBotMessage(streamMsgId);
-            
-            const userInput = document.getElementById('user-input');
-            const stopBtn = document.getElementById('stop-btn');
-            const sendBtn = document.getElementById('send-btn');
-            if (userInput) userInput.disabled = true;
-            if (stopBtn) stopBtn.classList.remove('hidden');
-            if (sendBtn) sendBtn.classList.add('hidden');
+            lockUIForSubmission();
         }
     }
 
@@ -1171,15 +1544,7 @@ socketEvents.subscribe(async (event) => {
         await loadConversations();
 
         if (conversationId === state.currentConversationId) {
-            const userInput = document.getElementById('user-input');
-            const stopBtn = document.getElementById('stop-btn');
-            const sendBtn = document.getElementById('send-btn');
-            if (userInput) {
-                userInput.disabled = false;
-                userInput.focus();
-            }
-            if (stopBtn) stopBtn.classList.add('hidden');
-            if (sendBtn) sendBtn.classList.remove('hidden');
+            unlockUIAfterSubmission();
             await updateContinueButtonVisibility();
 
             const typingIndicator = document.querySelector('.typing-indicator');
@@ -1189,6 +1554,7 @@ socketEvents.subscribe(async (event) => {
                 finalizeStreamingBotMessage(streamMsgId, message.content, message.reasoning);
                 const streamMsgDiv = document.getElementById(streamMsgId);
                 if (streamMsgDiv) {
+                    streamMsgDiv.id = message.id;
                     streamMsgDiv.dataset.msgId = message.id;
                     if (message.versionGroupId) {
                         streamMsgDiv.dataset.versionGroupId = message.versionGroupId;
@@ -1222,22 +1588,53 @@ socketEvents.subscribe(async (event) => {
         await loadConversations();
 
         if (conversationId === state.currentConversationId) {
-            const userInput = document.getElementById('user-input');
-            const stopBtn = document.getElementById('stop-btn');
-            const sendBtn = document.getElementById('send-btn');
-            if (userInput) {
-                userInput.disabled = false;
-                userInput.focus();
-            }
-            if (stopBtn) stopBtn.classList.add('hidden');
-            if (sendBtn) sendBtn.classList.remove('hidden');
+            unlockUIAfterSubmission();
             await updateContinueButtonVisibility();
 
             const typingIndicator = document.querySelector('.typing-indicator');
             if (typingIndicator) typingIndicator.remove();
 
-            if (error) {
-                addMessageToUI('bot', `⚠️ Error: ${error}`);
+            const streamMsgDiv = document.getElementById(streamMsgId);
+
+            if (message) {
+                // Case B: Finalize message content with partial text and reasoning
+                finalizeStreamingBotMessage(streamMsgId, message.content, message.reasoning);
+                if (streamMsgDiv) {
+                    streamMsgDiv.id = message.id;
+                    streamMsgDiv.dataset.msgId = message.id;
+                    if (message.versionGroupId) {
+                        streamMsgDiv.dataset.versionGroupId = message.versionGroupId;
+                        streamMsgDiv.dataset.version = message.version || 1;
+                    }
+                    
+                    // Render error banner
+                    let errorBanner = streamMsgDiv.querySelector('.message-error-banner');
+                    if (!errorBanner) {
+                        errorBanner = document.createElement('div');
+                        errorBanner.className = 'message-error-banner';
+                        const bodyDiv = streamMsgDiv.querySelector('.message-body');
+                        if (bodyDiv) bodyDiv.appendChild(errorBanner);
+                    }
+                    errorBanner.innerHTML = `⚠️ Error: ${escapeHtml(error)}`;
+                    
+                    // Attach actions so user can copy, edit prompt, or regenerate
+                    attachMessageActions(streamMsgDiv, 'bot', {
+                        id: message.id,
+                        versionGroupId: message.versionGroupId,
+                        version: message.version || 1,
+                        versionCount: 1
+                    });
+                }
+            } else {
+                // Case A: No content was generated. Cleanly delete empty loading bubble.
+                if (streamMsgDiv) {
+                    streamMsgDiv.remove();
+                }
+                // Render a standalone error card
+                addMessageToUI('bot', `<div class="standalone-error-card">
+                    <div class="error-card-title">⚠️ Generation Error</div>
+                    <div class="error-card-body">${escapeHtml(error)}</div>
+                </div>`, null, { unsaved: true });
             }
         }
     }

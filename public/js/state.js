@@ -1,5 +1,5 @@
 const rawState = {
-    serverConfig: { hasKey: false, activeModel: 'deepseek-v4-pro', thinkingMode: 'enabled' },
+    serverConfig: { hasKey: false, activeModel: 'deepseek-v4-pro', thinkingMode: 'enabled', customModels: [] },
     currentConversationId: null,
     abortControllers: {},
     activeStreams: {},
@@ -10,8 +10,10 @@ const rawState = {
     /** 'changePreset' | 'newChat' — controls what the preset-picker modal does on selection */
     presetPickerContext: 'changePreset',
     conversationIdToDelete: null,
+    messageIdToDelete: null,
     DEFAULT_SYSTEM_PROMPT: 'You are a helpful and concise AI assistant.',
-    API_URL: '/api/chat/completions'
+    allMessages: [],
+    activeMessages: []
 };
 
 const subscribers = new Set();
@@ -70,11 +72,6 @@ function makeObservable(obj, path = '') {
 }
 
 export const state = makeObservable(rawState);
-
-/** @deprecated Engine now compiles system prompts server-side. Returns empty string to avoid stale injection. */
-export function getSystemPromptContentSync() {
-    return '';
-}
 
 export function prettifyCategory(str) {
     return str.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());

@@ -45,6 +45,7 @@ export function initWebSocket() {
     socket.onclose = () => {
         console.warn(`WebSocket connection closed. Reconnecting in ${reconnectDelay}ms...`);
         socket = null;
+        socketEvents.emit({ type: 'close' });
         setTimeout(initWebSocket, reconnectDelay);
         reconnectDelay = Math.min(reconnectDelay * 2, 30000); // Exponential backoff capped at 30s
     };

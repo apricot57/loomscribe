@@ -2,20 +2,18 @@
    API Key & Settings Modals (M3 Elevated Overlay)
    ========================================================================== */
 .modal-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(11, 15, 25, 0.85); /* Tonal backdrop overlay */
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 8, 14, 0.75);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
+    z-index: 100;
     display: flex;
-    justify-content: center;
     align-items: center;
-    z-index: 200;
+    justify-content: center;
+    padding: 20px;
     opacity: 1;
-    transition: opacity 0.25s ease-out;
+    transition: var(--transition-m3);
 }
 
 .modal-overlay.hidden {
@@ -24,20 +22,42 @@
 }
 
 .modal-content {
-    background: var(--bg-sidebar); /* Unified dark slate/blue surface */
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-xl); /* XL Rounded corners */
-    padding: 36px;
-    width: 90%;
-    max-width: 440px;
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-highlight), var(--shadow-m3-high);
+    border-radius: var(--border-radius-xl);
+    padding: 32px;
+    width: 100%;
+    max-width: 500px;
     position: relative;
-    box-shadow: var(--shadow-m3-high);
-    transform: scale(1) translateY(0);
+    animation: modalScale 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
     transition: var(--transition-m3);
 }
 
+@keyframes modalScale {
+    from { opacity: 0; transform: scale(0.94); }
+    to { opacity: 1; transform: scale(1); }
+}
+
 .modal-overlay.hidden .modal-content {
+    animation: none;
     transform: scale(0.95) translateY(12px);
+}
+
+.modal-content input[type="text"], .modal-content input[type="password"] {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: var(--text-primary);
+    outline: none;
+    transition: var(--transition-m3);
+}
+
+.modal-content input:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 16px var(--accent-glow);
 }
 
 .close-btn {
@@ -261,3 +281,233 @@
 #prompt-editor-modal .input-wrapper:last-of-type {
     margin-bottom: 24px;
 }
+
+/* Settings Section Layouts */
+.settings-section {
+    margin-top: 24px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 20px;
+}
+
+.settings-section h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.theme-options {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.theme-option-btn {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: var(--transition-m3);
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 500;
+    font-family: inherit;
+}
+
+.theme-option-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: var(--text-primary);
+}
+
+.theme-option-btn.active {
+    background: var(--accent-dim);
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+    box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.theme-color-preview {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+    transition: transform 0.2s ease;
+}
+
+.theme-option-btn:hover .theme-color-preview {
+    transform: scale(1.1);
+}
+
+.section-placeholder {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-top: 4px;
+}
+
+/* Two-pane layout container override */
+.settings-modal-content {
+    max-width: 800px;
+    display: flex;
+    padding: 0;
+    min-height: 520px;
+    overflow: hidden;
+}
+
+/* Left Sidebar Navigation */
+.settings-sidebar {
+    width: 220px;
+    background: rgba(0, 0, 0, 0.2);
+    border-right: 1px solid var(--glass-border);
+    padding: 32px 24px;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+.settings-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 24px;
+    color: #ffffff;
+    letter-spacing: -0.5px;
+}
+
+.settings-nav-tabs {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Tab button styling */
+.settings-tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 10px 14px;
+    background: transparent;
+    border: none;
+    border-radius: var(--border-radius-pill);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+    transition: var(--transition-m3);
+}
+
+.settings-tab-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+/* Active tab state */
+.settings-tab-btn.active {
+    background: var(--accent-dim);
+    color: var(--accent-color);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* SVG icons on tab buttons */
+.tab-icon {
+    width: 18px;
+    height: 18px;
+    opacity: 0.85;
+    transition: transform 0.2s ease;
+}
+
+.settings-tab-btn.active .tab-icon {
+    opacity: 1;
+    transform: scale(1.05);
+}
+
+/* Right Content Pane */
+.settings-content-pane {
+    flex: 1;
+    padding: 32px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+/* Close button repositioned in content pane */
+.settings-content-pane .close-btn {
+    top: 24px;
+    right: 24px;
+}
+
+/* Panel transitions */
+.settings-panel {
+    display: flex;
+    flex-direction: column;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.settings-panel.hidden {
+    display: none;
+}
+
+.panel-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 8px;
+}
+
+/* Helper to strip borders on the first setting section of a tab */
+.no-border-top {
+    border-top: none !important;
+    padding-top: 0 !important;
+    margin-top: 8px !important;
+}
+
+/* Keyframes for smooth fadeIn */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .settings-modal-content {
+        flex-direction: column;
+        max-width: 95%;
+        min-height: auto;
+        max-height: 85vh;
+    }
+    
+    .settings-sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--glass-border);
+        padding: 20px;
+    }
+    
+    .settings-nav-tabs {
+        flex-direction: row;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        gap: 6px;
+    }
+    
+    .settings-tab-btn {
+        padding: 8px 12px;
+        white-space: nowrap;
+    }
+    
+    .settings-content-pane {
+        padding: 24px;
+    }
+}
+

@@ -101,8 +101,9 @@
 
 /* Preset Card */
 .preset-card {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-highlight);
     border-radius: 16px;
     padding: 16px;
     display: flex;
@@ -112,8 +113,9 @@
 }
 
 .preset-card:hover {
-    border-color: rgba(56, 189, 248, 0.2);
+    border-color: rgba(56, 189, 248, 0.3);
     background: rgba(255, 255, 255, 0.04);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), var(--glass-highlight);
 }
 
 .preset-active-info {
@@ -245,6 +247,24 @@
 .custom-select-trigger:hover {
     background: rgba(255, 255, 255, 0.03);
     border-color: rgba(56, 189, 248, 0.3);
+}
+
+.custom-select-trigger:disabled {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.custom-select-trigger:disabled:hover {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+.param-item.disabled {
+    opacity: 0.6;
+    pointer-events: none;
 }
 
 .custom-select-wrapper.open .custom-select-trigger,
@@ -384,6 +404,7 @@ input:checked + .slider-toggle:before {
     background: rgba(255, 255, 255, 0.1);
     outline: none;
     cursor: pointer;
+    accent-color: var(--accent-color);
 }
 
 .param-range::-webkit-slider-thumb {
@@ -582,8 +603,9 @@ input:checked + .slider-toggle:before {
 }
 
 .preset-picker-item {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-highlight);
     border-radius: 14px;
     padding: 14px;
     text-align: left;
@@ -596,13 +618,15 @@ input:checked + .slider-toggle:before {
 
 .preset-picker-item:hover {
     border-color: var(--accent-color);
-    background: rgba(56, 189, 248, 0.05);
+    background: rgba(56, 189, 248, 0.08);
     transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(56, 189, 248, 0.15);
 }
 
 .preset-picker-item.selected {
     border-color: var(--accent-color);
     background: var(--accent-dim);
+    box-shadow: 0 0 12px var(--accent-glow);
 }
 
 .preset-picker-item strong {
@@ -624,8 +648,9 @@ input:checked + .slider-toggle:before {
         right: 0;
         bottom: 0;
         width: 320px;
+        max-width: 100%;
         transform: translateX(100%);
-        z-index: 999;
+        z-index: 1005; /* Ensure it lies above backdrop (950) and sidebar (1000) */
         box-shadow: none;
     }
     

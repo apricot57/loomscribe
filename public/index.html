@@ -12,7 +12,18 @@
     <link rel="stylesheet" href="css/modals.css">
     <link rel="stylesheet" href="css/right-pane.css">
     <link rel="stylesheet" href="css/preset-manager.css">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Early theme configuration to prevent flash of unstyled content -->
+    <script>
+        (function() {
+            const validThemes = ['cyan', 'teal', 'purple', 'amber'];
+            const rawTheme = localStorage.getItem('ls_theme');
+            const cachedTheme = validThemes.includes(rawTheme) ? rawTheme : 'cyan';
+            document.documentElement.classList.add('theme-' + cachedTheme);
+        })();
+    </script>
+
 </head>
 <body>
     <div class="app-layout">
@@ -23,7 +34,16 @@
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="brand">
-                    <span class="brand-logo">🌌</span>
+                    <div class="brand-logo-wrapper">
+                        <span class="brand-logo">
+                            <svg class="brand-logo-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 2L6 12C6 15 9 18 9 22H15C15 18 18 15 18 12L12 2Z" fill="currentColor" fill-opacity="0.12" />
+                                <line x1="12" y1="2" x2="12" y2="11" />
+                                <circle cx="12" cy="11" r="1.5" fill="currentColor" />
+                                <path d="M4 8C7 5 17 5 20 8" opacity="0.5" stroke-dasharray="2 2" />
+                            </svg>
+                        </span>
+                    </div>
                     <h2>LoomScribe</h2>
                 </div>
                 <button id="sidebar-close-btn" class="sidebar-close-btn" aria-label="Close sidebar">
@@ -49,12 +69,12 @@
             </div>
 
             <div class="sidebar-settings">
-                <button id="key-btn" class="sidebar-item" aria-label="Configure API Key">
+                <button id="settings-btn" class="sidebar-item" aria-label="Configure Settings">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar-icon">
-                        <path d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z"></path>
-                        <circle cx="16.5" cy="7.5" r=".5" fill="currentColor"></circle>
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                     </svg>
-                    <span>DeepSeek API Key</span>
+                    <span>Settings</span>
                     <span id="key-status-dot" class="status-dot"></span>
                 </button>
             </div>
@@ -286,27 +306,144 @@
             </div>
         </aside>
 
-        <!-- API Key Modal (Centered Glassmorphic Popup overlay) -->
-        <div id="key-modal" class="modal-overlay hidden">
-            <div class="modal-content">
-                <button id="modal-close-btn" class="close-btn" aria-label="Close modal">&times;</button>
-                <h2>Configure API Key</h2>
-                <p class="modal-description">Enter your DeepSeek API key. It is saved securely on the server and never exposed to the browser.</p>
-                
-                <div class="input-wrapper">
-                    <input type="password" id="api-key-input" placeholder="Paste sk-... key here" autocomplete="off">
-                    <button id="toggle-key-visibility" class="visibility-btn" type="button" aria-label="Toggle key visibility">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="eye-icon">
-                            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
-                            <circle cx="12" cy="12" r="3"></circle>
-                        </svg>
-                    </button>
-                </div>
-                
-                <div class="modal-actions">
-                    <button id="save-key-btn" class="btn btn-primary">Save Key</button>
-                    <button id="delete-key-btn" class="btn btn-danger">Remove Key</button>
-                </div>
+        <!-- Settings Modal (Centered Glassmorphic Popup overlay) -->
+        <div id="settings-modal" class="modal-overlay hidden">
+            <div class="modal-content settings-modal-content">
+                <!-- LEFT SIDEBAR -->
+                <aside class="settings-sidebar">
+                    <h2 class="settings-title">Settings</h2>
+                    <nav class="settings-nav-tabs">
+                        <button type="button" class="settings-tab-btn active" data-target="tab-general">
+                            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                            </svg>
+                            <span>General</span>
+                        </button>
+                        
+                        <button type="button" class="settings-tab-btn" data-target="tab-models">
+                            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                                <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                                <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                                <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                            </svg>
+                            <span>Models</span>
+                        </button>
+                        
+                        <button type="button" class="settings-tab-btn" data-target="tab-appearance">
+                            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 14.7255 3.09032 17.1962 4.85857 19C5.34776 19.4892 5.34776 20.2822 4.85857 20.7714L4.70711 20.9228C4.31658 21.3134 3.68342 21.3134 3.29289 20.9228C1.2961 18.926 0 16.1091 0 13C0 6.37258 5.37258 1 12 1C18.6274 1 24 6.37258 24 13C24 19.6274 18.6274 25 12 25c-.5523 0-1-.4477-1-1v-1c0-.5523.4477-1 1-1z"></path>
+                                <circle cx="7.5" cy="10.5" r="1.5" fill="currentColor"></circle>
+                                <circle cx="11.5" cy="7.5" r="1.5" fill="currentColor"></circle>
+                                <circle cx="16.5" cy="9.5" r="1.5" fill="currentColor"></circle>
+                            </svg>
+                            <span>Appearance</span>
+                        </button>
+                    </nav>
+                </aside>
+
+                <!-- RIGHT CONTENT AREA -->
+                <main class="settings-content-pane">
+                    <button id="modal-close-btn" class="close-btn" aria-label="Close settings modal">&times;</button>
+                    
+                    <!-- GENERAL TAB PANEL -->
+                    <div id="tab-general" class="settings-panel">
+                        <h3 class="panel-title">General Settings</h3>
+                        
+                        <!-- API Configurations -->
+                        <div class="settings-section no-border-top">
+                            <h4>API Configurations</h4>
+                            <p class="modal-description" style="margin-bottom: 12px; font-size: 0.8rem;">Enter your DeepSeek API key. It is saved securely on the server.</p>
+                            <div class="input-wrapper">
+                                <input type="password" id="api-key-input" placeholder="Paste sk-... key here" autocomplete="off">
+                                <button id="toggle-key-visibility" class="visibility-btn" type="button" aria-label="Toggle key visibility">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="eye-icon">
+                                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="modal-actions" style="margin-top: 12px; margin-bottom: 8px;">
+                                <button id="save-key-btn" class="btn btn-primary">Save Key</button>
+                                <button id="delete-key-btn" class="btn btn-danger">Remove Key</button>
+                            </div>
+                        </div>
+
+                        <!-- Advanced Options -->
+                        <div class="settings-section">
+                            <h4>Advanced Options</h4>
+                            <p class="section-placeholder">More custom options coming soon...</p>
+                        </div>
+                    </div>
+
+                    <!-- MODELS TAB PANEL -->
+                    <div id="tab-models" class="settings-panel hidden">
+                        <h3 class="panel-title">Custom Providers & Models</h3>
+                        
+                        <div class="settings-section no-border-top">
+                            <p class="modal-description" style="margin-bottom: 12px; font-size: 0.8rem;">Add custom OpenAI-compatible endpoints (e.g. OpenRouter, Groq, Ollama).</p>
+                            
+                            <div id="custom-models-list" class="custom-models-list" style="margin-bottom: 16px; max-height: 180px; overflow-y: auto;">
+                                <!-- Custom models rendered dynamically here -->
+                            </div>
+
+                            <form id="add-custom-model-form" style="border: 1px solid var(--border-color); padding: 14px; border-radius: 12px; background: rgba(0, 0, 0, 0.15);">
+                                <h4 style="margin-top: 0; margin-bottom: 10px; font-size: 0.85rem; color: #fff;">Add Custom Model</h4>
+                                
+                                <div style="margin-bottom: 10px;">
+                                    <label class="modal-field-label" style="font-size: 0.75rem; color: var(--text-secondary);">Display Name</label>
+                                    <input type="text" id="add-model-name" placeholder="e.g. Ollama Llama 3" style="width: 100%; box-sizing: border-box;" required>
+                                </div>
+
+                                <div style="margin-bottom: 10px;">
+                                    <label class="modal-field-label" style="font-size: 0.75rem; color: var(--text-secondary);">API Endpoint / Base URL</label>
+                                    <input type="text" id="add-model-endpoint" placeholder="e.g. http://localhost:11434/v1" style="width: 100%; box-sizing: border-box;" required>
+                                </div>
+
+                                <div style="margin-bottom: 10px;">
+                                    <label class="modal-field-label" style="font-size: 0.75rem; color: var(--text-secondary);">API Key (Optional)</label>
+                                    <input type="password" id="add-model-key" placeholder="API key (leave blank for local)" style="width: 100%; box-sizing: border-box;">
+                                </div>
+
+                                <div style="margin-bottom: 12px;">
+                                    <label class="modal-field-label" style="font-size: 0.75rem; color: var(--text-secondary);">Model ID / Identifier</label>
+                                    <input type="text" id="add-model-identifier" placeholder="e.g. llama3" style="width: 100%; box-sizing: border-box;" required>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary btn-full" style="padding: 10px; font-size: 0.85rem; border-radius: 8px;">Add Custom Model</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- APPEARANCE TAB PANEL -->
+                    <div id="tab-appearance" class="settings-panel hidden">
+                        <h3 class="panel-title">Appearance</h3>
+                        
+                        <div class="settings-section no-border-top">
+                            <h4>App Theme Color</h4>
+                            <p class="modal-description" style="margin-bottom: 12px; font-size: 0.8rem;">Select a theme color for the workspace.</p>
+                            <div class="theme-options">
+                                <button type="button" class="theme-option-btn" data-theme="cyan" title="Cosmic Cyan">
+                                    <span class="theme-color-preview" style="background-color: #38bdf8;"></span>
+                                    <span>Cyan</span>
+                                </button>
+                                <button type="button" class="theme-option-btn" data-theme="teal" title="Aurora Teal">
+                                    <span class="theme-color-preview" style="background-color: #2dd4bf;"></span>
+                                    <span>Teal</span>
+                                </button>
+                                <button type="button" class="theme-option-btn" data-theme="purple" title="Electric Purple">
+                                    <span class="theme-color-preview" style="background-color: #a855f7;"></span>
+                                    <span>Purple</span>
+                                </button>
+                                <button type="button" class="theme-option-btn" data-theme="amber" title="Solar Amber">
+                                    <span class="theme-color-preview" style="background-color: #fbbf24;"></span>
+                                    <span>Amber</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </main>
             </div>
         </div>
 
@@ -459,7 +596,7 @@
                                     <div class="pm-section-divider-line"></div>
                                 </div>
 
-                                <div class="pm-defaults-grid">
+                                <div class="pm-defaults-grid" style="grid-template-columns: 1fr 1fr;">
                                     <div class="pm-field-group">
                                         <label class="pm-label" for="pm-default-pov">Point of View</label>
                                         <select id="pm-default-pov" class="pm-select">
@@ -502,14 +639,14 @@
 
                                 <!-- Sliders row -->
                                 <div class="pm-field-row" style="margin-top:4px;">
-                                    <div class="pm-field-group">
+                                    <div class="pm-field-group" style="width: 50%;">
                                         <label class="pm-label" for="pm-default-word-count">
                                             Response Length
                                             <span id="pm-word-count-val" class="pm-label-hint">1500 words</span>
                                         </label>
                                         <input type="range" id="pm-default-word-count" min="600" max="3000" step="100" value="1500" style="width:100%; accent-color: var(--accent-color);">
                                     </div>
-                                    <div class="pm-field-group">
+                                    <div class="pm-field-group" style="width: 50%;">
                                         <label class="pm-label" for="pm-default-pushback">
                                             Pushback / Resistance
                                             <span id="pm-pushback-val" class="pm-label-hint">3 — Realistic</span>
@@ -517,18 +654,23 @@
                                         <input type="range" id="pm-default-pushback" min="0" max="5" step="1" value="3" style="width:100%; accent-color: var(--accent-color);">
                                     </div>
                                 </div>
+                                </div>
 
                                 <!-- Mode toggles -->
-                                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                                    <div class="pm-toggle-row" style="flex:1; min-width: 180px;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                    <div class="pm-toggle-row">
                                         <span class="pm-toggle-label">Outline Mode</span>
                                         <div id="pm-toggle-outline" class="pm-toggle-pill" role="switch" aria-checked="false" tabindex="0"></div>
                                     </div>
-                                    <div class="pm-toggle-row" style="flex:1; min-width: 180px;">
+                                    <div class="pm-toggle-row">
                                         <span class="pm-toggle-label">Premises Mode</span>
                                         <div id="pm-toggle-premises" class="pm-toggle-pill" role="switch" aria-checked="false" tabindex="0"></div>
                                     </div>
-                                    <div class="pm-toggle-row" style="flex:1; min-width: 180px;">
+                                    <div class="pm-toggle-row">
+                                        <span class="pm-toggle-label">Complication Gen</span>
+                                        <div id="pm-toggle-complication" class="pm-toggle-pill" role="switch" aria-checked="false" tabindex="0"></div>
+                                    </div>
+                                    <div class="pm-toggle-row">
                                         <span class="pm-toggle-label">Suggest Choices</span>
                                         <div id="pm-toggle-choices" class="pm-toggle-pill" role="switch" aria-checked="false" tabindex="0"></div>
                                     </div>
@@ -555,8 +697,9 @@
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.1/marked.min.js" crossorigin="anonymous"></script>
+    <script src="vendor/jszip.min.js"></script>
+    <script src="vendor/marked.min.js"></script>
+    <script src="vendor/purify.min.js"></script>
     <script type="module" src="app.js"></script>
 </body>
 </html>

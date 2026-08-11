@@ -1,5 +1,5 @@
 import { authFetch } from '../auth.js';
-import { state } from '../state.js';
+import { state, escapeHtml } from '../state.js';
 import { safeAsync } from './helpers.js';
 
 // Model Selection UI Logic
@@ -36,46 +36,59 @@ export function initializeModelUI() {
     });
 }
 
-// Update the visual status of the key icon dot
-export function updateKeyStatusUI() {
-    const keyStatusDot = document.getElementById('key-status-dot');
-    if (!keyStatusDot) return;
-    if (state.serverConfig.hasKey) {
-        keyStatusDot.classList.add('active');
-    } else {
-        keyStatusDot.classList.remove('active');
-    }
+export function renderModelDropdown() {
+    const dropdownMenu = document.getElementById('model-dropdown-menu');
+    if (!dropdownMenu) return;
+
+    dropdownMenu.innerHTML = `
+        <button class="dropdown-item" data-model="deepseek-v4-pro">
+            <div class="item-info">
+                <span class="item-name">DeepSeek V4 Pro</span>
+                <span class="item-desc">Maximum reasoning & intelligence</span>
+            </div>
+            <span class="item-badge">v4</span>
+        </button>
+        <button class="dropdown-item" data-model="deepseek-v4-flash">
+            <div class="item-info">
+                <span class="item-name">DeepSeek V4 Flash</span>
+                <span class="item-desc">High-speed, efficient generation</span>
+            </div>
+            <span class="item-badge">v4</span>
+        </button>
+    `;
+
+    const customModels = state.serverConfig?.customModels || [];
+    customModels.forEach(m => {
+        const btn = document.createElement('button');
+        btn.className = 'dropdown-item';
+        btn.setAttribute('data-model', m.id);
+        
+        let hostname = '';
+        try {
+            hostname = new URL(m.endpoint).hostname;
+        } catch (e) {
+            hostname = 'custom endpoint';
+        }
+        
+        btn.innerHTML = `
+            <div class="item-info">
+                <span class="item-name">${escapeHtml(m.name)}</span>
+                <span class="item-desc">${escapeHtml(m.model)} on ${escapeHtml(hostname)}</span>
+            </div>
+            <span class="item-badge">custom</span>
+        `;
+        dropdownMenu.appendChild(btn);
+    });
+
+    bindModelDropdownEvents();
 }
 
-export function initInputBar() {
+export function bindModelDropdownEvents() {
     const modelSelectBtn = document.getElementById('model-select-btn');
     const modelDropdownMenu = document.getElementById('model-dropdown-menu');
     const dropdownItems = document.querySelectorAll('.dropdown-item');
-    const thinkingToggleBtn = document.getElementById('thinking-toggle-btn');
-    const thinkingStatusText = document.getElementById('thinking-status-text');
+    if (!modelDropdownMenu || !dropdownItems.length) return;
 
-    // Toggle model dropdown menu
-    if (modelSelectBtn && modelDropdownMenu) {
-        modelSelectBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            modelDropdownMenu.classList.toggle('hidden');
-            modelSelectBtn.parentElement.classList.toggle('open');
-        });
-
-        // Close dropdowns when clicking anywhere else
-        document.addEventListener('click', () => {
-            modelDropdownMenu.classList.add('hidden');
-            modelSelectBtn.parentElement.classList.remove('open');
-            const promptDropdownMenu = document.getElementById('prompt-dropdown-menu');
-            const promptSelectBtn = document.getElementById('prompt-select-btn');
-            if (promptDropdownMenu && promptSelectBtn) {
-                promptDropdownMenu.classList.add('hidden');
-                promptSelectBtn.parentElement.classList.remove('open');
-            }
-        });
-    }
-
-    // Select model event handling
     dropdownItems.forEach(item => {
         item.addEventListener('click', safeAsync(async () => {
             const modelVal = item.getAttribute('data-model');
@@ -114,6 +127,47 @@ export function initInputBar() {
             }
         }));
     });
+}
+
+// Update the visual status of the key icon dot
+export function updateKeyStatusUI() {
+    const keyStatusDot = document.getElementById('key-status-dot');
+    if (!keyStatusDot) return;
+    if (state.serverConfig.hasKey) {
+        keyStatusDot.classList.add('active');
+    } else {
+        keyStatusDot.classList.remove('active');
+    }
+}
+
+export function initInputBar() {
+    const modelSelectBtn = document.getElementById('model-select-btn');
+    const modelDropdownMenu = document.getElementById('model-dropdown-menu');
+    const thinkingToggleBtn = document.getElementById('thinking-toggle-btn');
+    const thinkingStatusText = document.getElementById('thinking-status-text');
+
+    // Toggle model dropdown menu
+    if (modelSelectBtn && modelDropdownMenu) {
+        modelSelectBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            modelDropdownMenu.classList.toggle('hidden');
+            modelSelectBtn.parentElement.classList.toggle('open');
+        });
+
+        // Close dropdowns when clicking anywhere else
+        document.addEventListener('click', () => {
+            modelDropdownMenu.classList.add('hidden');
+            modelSelectBtn.parentElement.classList.remove('open');
+            const promptDropdownMenu = document.getElementById('prompt-dropdown-menu');
+            const promptSelectBtn = document.getElementById('prompt-select-btn');
+            if (promptDropdownMenu && promptSelectBtn) {
+                promptDropdownMenu.classList.add('hidden');
+                promptSelectBtn.parentElement.classList.remove('open');
+            }
+        });
+    }
+
+    renderModelDropdown();
 
     // Thinking Mode Toggle event handling
     if (thinkingToggleBtn) {

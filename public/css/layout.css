@@ -1,11 +1,14 @@
 /* App Layout Grid */
 .app-layout {
     display: flex;
-    width: 100%;
+    width: 100vw;
     height: 100vh;
     height: 100dvh;
     overflow: hidden;
     position: relative;
+    background: radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.05) 0%, transparent 60%),
+                radial-gradient(circle at 100% 100%, rgba(168, 85, 247, 0.05) 0%, transparent 50%),
+                var(--bg-main);
 }
 
 /* ==========================================================================
@@ -14,13 +17,13 @@
 .sidebar {
     width: 280px; /* Slightly wider for elegant drawer proportions */
     height: 100%;
-    background-color: var(--bg-sidebar);
-    border-right: 1px solid var(--border-color);
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--glass-border);
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
     transition: var(--transition-m3);
-    z-index: 100;
+    z-index: 10;
     /* Flat square drawer shape on desktop */
     border-radius: 0;
 }
@@ -39,15 +42,49 @@
     gap: 12px;
 }
 
+.brand-logo-wrapper {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    background: radial-gradient(circle, var(--accent-dim) 0%, transparent 70%);
+    border: 1px solid var(--accent-glow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 16px var(--accent-dim);
+    animation: cosmicPulse 4s ease-in-out infinite alternate;
+}
+
+@keyframes cosmicPulse {
+    0% { box-shadow: 0 0 12px var(--accent-dim); border-color: var(--accent-glow); }
+    100% { box-shadow: 0 0 24px var(--accent-glow); border-color: var(--accent-color); }
+}
+
 .brand-logo {
-    font-size: 1.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.brand-logo-svg {
+    width: 22px;
+    height: 22px;
+    color: var(--accent-color);
     filter: drop-shadow(0 0 6px var(--accent-glow));
+    transition: var(--transition-m3);
+}
+
+.brand-logo-wrapper:hover .brand-logo-svg {
+    transform: rotate(30deg) scale(1.1);
 }
 
 .brand h2 {
     font-size: 1.25rem;
     font-weight: 700;
-    color: #ffffff;
+    background: linear-gradient(135deg, #fff 40%, var(--accent-hover));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
     letter-spacing: -0.5px;
 }
 
@@ -370,14 +407,16 @@
 
 /* Top bar header */
 .chat-header {
-    height: 64px;
-    background-color: transparent; /* Seamless top header */
-    border-bottom: 1px solid var(--border-color);
+    height: 60px;
+    background: var(--bg-header);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--glass-border);
     display: flex;
     align-items: center;
-    padding: 0 24px;
     justify-content: space-between;
-    z-index: 50;
+    padding: 0 20px;
+    z-index: 5;
 }
 
 .header-btn {
@@ -390,12 +429,19 @@
     justify-content: center;
     padding: 6px;
     border-radius: 50%;
+}
+
+.header-btn, .sidebar-btn {
     transition: var(--transition-m3);
 }
 
-.header-btn:hover {
-    background-color: var(--accent-dim);
-    color: var(--accent-color);
+.header-btn:hover, .sidebar-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--accent-glow);
+}
+
+.header-btn:active, .sidebar-btn:active {
+    transform: scale(0.96);
 }
 
 .header-icon {

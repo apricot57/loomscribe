@@ -1,3 +1,4 @@
+import { authFetch } from '../auth.js';
 import { state } from '../state.js';
 import { 
     getEngineSchema, 
@@ -16,12 +17,9 @@ let compiledData = { systemPrompt: '', postHistory: '' };
 const PARAM_ICONS = {
     word_count: `<svg class="param-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="17" y1="6.1" x2="3" y2="6.1"></line><line x1="21" y1="12.1" x2="3" y2="12.1"></line><line x1="15.1" y1="18" x2="3" y2="18"></line></svg>`,
     pov: `<svg class="param-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
-    scene_intensity: `<svg class="param-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>`,
-    dialogue_style: `<svg class="param-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>`,
-    pov_focus: `<svg class="param-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>`,
+    prose_style: `<svg class="param-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`,
     complication_generator: `<svg class="param-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line></svg>`,
     suggest_choices: `<svg class="param-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="6" x2="20" y2="6"></line><line x1="9" y1="12" x2="20" y2="12"></line><line x1="9" y1="18" x2="20" y2="18"></line><circle cx="4" cy="6" r="1"></circle><circle cx="4" cy="12" r="1"></circle><circle cx="4" cy="18" r="1"></circle></svg>`,
-    pushback: `<svg class="param-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"></polyline><line x1="13" y1="19" x2="19" y2="13"></line><line x1="16" y1="16" x2="20" y2="20"></line><line x1="19" y1="21" x2="21" y2="19"></line><polyline points="10 14.5 3 21 3 20"></polyline><line x1="14.5" y1="10" x2="21" y2="3"></line><line x1="20" y1="3" x2="21" y2="4"></line></svg>`,
     outline_mode: `<svg class="param-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg>`,
     premises_mode: `<svg class="param-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"></path><path d="M9 18h6"></path><path d="M10 22h4"></path></svg>`
 };
@@ -59,7 +57,7 @@ function computeSignature(presetId, params, blockOverrides, schema) {
  */
 async function saveConversationSettings(convId, updateObj) {
     try {
-        const res = await fetch(`/api/conversations/${convId}`, {
+        const res = await authFetch(`/api/conversations/${convId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updateObj)
@@ -100,8 +98,8 @@ export function initRightPane() {
         const backdrop = document.getElementById('layout-backdrop');
         if (!backdrop) return;
         const sidebar = document.getElementById('sidebar');
-        const isSidebarActive = sidebar && sidebar.classList.contains('active');
-        const isRightActive = rightPane && rightPane.classList.contains('active');
+        const isSidebarActive = sidebar && sidebar.classList.contains('active') && window.innerWidth <= 768;
+        const isRightActive = rightPane && rightPane.classList.contains('active') && window.innerWidth <= 1024;
         if (isSidebarActive || isRightActive) {
             backdrop.classList.remove('hidden');
         } else {
@@ -419,7 +417,7 @@ async function triggerPreviewCompile() {
 
     try {
         // Fetch current database conversation details to ensure perfect accuracy
-        const res = await fetch(`/api/conversations/${state.currentConversationId}`);
+        const res = await authFetch(`/api/conversations/${state.currentConversationId}`);
         if (!res.ok) throw new Error("Conversation not found");
         const conv = await res.json();
 
@@ -533,6 +531,15 @@ export async function renderRightPane(conversation) {
         if (systemContainer) systemContainer.innerHTML = '';
         if (postContainer) postContainer.innerHTML = '';
 
+        const getParamVal = (id) => {
+            return conversation.params?.[id] !== undefined
+                ? conversation.params[id]
+                : (preset.defaults?.[id] !== undefined ? preset.defaults[id] : schema.find(s => s.id === id)?.default);
+        };
+        const currentOutlineMode = getParamVal('outline_mode') === true;
+        const currentPremisesMode = getParamVal('premises_mode') === true;
+        const proseBypassActive = currentOutlineMode || currentPremisesMode;
+
         // Dynamically build parameter UI from schema
         for (const item of schema) {
             const container = item.slot === 'system' ? systemContainer : postContainer;
@@ -550,16 +557,6 @@ export async function renderRightPane(conversation) {
             const paramEl = document.createElement('div');
             paramEl.className = 'param-item';
 
-            // If prose bypass is active, disable narrative-specific inputs to align with compiler behavior
-            const getParamVal = (id) => {
-                return conversation.params?.[id] !== undefined
-                    ? conversation.params[id]
-                    : (preset.defaults?.[id] !== undefined ? preset.defaults[id] : schema.find(s => s.id === id)?.default);
-            };
-            const currentOutlineMode = getParamVal('outline_mode') === true;
-            const currentPremisesMode = getParamVal('premises_mode') === true;
-            const proseBypassActive = currentOutlineMode || currentPremisesMode;
-            
             const isNarrativeField = ['pov', 'scene_intensity', 'dialogue_style', 'pov_focus', 'pushback'].includes(item.id);
             if (proseBypassActive && isNarrativeField) {
                 paramEl.classList.add('disabled');
@@ -601,10 +598,19 @@ export async function renderRightPane(conversation) {
                 slider.max = item.max;
                 slider.step = item.step || 1;
                 slider.value = val;
+                if (proseBypassActive && isNarrativeField) {
+                    slider.disabled = true;
+                }
 
                 // Update text representation
                 const updateValText = (v) => {
-                    if (item.labels) {
+                    if (proseBypassActive && isNarrativeField) {
+                        if (currentOutlineMode) {
+                            valSpan.textContent = "Disabled (Outline Mode)";
+                        } else if (currentPremisesMode) {
+                            valSpan.textContent = "Disabled (Premises Mode)";
+                        }
+                    } else if (item.labels) {
                         const idx = Math.round(v) - item.min;
                         valSpan.textContent = item.labels[idx] || v;
                     } else {
@@ -657,7 +663,16 @@ export async function renderRightPane(conversation) {
 
                 // Find active option label
                 const activeOpt = item.options.find(opt => opt.value === val) || item.options[0];
-                const activeLabel = activeOpt ? activeOpt.label : val;
+                let activeLabel = activeOpt ? activeOpt.label : val;
+
+                if (proseBypassActive && isNarrativeField) {
+                    triggerBtn.disabled = true;
+                    if (currentOutlineMode) {
+                        activeLabel = "Disabled (Outline Mode)";
+                    } else if (currentPremisesMode) {
+                        activeLabel = "Disabled (Premises Mode)";
+                    }
+                }
 
                 const triggerText = document.createElement('span');
                 triggerText.className = 'custom-select-trigger-text';
@@ -745,6 +760,13 @@ export async function renderRightPane(conversation) {
 
                 checkbox.addEventListener('change', safeAsync(async () => {
                     const updateObj = { params: { [item.id]: checkbox.checked } };
+                    if (checkbox.checked) {
+                        if (item.id === 'outline_mode') {
+                            updateObj.params.premises_mode = false;
+                        } else if (item.id === 'premises_mode') {
+                            updateObj.params.outline_mode = false;
+                        }
+                    }
                     const newConv = await saveConversationSettings(convId, updateObj);
                     if (newConv) {
                         await renderRightPane(newConv);

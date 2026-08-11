@@ -142,6 +142,10 @@ export async function switchConversation(id) {
     allMessages.sort((a, b) => a.timestamp - b.timestamp);
     const activeMessages = allMessages.filter(m => m.isActive !== false);
 
+    // Sync to state
+    state.allMessages = allMessages;
+    state.activeMessages = activeMessages;
+
     const versionCounts = new Map();
     for (const msg of allMessages) {
         if (msg.versionGroupId) {
@@ -163,7 +167,8 @@ export async function switchConversation(id) {
                     id: msg.id,
                     versionGroupId: versionGroupId,
                     version: msg.version || 1,
-                    versionCount: versionCount
+                    versionCount: versionCount,
+                    error: msg.error
                 }, true);
             }
         });
@@ -311,8 +316,12 @@ export async function createNewConversation(title = 'New Chat', presetId = null)
 // Delete a conversation thread
 export function deleteConversation(id) {
     state.conversationIdToDelete = id;
+    state.messageIdToDelete = null;
     const deleteConfirmModal = document.getElementById('delete-confirm-modal');
     if (deleteConfirmModal) {
+        deleteConfirmModal.querySelector('h2').textContent = 'Delete Chat?';
+        deleteConfirmModal.querySelector('.modal-description').textContent = 'Are you sure you want to delete this conversation? This will permanently remove all messages and version branches inside it. This action cannot be undone.';
+        deleteConfirmModal.querySelector('#delete-confirm-btn').textContent = 'Delete Chat';
         deleteConfirmModal.classList.remove('hidden');
     }
 }
@@ -392,8 +401,8 @@ export function initSidebar() {
     const updateBackdrop = () => {
         if (!backdrop) return;
         const rightPane = document.getElementById('right-pane');
-        const isRightActive = rightPane && rightPane.classList.contains('active');
-        const isSidebarActive = sidebar && sidebar.classList.contains('active');
+        const isRightActive = rightPane && rightPane.classList.contains('active') && window.innerWidth <= 1024;
+        const isSidebarActive = sidebar && sidebar.classList.contains('active') && window.innerWidth <= 768;
         if (isRightActive || isSidebarActive) {
             backdrop.classList.remove('hidden');
         } else {

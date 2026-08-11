@@ -1,14 +1,14 @@
 import { authFetch } from '../auth.js';
 import { state, escapeHtml } from '../state.js';
-import { safeAsync } from './helpers.js';
+import { safeAsync, applyTheme } from './helpers.js';
 import { updateKeyStatusUI } from './input.js';
 import { loadConversations, switchConversation, createNewConversation } from './sidebar.js';
 
-// Close API Key Modal
-export function closeModal() {
-    const keyModal = document.getElementById('key-modal');
-    if (keyModal) {
-        keyModal.classList.add('hidden');
+// Close Settings Modal
+export function closeSettingsModal() {
+    const settingsModal = document.getElementById('settings-modal');
+    if (settingsModal) {
+        settingsModal.classList.add('hidden');
     }
 }
 
@@ -19,6 +19,7 @@ export function closeDeleteConfirmModal() {
         deleteConfirmModal.classList.add('hidden');
     }
     state.conversationIdToDelete = null;
+    state.messageIdToDelete = null;
 }
 
 // UX & Toast Notifications
@@ -60,9 +61,50 @@ export function showToast(message, type = 'info') {
     }, 4000);
 }
 
-export function initKeyModal() {
-    const keyBtn = document.getElementById('key-btn');
-    const keyModal = document.getElementById('key-modal');
+// Render custom models list in settings dialog
+export function renderCustomModelsInSettings() {
+    const container = document.getElementById('custom-models-list');
+    if (!container) return;
+    
+    const customModels = state.serverConfig?.customModels || [];
+    if (customModels.length === 0) {
+        container.innerHTML = '<p class="section-placeholder" style="font-size: 0.8rem; color: var(--text-muted); font-style: italic;">No custom models configured yet.</p>';
+        return;
+    }
+    
+    container.innerHTML = customModels.map(m => `
+        <div class="custom-model-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; margin-bottom: 8px; background: rgba(255, 255, 255, 0.02);">
+            <div style="flex: 1; min-width: 0; margin-right: 12px;">
+                <div style="font-weight: 600; font-size: 0.85rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(m.name)}</div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(m.model)}</div>
+            </div>
+            <button class="delete-custom-model-btn btn-danger" data-id="${m.id}" style="border: none; padding: 6px 10px; font-size: 0.75rem; border-radius: 6px; cursor: pointer; flex-shrink: 0;">Delete</button>
+        </div>
+    `).join('');
+    
+    // Bind delete handlers
+    container.querySelectorAll('.delete-custom-model-btn').forEach(btn => {
+        btn.addEventListener('click', safeAsync(async () => {
+            const id = btn.getAttribute('data-id');
+            const res = await authFetch(`/api/config/custom-models/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                state.serverConfig.customModels = state.serverConfig.customModels.filter(item => item.id !== id);
+                renderCustomModelsInSettings();
+                
+                // Re-render main model selector dropdown
+                const { renderModelDropdown } = await import('./input.js');
+                renderModelDropdown();
+                showToast('Custom model deleted.', 'success');
+            } else {
+                showToast('Failed to delete custom model.', 'error');
+            }
+        }));
+    });
+}
+
+export function initSettingsModal() {
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsModal = document.getElementById('settings-modal');
     const modalCloseBtn = document.getElementById('modal-close-btn');
     const apiKeyInput = document.getElementById('api-key-input');
     const toggleKeyVisibility = document.getElementById('toggle-key-visibility');
@@ -70,11 +112,11 @@ export function initKeyModal() {
     const deleteKeyBtn = document.getElementById('delete-key-btn');
     const sidebar = document.getElementById('sidebar');
 
-    if (keyBtn) {
-        keyBtn.addEventListener('click', () => {
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', () => {
             if (apiKeyInput) {
                 apiKeyInput.value = '';
-                if (state.serverConfig.hasKey) {
+                if (state.serverConfig?.hasKey) {
                     apiKeyInput.placeholder = 'Key is configured (hidden for security)';
                 } else {
                     apiKeyInput.placeholder = 'Paste sk-... key here';
@@ -91,8 +133,31 @@ export function initKeyModal() {
                 `;
             }
             
-            if (keyModal) {
-                keyModal.classList.remove('hidden');
+            // Highlight active theme option in modal
+            const activeTheme = state.serverConfig?.theme || 'cyan';
+            document.querySelectorAll('.theme-option-btn').forEach(btn => {
+                if (btn.getAttribute('data-theme') === activeTheme) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            // Reset tabs to General when opened
+            const tabButtons = settingsModal ? settingsModal.querySelectorAll('.settings-tab-btn') : [];
+            const panels = settingsModal ? settingsModal.querySelectorAll('.settings-panel') : [];
+            tabButtons.forEach((btn, idx) => {
+                if (idx === 0) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+            panels.forEach((panel, idx) => {
+                if (idx === 0) panel.classList.remove('hidden');
+                else panel.classList.add('hidden');
+            });
+
+            if (settingsModal) {
+                settingsModal.classList.remove('hidden');
+                renderCustomModelsInSettings();
                 apiKeyInput?.focus();
             }
             
@@ -104,13 +169,13 @@ export function initKeyModal() {
     }
 
     if (modalCloseBtn) {
-        modalCloseBtn.addEventListener('click', closeModal);
+        modalCloseBtn.addEventListener('click', closeSettingsModal);
     }
     
-    if (keyModal) {
-        keyModal.addEventListener('click', (e) => {
-            if (e.target === keyModal) {
-                closeModal();
+    if (settingsModal) {
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target === settingsModal) {
+                closeSettingsModal();
             }
         });
     }
@@ -154,10 +219,9 @@ export function initKeyModal() {
             });
             if (res.ok) {
                 const data = await res.json();
-                state.serverConfig.hasKey = data.hasKey;
-                state.serverConfig.activeModel = data.activeModel;
+                Object.assign(state.serverConfig, data);
                 updateKeyStatusUI();
-                closeModal();
+                closeSettingsModal();
             } else {
                 showToast('Failed to save API key to server.', 'error');
             }
@@ -173,16 +237,112 @@ export function initKeyModal() {
             });
             if (res.ok) {
                 const data = await res.json();
-                state.serverConfig.hasKey = data.hasKey;
-                state.serverConfig.activeModel = data.activeModel;
+                Object.assign(state.serverConfig, data);
                 if (apiKeyInput) apiKeyInput.value = '';
                 updateKeyStatusUI();
-                closeModal();
+                closeSettingsModal();
             } else {
                 showToast('Failed to delete API key from server.', 'error');
             }
         }));
     }
+
+    // Add Theme Button click listeners
+    const themeButtons = document.querySelectorAll('.theme-option-btn');
+    themeButtons.forEach(btn => {
+        btn.addEventListener('click', safeAsync(async () => {
+            const chosenTheme = btn.getAttribute('data-theme');
+            applyTheme(chosenTheme);
+            
+            // Update active state in UI
+            themeButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Save to state & cache
+            state.serverConfig.theme = chosenTheme;
+            localStorage.setItem('ls_theme', chosenTheme);
+
+            // Send configuration to server
+            const res = await authFetch('/api/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ theme: chosenTheme })
+            });
+
+            if (!res.ok) {
+                showToast('Failed to save theme setting to server.', 'error');
+            }
+        }));
+    });
+
+    // Bind Add Custom Model form submission
+    const addForm = document.getElementById('add-custom-model-form');
+    if (addForm) {
+        addForm.addEventListener('submit', safeAsync(async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('add-model-name')?.value.trim();
+            const endpoint = document.getElementById('add-model-endpoint')?.value.trim();
+            const apiKey = document.getElementById('add-model-key')?.value.trim();
+            const model = document.getElementById('add-model-identifier')?.value.trim();
+            
+            if (!name || !endpoint || !model) {
+                showToast('Please fill out all required fields.', 'warning');
+                return;
+            }
+            
+            try {
+                new URL(endpoint);
+            } catch (urlErr) {
+                showToast('Please enter a valid Endpoint URL.', 'warning');
+                return;
+            }
+            
+            const res = await authFetch('/api/config/custom-models', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, endpoint, apiKey, model })
+            });
+            
+            if (res.ok) {
+                const data = await res.json();
+                state.serverConfig.customModels.push(data.model);
+                renderCustomModelsInSettings();
+                
+                // Reset form inputs
+                addForm.reset();
+                
+                // Re-render main model selector dropdown
+                const { renderModelDropdown } = await import('./input.js');
+                renderModelDropdown();
+                showToast('Custom model added successfully.', 'success');
+            } else {
+                showToast('Failed to add custom model.', 'error');
+            }
+        }));
+    }
+
+    // Tabs switching logic
+    const tabButtons = settingsModal ? settingsModal.querySelectorAll('.settings-tab-btn') : [];
+    const panels = settingsModal ? settingsModal.querySelectorAll('.settings-panel') : [];
+
+    tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetId = btn.getAttribute('data-target');
+
+            // Toggle active button state
+            tabButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Toggle panel visibility
+            panels.forEach(p => {
+                if (p.id === targetId) {
+                    p.classList.remove('hidden');
+                } else {
+                    p.classList.add('hidden');
+                }
+            });
+        });
+    });
 }
 
 export function initPromptEditorModal() {
@@ -246,30 +406,47 @@ export function initDeleteModal() {
 
     if (deleteConfirmBtn) {
         deleteConfirmBtn.addEventListener('click', safeAsync(async () => {
-            if (state.conversationIdToDelete === null) return;
-            const id = state.conversationIdToDelete;
-            closeDeleteConfirmModal();
+            if (state.conversationIdToDelete !== null) {
+                const id = state.conversationIdToDelete;
+                closeDeleteConfirmModal();
 
-            // Clear draft from localStorage on delete
-            localStorage.removeItem(`loomscribe_draft_${id}`);
+                // Clear draft from localStorage on delete
+                localStorage.removeItem(`loomscribe_draft_${id}`);
 
-            await authFetch(`/api/conversations/${id}`, {
-                method: 'DELETE'
-            });
-            
-            if (state.currentConversationId === id) {
-                const cRes = await authFetch('/api/conversations');
-                const conversations = cRes.ok ? await cRes.json() : [];
-                conversations.sort((a, b) => b.createdAt - a.createdAt);
-                const latest = conversations[0];
-                if (latest) {
-                    await switchConversation(latest.id);
-                    await loadConversations();
+                await authFetch(`/api/conversations/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (state.currentConversationId === id) {
+                    const cRes = await authFetch('/api/conversations');
+                    const conversations = cRes.ok ? await cRes.json() : [];
+                    conversations.sort((a, b) => b.createdAt - a.createdAt);
+                    const latest = conversations[0];
+                    if (latest) {
+                        await switchConversation(latest.id);
+                        await loadConversations();
+                    } else {
+                        await createNewConversation();
+                    }
                 } else {
-                    await createNewConversation();
+                    await loadConversations();
                 }
-            } else {
-                await loadConversations();
+            } else if (state.messageIdToDelete !== null) {
+                const msgId = state.messageIdToDelete;
+                closeDeleteConfirmModal();
+
+                const res = await authFetch(`/api/messages/${msgId}/version-group`, {
+                    method: 'DELETE'
+                });
+                
+                if (res.ok) {
+                    const { refreshConversationMessages } = await import('./chat.js');
+                    showToast('Message deleted');
+                    await refreshConversationMessages(true);
+                } else {
+                    const errText = await res.text();
+                    showToast(`Failed to delete message: ${errText}`, 'error');
+                }
             }
         }));
     }

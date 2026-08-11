@@ -1,17 +1,19 @@
 import { requireLogin, authFetch, logout } from './js/auth.js';
 import { state } from './js/state.js';
 import { initWebSocket } from './js/socket.js';
+import { applyTheme } from './js/ui/helpers.js';
 import {
     initInputBar,
     initializeModelUI,
     initializeThinkingUI,
     updateKeyStatusUI,
+    renderModelDropdown,
     initSidebar,
     initNewChatModal,
     loadConversations,
     switchConversation,
     createNewConversation,
-    initKeyModal,
+    initSettingsModal,
     initDeleteModal,
     initChatForm,
     initStopButton,
@@ -65,13 +67,17 @@ async function initApp() {
     const configRes = await authFetch('/api/config');
     if (configRes.ok) {
         state.serverConfig = await configRes.json();
+        if (state.serverConfig.theme) {
+            applyTheme(state.serverConfig.theme);
+            localStorage.setItem('ls_theme', state.serverConfig.theme);
+        }
     }
 
     // Register all event listeners in respective UI modules
     initSidebar();
     initNewChatModal();
     initInputBar();
-    initKeyModal();
+    initSettingsModal();
     initDeleteModal();
     initChatForm();
     initStopButton();
@@ -81,6 +87,7 @@ async function initApp() {
     initPresetManager();
 
     // Initialize UI visuals from serverConfig
+    renderModelDropdown();
     initializeModelUI();
     initializeThinkingUI();
     updateKeyStatusUI();

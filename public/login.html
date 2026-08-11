@@ -6,7 +6,8 @@
     <title>LoomScribe — Sign In</title>
     <meta name="description" content="Sign in to LoomScribe, your DeepSeek creative workspace.">
     <link rel="icon" type="image/png" href="favicon.png">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -18,14 +19,16 @@
             --accent: #38bdf8;
             --accent-glow: rgba(56, 189, 248, 0.25);
             --accent-light: #7dd3fc;
-            --surface: #0b0f19;
-            --surface-2: #111827;
-            --surface-3: #1e293b;
-            --border: rgba(56, 189, 248, 0.18);
+            --violet-glow: rgba(168, 85, 247, 0.2);
+            --surface: #070913;
+            --surface-2: rgba(19, 27, 46, 0.65);
+            --surface-3: rgba(15, 23, 42, 0.6);
+            --border: rgba(255, 255, 255, 0.08);
             --text: #f1f5f9;
             --text-muted: #94a3b8;
             --danger: #f43f5e;
-            --radius: 18px;
+            --radius: 20px;
+            --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         html, body {
@@ -53,7 +56,7 @@
             height: 70%;
             border-radius: 50%;
             background: radial-gradient(circle, rgba(56, 189, 248, 0.2) 0%, transparent 70%);
-            animation: drift 18s ease-in-out infinite alternate;
+            animation: drift 18s var(--ease-spring) infinite alternate;
         }
 
         .bg-layer::after {
@@ -61,11 +64,11 @@
             position: absolute;
             bottom: -20%;
             right: -10%;
-            width: 60%;
-            height: 60%;
+            width: 65%;
+            height: 65%;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(45, 212, 191, 0.12) 0%, transparent 70%);
-            animation: drift 22s ease-in-out infinite alternate-reverse;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, transparent 70%);
+            animation: drift 22s var(--ease-spring) infinite alternate-reverse;
         }
 
         @keyframes drift {
@@ -83,6 +86,7 @@
                 linear-gradient(90deg, rgba(56, 189, 248, 0.04) 1px, transparent 1px);
             background-size: 48px 48px;
             mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+            -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
         }
 
         /* ── Layout ── */
@@ -104,13 +108,21 @@
             flex-direction: column;
             align-items: center;
             gap: 12px;
-            animation: fadeUp 0.5s ease both;
+            animation: fadeUp 0.6s var(--ease-spring) both;
         }
 
         .brand-icon {
-            font-size: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 72px;
+            height: 72px;
+            border-radius: 20px;
+            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+            border: 1px solid var(--accent-glow);
+            color: var(--accent);
             filter: drop-shadow(0 0 24px var(--accent-glow));
-            animation: float 4s ease-in-out infinite;
+            animation: float 4s var(--ease-spring) infinite;
         }
 
         @keyframes float {
@@ -119,8 +131,9 @@
         }
 
         .brand h1 {
-            font-size: 2rem;
-            font-weight: 800;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 2.25rem;
+            font-weight: 700;
             background: linear-gradient(135deg, #fff 30%, var(--accent-light));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -129,6 +142,7 @@
         }
 
         .brand p {
+            font-family: 'Outfit', sans-serif;
             font-size: 0.9rem;
             color: var(--text-muted);
             font-weight: 400;
@@ -143,11 +157,12 @@
             border-radius: var(--radius);
             padding: 36px 32px;
             box-shadow:
-                0 0 0 1px rgba(56, 189, 248, 0.08),
-                0 32px 80px rgba(0, 0, 0, 0.5),
-                0 0 60px rgba(56, 189, 248, 0.06);
-            animation: fadeUp 0.5s 0.1s ease both;
-            backdrop-filter: blur(8px);
+                0 0 0 1px rgba(255, 255, 255, 0.05),
+                0 32px 80px rgba(0, 0, 0, 0.6),
+                0 0 60px rgba(168, 85, 247, 0.08);
+            animation: fadeUp 0.6s 0.1s var(--ease-spring) both;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
         }
 
         @keyframes fadeUp {
@@ -156,7 +171,8 @@
         }
 
         .card-title {
-            font-size: 1.15rem;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.25rem;
             font-weight: 600;
             color: var(--text);
             margin-bottom: 6px;
@@ -177,6 +193,7 @@
         }
 
         label {
+            font-family: 'Outfit', sans-serif;
             font-size: 0.82rem;
             font-weight: 500;
             color: var(--text-muted);
@@ -197,7 +214,7 @@
             color: var(--text-muted);
             pointer-events: none;
             flex-shrink: 0;
-            transition: color 0.2s;
+            transition: color 0.2s var(--ease-spring);
         }
 
         .input-wrap:focus-within svg {
@@ -209,13 +226,13 @@
             width: 100%;
             padding: 13px 16px 13px 42px;
             background: var(--surface-3);
-            border: 1px solid rgba(56, 189, 248, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 12px;
             color: var(--text);
-            font-family: inherit;
+            font-family: 'Outfit', sans-serif;
             font-size: 0.95rem;
             outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            transition: border-color 0.2s var(--ease-spring), box-shadow 0.2s var(--ease-spring);
         }
 
         input:focus {
@@ -238,7 +255,7 @@
             display: flex;
             padding: 4px;
             border-radius: 6px;
-            transition: color 0.2s;
+            transition: color 0.2s var(--ease-spring);
         }
 
         .toggle-eye:hover { color: var(--text); }
@@ -255,7 +272,7 @@
             border-radius: 8px;
             padding: 9px 12px;
             margin-bottom: 16px;
-            animation: shake 0.35s ease;
+            animation: shake 0.35s var(--ease-spring);
         }
 
         .error-msg.visible { display: flex; }
@@ -274,14 +291,14 @@
             border: none;
             border-radius: 12px;
             color: #fff;
-            font-family: inherit;
+            font-family: 'Outfit', sans-serif;
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
             letter-spacing: 0.01em;
             position: relative;
             overflow: hidden;
-            transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+            transition: opacity 0.2s var(--ease-spring), transform 0.2s var(--ease-spring), box-shadow 0.2s var(--ease-spring);
             box-shadow: 0 4px 20px rgba(56, 189, 248, 0.3);
         }
 
@@ -338,7 +355,7 @@
             font-size: 0.78rem;
             color: var(--text-muted);
             text-align: center;
-            animation: fadeUp 0.5s 0.2s ease both;
+            animation: fadeUp 0.6s 0.2s var(--ease-spring) both;
         }
     </style>
 </head>
@@ -349,7 +366,14 @@
 
 <div class="login-wrapper">
     <div class="brand">
-        <div class="brand-icon">🌌</div>
+        <div class="brand-icon">
+            <svg class="brand-logo-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="width: 36px; height: 36px;">
+                <path d="M12 2L6 12C6 15 9 18 9 22H15C15 18 18 15 18 12L12 2Z" fill="currentColor" fill-opacity="0.12" />
+                <line x1="12" y1="2" x2="12" y2="11" />
+                <circle cx="12" cy="11" r="1.5" fill="currentColor" />
+                <path d="M4 8C7 5 17 5 20 8" opacity="0.5" stroke-dasharray="2 2" />
+            </svg>
+        </div>
         <h1>LoomScribe</h1>
         <p>DeepSeek Creative Workspace</p>
     </div>
@@ -391,7 +415,6 @@
                 <div class="spinner"></div>
             </button>
         </form>
-    </div>
 </div>
 
 <script>

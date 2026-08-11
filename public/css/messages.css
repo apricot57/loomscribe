@@ -42,8 +42,49 @@
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Bot message layout (transparent, flat, borderless) */
-.bot-message {
+@keyframes messageFade {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.message-bubble {
+    border-radius: var(--border-radius-m);
+    padding: 16px 20px;
+    line-height: 1.6;
+    font-size: 0.95rem;
+    position: relative;
+    transition: var(--transition-m3);
+    animation: messageFade 0.3s ease-out both;
+}
+
+/* Sleek organic User Message card */
+.user-message,
+.message-user {
+    flex-direction: column;
+    align-items: flex-end;
+    align-self: flex-end;
+    max-width: 90%;
+    gap: 6px;
+}
+
+.user-message .message-content,
+.user-message .message-bubble,
+.message-user .message-bubble {
+    background: var(--bg-message-user);
+    color: #ffffff;
+    box-shadow: var(--shadow-message-user);
+    border-radius: 20px;
+    border-bottom-right-radius: 4px;
+    padding: 14px 20px;
+    line-height: 1.6;
+    font-size: 0.95rem;
+    word-break: break-word;
+    white-space: pre-wrap;
+}
+
+/* Bot / Assistant Message layout */
+.bot-message,
+.message-assistant {
     align-self: stretch;
     width: 100%;
     background-color: transparent;
@@ -53,33 +94,21 @@
     box-shadow: none;
 }
 
-.bot-message .message-content {
+.bot-message .message-content,
+.bot-message .message-bubble,
+.message-assistant .message-bubble {
+    background: transparent;
+    backdrop-filter: none;
+    border: none;
+    box-shadow: none;
     color: var(--text-primary);
+    border-radius: 0;
+    padding: 4px 0;
     line-height: 1.65;
     font-size: 0.975rem;
     word-break: break-word;
-    white-space: normal; /* Allow HTML tags to layout whitespace naturally */
-    padding-top: 0;
+    white-space: normal;
     flex: 1;
-}
-
-/* Sleek organic User Message card (flat symmetric pill bubble) */
-.user-message {
-    flex-direction: row-reverse;
-    align-self: flex-end;
-    max-width: 90%; /* Widen the bubble to fill the space saved from avatar removal */
-}
-
-.user-message .message-content {
-    background-color: var(--bg-input); /* Flat slate grey-blue container */
-    color: var(--text-primary);
-    padding: 12px 20px;
-    border-radius: 24px; /* Symmetric pill shape, no unique tails */
-    line-height: 1.55;
-    font-size: 0.95rem;
-    word-break: break-word;
-    white-space: pre-wrap;
-    box-shadow: none;
 }
 
 /* Message body wrapper for stacked content (reasoning + response) */
@@ -90,56 +119,70 @@
     min-width: 0;
 }
 
-/* Collapsible reasoning block */
+/* Collapsible Thinking / Reasoning block */
+.thinking-block,
 .reasoning-block {
-    margin-bottom: 10px;
-    border-left: 2px solid var(--text-muted);
-    padding-left: 12px;
+    background: rgba(7, 10, 18, 0.6);
+    border: 1px solid var(--reasoning-border);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    transition: var(--transition-m3);
 }
 
+.thinking-header,
 .reasoning-header {
+    padding: 8px 14px;
+    background: var(--reasoning-header-bg);
+    color: var(--reasoning-header-text);
+    font-size: 0.8rem;
+    font-weight: 600;
     display: flex;
     align-items: center;
-    gap: 6px;
+    justify-content: space-between;
+    flex-direction: row-reverse;
     cursor: pointer;
-    color: var(--text-muted);
-    font-size: 0.85rem;
-    font-weight: 500;
     user-select: none;
-    padding: 2px 0;
-    transition: color 0.2s;
+    transition: background-color 0.2s, color 0.2s;
 }
 
+.thinking-header:hover,
 .reasoning-header:hover {
-    color: var(--text-secondary);
+    background: var(--reasoning-header-hover);
+    color: var(--reasoning-header-hover-text);
 }
 
+.thinking-chevron,
 .reasoning-chevron {
     width: 14px;
     height: 14px;
-    transition: transform 0.2s;
+    transition: transform 0.2s ease;
     flex-shrink: 0;
 }
 
+.thinking-block.collapsed .thinking-chevron,
 .reasoning-block.collapsed .reasoning-chevron {
     transform: rotate(-90deg);
 }
 
+.thinking-block.collapsed .thinking-content,
 .reasoning-block.collapsed .reasoning-content {
     display: none;
 }
 
+.thinking-content,
 .reasoning-content {
-    color: var(--text-muted);
-    font-size: 0.9rem;
+    padding: 10px 14px;
+    color: var(--reasoning-content-text);
+    font-size: 0.85rem;
     line-height: 1.55;
     white-space: pre-wrap;
-    margin-top: 6px;
-    font-style: italic;
+    border-top: 1px solid var(--reasoning-divider);
 }
 
 /* Streaming message cursor animation */
-.message-content.streaming::after {
+.message-content.streaming::after,
+.message-bubble.streaming::after {
     content: '';
     display: inline-block;
     width: 2px;
@@ -201,13 +244,38 @@
     align-items: center;
     gap: 6px;
     padding: 2px 0;
-    opacity: 0;
-    transition: opacity 0.15s ease;
     flex-wrap: wrap;
 }
 
-.message:hover .message-action-row {
+.message-action-row:empty {
+    display: none;
+}
+
+.message-action-row .message-action-btn {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.message:hover .message-action-row .message-action-btn,
+.message:focus-within .message-action-row .message-action-btn,
+.message-action-btn:focus,
+.message-action-btn:focus-visible {
     opacity: 1;
+}
+
+/* Prompt version switcher hidden by default, shown on hover/focus */
+.user-message .version-nav {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.user-message:hover .version-nav,
+.user-message:focus-within .version-nav {
+    opacity: 1;
+}
+
+.bot-message .message-action-row {
+    margin-top: 6px;
 }
 
 .message-action-btn {
@@ -240,6 +308,12 @@
     background: var(--accent-dim);
 }
 
+.message-action-btn.delete-btn:hover {
+    color: var(--accent-danger);
+    border-color: var(--accent-danger);
+    background: var(--accent-danger-dim);
+}
+
 .save-btn {
     color: var(--accent-color);
 }
@@ -254,7 +328,7 @@
     border-color: var(--accent-danger-dim);
 }
 
-.edit-btn, .regen-btn {
+.edit-btn, .regen-btn, .fork-btn {
     font-size: 0.85rem;
     line-height: 1;
     padding: 2px 8px;
@@ -266,17 +340,21 @@
 .version-nav {
     display: flex;
     align-items: center;
-    gap: 2px;
-    font-size: 0.7rem;
+    gap: 4px;
+    font-size: 0.85rem;
     color: var(--text-muted);
     user-select: none;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    padding: 2px 6px;
+    border-radius: var(--border-radius-pill);
 }
 
 .version-nav-label {
-    font-size: 0.68rem;
-    font-weight: 500;
-    color: var(--text-muted);
-    min-width: 28px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    min-width: 36px;
     text-align: center;
 }
 
@@ -285,9 +363,9 @@
     border: none;
     color: var(--text-muted);
     cursor: pointer;
-    padding: 2px 5px;
-    border-radius: var(--border-radius-pill);
-    font-size: 0.7rem;
+    padding: 4px 6px;
+    border-radius: 50%;
+    font-size: 0.85rem;
     line-height: 1;
     transition: var(--transition-m3);
     display: inline-flex;
@@ -296,14 +374,42 @@
 }
 
 .version-nav-btn svg {
-    width: 9px;
-    height: 9px;
+    width: 14px;
+    height: 14px;
     display: block;
 }
 
-.version-nav-btn:hover {
+.version-nav-btn:hover:not(:disabled) {
     color: var(--text-primary);
     background: var(--accent-dim);
+}
+
+/* Circular layout matching version-nav height for row buttons */
+.message-action-row .message-action-btn {
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+}
+
+.message-action-row .message-action-btn svg {
+    width: 14px !important;
+    height: 14px !important;
+    display: block !important;
+    margin: 0 !important;
+}
+
+/* Reduce perceived gap between prompt with buttons and the assistant response */
+.user-message + .bot-message,
+.user-message + .message-assistant {
+    margin-top: -16px;
 }
 
 /* ==========================================================================
@@ -385,58 +491,74 @@
     align-self: stretch !important;
 }
 
+.message.editing .message-body {
+    width: 100% !important;
+    max-width: 100% !important;
+    align-self: stretch !important;
+    flex: 1;
+}
+
 .inline-edit-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    align-self: stretch !important;
     flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
+    box-sizing: border-box;
 }
 
 /* ==========================================================================
    Markdown Elements Inside Message Content
    ========================================================================== */
-.message-content p {
+.message-content p,
+.message-bubble p {
     margin-bottom: 12px;
 }
-.message-content p:last-child {
+.message-content p:last-child,
+.message-bubble p:last-child {
     margin-bottom: 0;
 }
 
-.message-content strong {
+.message-content strong,
+.message-bubble strong {
     font-weight: 700;
     color: #ffffff; /* High contrast bold text */
 }
 
 /* Styled Lists */
-.message-content ul, 
-.message-content ol {
+.message-content ul, .message-bubble ul,
+.message-content ol, .message-bubble ol {
     margin-left: 24px;
     margin-bottom: 12px;
     padding-left: 0;
 }
 
-.message-content li {
+.message-content li, .message-bubble li {
     margin-bottom: 6px;
     line-height: 1.6;
 }
 
-.message-content li::marker {
-    color: var(--accent-secondary); /* Turquoise list points! */
+.message-content li::marker, .message-bubble li::marker {
+    color: var(--accent-secondary); /* Turquoise list points */
     font-weight: 700;
 }
 
 /* Styled Code blocks (Preformatted code) */
-.message-content pre {
-    background-color: #0b0f19; /* Deep slate obsidian code block background */
-    border: 1px solid var(--border-color);
+.messages-container .message-bubble pre,
+.messages-container .message-content pre {
+    background: #05080e; /* Deep dark obsidian code block background */
+    border: 1px solid var(--glass-border);
     border-radius: 12px;
-    padding: 16px;
-    margin: 16px 0;
+    padding: 14px;
+    margin: 12px 0;
     overflow-x: auto;
     box-shadow: var(--shadow-m3-low);
 }
 
-.message-content pre code {
+.messages-container .message-bubble pre code,
+.messages-container .message-content pre code {
     background: transparent;
     padding: 0;
     border-radius: 0;
@@ -447,6 +569,7 @@
 }
 
 /* Styled Inline Code blocks */
+.message-bubble code,
 .message-content code {
     background-color: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.04);
@@ -458,10 +581,10 @@
 }
 
 /* Styled Headers inside messages */
-.message-content h1,
-.message-content h2,
-.message-content h3,
-.message-content h4 {
+.message-content h1, .message-bubble h1,
+.message-content h2, .message-bubble h2,
+.message-content h3, .message-bubble h3,
+.message-content h4, .message-bubble h4 {
     color: #ffffff;
     font-weight: 700;
     margin-top: 20px;
@@ -469,10 +592,10 @@
     letter-spacing: -0.3px;
 }
 
-.message-content h1 { font-size: 1.4rem; }
-.message-content h2 { font-size: 1.25rem; }
-.message-content h3 { font-size: 1.15rem; }
-.message-content h4 { font-size: 1.05rem; }
+.message-content h1, .message-bubble h1 { font-size: 1.4rem; }
+.message-content h2, .message-bubble h2 { font-size: 1.25rem; }
+.message-content h3, .message-bubble h3 { font-size: 1.15rem; }
+.message-content h4, .message-bubble h4 { font-size: 1.05rem; }
 
 /* Mobile configurations for message wrappers and items */
 @media (max-width: 768px) {
@@ -491,34 +614,56 @@
         gap: 6px;
     }
     
-    .user-message {
+    .user-message, .message-user {
         flex-direction: column !important;
         align-items: flex-end !important;
         max-width: 95%;
     }
     
-    .user-message .message-content {
+    .user-message .message-content,
+    .user-message .message-bubble,
+    .message-user .message-bubble {
         padding: 10px 14px;
         border-radius: 18px;
     }
     
-    .bot-message {
+    .bot-message, .message-assistant {
         align-self: flex-start;
         align-items: flex-start !important;
         width: 100%;
     }
 
-    .bot-message .message-content {
+    .message.editing,
+    .user-message.editing,
+    .bot-message.editing {
+        width: 100% !important;
+        max-width: 100% !important;
+        align-self: stretch !important;
+        align-items: stretch !important;
+    }
+
+    .message.editing .message-body,
+    .message.editing .inline-edit-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        align-self: stretch !important;
+    }
+
+    .bot-message .message-content,
+    .bot-message .message-bubble,
+    .message-assistant .message-bubble {
         line-height: 1.55;
         order: 2;
     }
     
-    .bot-message .reasoning-block {
+    .bot-message .reasoning-block,
+    .message-assistant .thinking-block {
         order: 1;
         width: 100%;
     }
     
-    .bot-message .message-action-row {
+    .bot-message .message-action-row,
+    .message-assistant .message-action-row {
         order: 3;
         justify-content: flex-start;
         width: 100%;
@@ -526,7 +671,8 @@
         margin-bottom: 4px;
     }
 
-    .user-message .message-action-row {
+    .user-message .message-action-row,
+    .message-user .message-action-row {
         justify-content: flex-end;
         width: 100%;
         margin-top: 4px;
@@ -536,16 +682,87 @@
         margin-left: 20px;
     }
     
-    /* Ensure action rows/edit buttons are visible on mobile since hover doesn't exist */
-    .message-action-row {
+    /* Ensure action rows, buttons, and version navigation are visible on mobile since hover doesn't exist */
+    .message-action-row,
+    .message-action-row .message-action-btn,
+    .user-message .version-nav {
         opacity: 1 !important;
-        margin-top: 4px;
-        gap: 8px;
+    }
+
+    .message-action-row {
+        margin-top: 6px;
+        gap: 10px;
         display: flex;
+        flex-wrap: wrap;
     }
     
-    .message-action-btn {
-        padding: 6px 12px;
-        font-size: 0.8rem;
+    .message-action-row .message-action-btn {
+        width: 34px !important;
+        height: 34px !important;
+        min-width: 34px !important;
+        max-width: 34px !important;
     }
+
+    .version-nav {
+        padding: 4px 8px;
+    }
+
+    .version-nav-btn {
+        padding: 6px 10px;
+        font-size: 0.95rem;
+    }
+
+    /* Reset negative top margin on mobile to prevent message overlap */
+    .user-message + .bot-message,
+    .user-message + .message-assistant {
+        margin-top: 0 !important;
+    }
+}
+
+/* Touch device fallback for non-hover interaction */
+@media (hover: none) {
+    .message-action-row .message-action-btn,
+    .user-message .version-nav {
+        opacity: 1 !important;
+    }
+}
+
+/* Inline Error Banner inside message bubble */
+.message-error-banner {
+    margin-top: 14px;
+    padding: 10px 14px;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    border-radius: 8px;
+    background: rgba(239, 68, 68, 0.06);
+    color: #f87171;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Standalone Error Card */
+.standalone-error-card {
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    border-radius: 12px;
+    background: rgba(245, 158, 11, 0.05);
+    padding: 16px 20px;
+    margin: 8px 0;
+    color: #fbbf24;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.9rem;
+    max-width: 100%;
+}
+
+.standalone-error-card .error-card-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.standalone-error-card .error-card-body {
+    opacity: 0.95;
+    line-height: 1.45;
 }
