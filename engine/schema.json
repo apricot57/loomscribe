@@ -11,6 +11,17 @@
     "slot": "post_history"
   },
   {
+    "id": "sliding_window",
+    "label": "Context Window (Turns)",
+    "type": "slider",
+    "min": 2,
+    "max": 30,
+    "step": 1,
+    "unit": "turns",
+    "default": 10,
+    "slot": "post_history"
+  },
+  {
     "id": "pov",
     "label": "Point of View",
     "type": "select",

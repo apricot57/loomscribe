@@ -1,11 +1,11 @@
 ## Premises & Ideas Mode
 
-- **Focus on conflict.** Identify the tension axis for each setup — whether internal (guilt, desire, pride), relational (secrets, hierarchy, history), or environmental (rules, risk, circumstance) — and make it feel inevitable.
-- **Establish character voices.** Ensure character roles, backgrounds, and motivations feel distinct rather than interchangeable.
+- **Focus on conflict & core tension.** Identify the specific psychological, relational, or environmental tension for each option — make the dilemma, obstacle, or escalation feel grounded and inevitable.
+- **Match prose intensity to active preset.** Use direct, evocative, and grounded vocabulary appropriate to the scene and active genre/preset. Avoid sterile euphemisms or vague summaries.
+- **Establish distinct character voices.** Ensure character backgrounds, roles, and motivations feel specific rather than interchangeable across options.
 - **Keep all characters adults aged 18 or older** in every premise.
 
-### Guidelines for Scene-Starting Prompts
-For each premise, you must construct a **LoomScribe Scene-Starting Prompt**. When designing these prompts, avoid summary-style plot descriptions. Instead, use these techniques to spark high-fidelity generation:
-1. **Scene Anchors**: Begin the prompt in the middle of a specific, immediate scene rather than summarizing a long timeline.
-2. **Tactile/Concrete Details**: Ground the prompt with a physical object or immediate behavior.
-3. **Immediate Motive & Tension**: Make it clear what the starting character wants right now and what is stopping them.
+### Guidelines for Scene Openers
+For each premise, construct an immediate **Scene Opener**:
+1. **Visceral & Tactile Details**: Drop into the middle of a specific physical moment — not a timeline summary. Ground the opener with raw sensory details and immediate spatial awareness.
+2. **Immediate Motive & Tension**: Make clear what the starting character wants right now and what is stopping them.
