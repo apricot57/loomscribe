@@ -6,6 +6,18 @@ Built with a lightweight Node.js/Express backend and a responsive, zero-build va
 
 ---
 
+## 🖼️ User Interface Preview
+
+| Main Workspace & Prompt Controls | Interactive Preset Manager |
+| :---: | :---: |
+| ![Main Interface](screenshots/main_interface.png) | ![Preset Manager](screenshots/preset_manager.png) |
+
+| Genre Scenario Picker | Custom Models & Endpoint Config |
+| :---: | :---: |
+| ![Preset Selection](screenshots/preset_selection_modal.png) | ![API Config](screenshots/api_config_modal.png) |
+
+---
+
 ## ✨ Core Features
 
 ### 🧠 DeepSeek Optimization & Dual-Slot Prompting
@@ -100,6 +112,12 @@ npm run dev
 Open **`http://localhost:3000`** in your browser.
 
 **On Windows:** Simply double-click `start-loomscribe.bat`. It will start the server, open the browser automatically, and cleanly shut down the background processes when you press any key in the console window.
+
+### 4. Running the Test Suite
+Run the automated test suite to verify all endpoints, database concurrency, websocket proxying, and compiler rules:
+```bash
+npm test
+```
 
 ---
 

@@ -2,6 +2,15 @@ node_modules/
 prompt_cards/
 server.pid
 .env
+*.tmp
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS metadata
+.DS_Store
+Thumbs.db
 
 # Secure host-side JSON database & private DeepSeek API configurations
 data/

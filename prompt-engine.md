@@ -64,6 +64,13 @@ Foundational instruction segments are stored as independent Markdown files in [e
   * [dialogue_playful.md](engine/blocks/dialogue_playful.md): Witty, banter-focused dialogue.
   * [dialogue_candid.md](engine/blocks/dialogue_candid.md): Direct, vulnerable dialogue.
   * [dialogue_commanding.md](engine/blocks/dialogue_commanding.md): Dominant, authoritative tone.
+* **POV Focus Blocks**:
+  * [focus_balanced.md](engine/blocks/focus_balanced.md): Balanced perspective dynamic across characters.
+  * [focus_self.md](engine/blocks/focus_self.md): Deep interiority and subjective sensations of the POV character.
+  * [focus_partner.md](engine/blocks/focus_partner.md): Prioritizes partner micro-reactions, tells, and behavioral shifts.
+* **Sandbox & Planning Blocks**:
+  * [outline_mode.md](engine/blocks/outline_mode.md): Directs model into structured scene plotting and beat outlining.
+  * [premises_mode.md](engine/blocks/premises_mode.md): Enforces generation of exactly six developed story premises.
 
 ---
 
@@ -103,22 +110,30 @@ Presets are stored as JSON files under `engine/presets/`. Here is a standard con
 {
   "id": "slow_burn_romance",
   "title": "Slow Burn Romance",
-  "category": "Romance",
-  "description": "Slow pacing emphasizing chemistry and high emotional stakes.",
-  "system_body": "You are writing a slow-burn romance novel...",
-  "post_history_body": "Maintain slow emotional pacing.",
+  "category": "Romance & Drama",
+  "description": "Character-driven romantic drama focusing on subtle emotional progression, growing intimacy, and unspoken feelings.",
+  "system_body": "This scenario focuses on the gradual buildup of romantic feelings and emotional connection...",
+  "post_history_body": "",
+  "blocks": [
+    { "id": "base_writer",   "enabled": true,  "order": 10 },
+    { "id": "tone_register", "enabled": true,  "order": 20 },
+    { "id": "format_rules",  "enabled": true,  "order": 50 },
+    { "id": "pov_third",     "enabled": true,  "order": 80 },
+    { "id": "pov_first",     "enabled": false, "order": 81 },
+    { "id": "pov_author",    "enabled": false, "order": 82 }
+  ],
   "defaults": {
-    "word_count": 1200,
+    "word_count": 1500,
     "sliding_window": 10,
     "pov": "third",
-    "scene_intensity": "sensory",
+    "scene_intensity": "tender",
     "dialogue_style": "playful",
     "pov_focus": "balanced",
     "pushback": 3,
+    "complication_generator": true,
+    "suggest_choices": false,
     "outline_mode": false,
-    "premises_mode": false,
-    "complication_generator": false,
-    "suggest_choices": true
+    "premises_mode": false
   }
 }
 ```

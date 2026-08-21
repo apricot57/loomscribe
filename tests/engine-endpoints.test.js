@@ -93,7 +93,7 @@ test.describe('Engine Endpoints (/api/engine)', () => {
         assert.strictEqual(res.status, 200);
         assert.strictEqual(typeof res.body, 'object');
         
-        // Check that at least one category exists (e.g. general_utilities or erotic_genres)
+        // Check that at least one category exists (e.g. Mystery & Thriller)
         const categories = Object.keys(res.body);
         assert.ok(categories.length > 0);
         
