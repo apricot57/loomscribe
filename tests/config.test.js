@@ -170,6 +170,43 @@ test.describe('Config Endpoints for Custom Models', () => {
         assert.strictEqual(savedDb.settings.customModels[0].apiKey, 'test-key');
     });
 
+    test('POST /api/config/custom-models clones model with API key when cloneFromId is passed', async () => {
+        const app = express();
+        app.use(express.json());
+        registerConfigRoutes(app);
+
+        db.writeDb({
+            settings: {
+                customModels: [{
+                    id: 'custom-src-1',
+                    name: 'Original Model',
+                    endpoint: 'https://api.openai.com/v1',
+                    apiKey: 'secret-token-999',
+                    model: 'gpt-4o'
+                }]
+            }
+        });
+
+        const res = await request(app, 'POST', '/api/config/custom-models', {
+            name: 'Cloned Model',
+            endpoint: 'https://api.openai.com/v1',
+            apiKey: '', // Left blank during clone
+            model: 'gpt-4o-mini',
+            cloneFromId: 'custom-src-1'
+        });
+
+        assert.strictEqual(res.status, 201);
+        assert.strictEqual(res.body.success, true);
+        assert.strictEqual(res.body.model.name, 'Cloned Model');
+        assert.strictEqual(res.body.model.hasKey, true);
+
+        const savedDb = db.readDb();
+        assert.strictEqual(savedDb.settings.customModels.length, 2);
+        const cloned = savedDb.settings.customModels.find(m => m.name === 'Cloned Model');
+        assert.ok(cloned);
+        assert.strictEqual(cloned.apiKey, 'secret-token-999'); // Key successfully copied
+    });
+
     test('DELETE /api/config/custom-models/:id removes model from DB', async () => {
         const app = express();
         app.use(express.json());
@@ -191,5 +228,42 @@ test.describe('Config Endpoints for Custom Models', () => {
         const savedDb = db.readDb();
         assert.strictEqual(savedDb.settings.customModels.length, 1);
         assert.strictEqual(savedDb.settings.customModels[0].id, 'custom-2');
+    });
+
+    test('POST /api/config manages OpenAI keys, pinned models, and model lists', async () => {
+        const app = express();
+        app.use(express.json());
+        registerConfigRoutes(app);
+
+        db.writeDb({ settings: {} });
+
+        const res = await request(app, 'POST', '/api/config', {
+            openaiApiKey: 'sk-proj-test1234',
+            pinnedOpenAIModels: ['gpt-5.6', 'gpt-4.5-preview'],
+            openaiModels: ['gpt-5.6', 'gpt-4o', 'o3-mini']
+        });
+
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.success, true);
+        assert.strictEqual(res.body.hasOpenAIKey, true);
+        assert.deepStrictEqual(res.body.pinnedOpenAIModels, ['gpt-5.6', 'gpt-4.5-preview']);
+        assert.deepStrictEqual(res.body.openaiModels, ['gpt-5.6', 'gpt-4o', 'o3-mini']);
+
+        const getRes = await request(app, 'GET', '/api/config');
+        assert.strictEqual(getRes.body.hasOpenAIKey, true);
+        assert.deepStrictEqual(getRes.body.pinnedOpenAIModels, ['gpt-5.6', 'gpt-4.5-preview']);
+        assert.deepStrictEqual(getRes.body.openaiModels, ['gpt-5.6', 'gpt-4o', 'o3-mini']);
+    });
+
+    test('POST /api/config/fetch-openai-models rejects when no key is provided', async () => {
+        const app = express();
+        app.use(express.json());
+        registerConfigRoutes(app);
+
+        db.writeDb({ settings: {} });
+
+        const res = await request(app, 'POST', '/api/config/fetch-openai-models');
+        assert.strictEqual(res.status, 400);
+        assert.match(res.body.error, /No OpenAI API key/);
     });
 });

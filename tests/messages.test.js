@@ -440,6 +440,114 @@ test.describe('Message Version Endpoints', () => {
         const resMissing = await request(app, 'PUT', '/api/messages/999', { content: 'test' });
         assert.strictEqual(resMissing.status, 404);
     });
+    test('PUT /api/messages/:id updates content and isActive flag after tree deactivation', async () => {
+        const app = express();
+        app.use(express.json());
+        registerMessagesRoutes(app);
+
+        db.writeDb({
+            messages: [
+                { id: 40, conversationId: 1, role: 'user', content: 'original prompt', versionGroupId: 40, version: 1, isActive: true },
+                { id: 41, conversationId: 1, role: 'assistant', content: 'response 1', parentMsgId: 40, versionGroupId: 41, version: 1, isActive: true },
+                { id: 42, conversationId: 1, role: 'user', content: 'prompt 2', parentMsgId: 41, versionGroupId: 42, version: 1, isActive: true }
+            ]
+        });
+
+        // 1. Deactivate tree starting from user message 40
+        const resDeactivate = await request(app, 'POST', '/api/messages/40/deactivate-tree');
+        assert.strictEqual(resDeactivate.status, 200);
+
+        // 2. Update user message 40 with new content and isActive: true
+        const resUpdate = await request(app, 'PUT', '/api/messages/40', {
+            content: 'edited prompt',
+            isActive: true
+        });
+        assert.strictEqual(resUpdate.status, 200);
+        assert.strictEqual(resUpdate.body.content, 'edited prompt');
+        assert.strictEqual(resUpdate.body.isActive, true);
+
+        // Verify DB: Message 40 is active with new content, but children 41 and 42 remain inactive
+        const updatedDb = db.readDb();
+        const m40 = updatedDb.messages.find(m => m.id === 40);
+        const m41 = updatedDb.messages.find(m => m.id === 41);
+        const m42 = updatedDb.messages.find(m => m.id === 42);
+
+        assert.strictEqual(m40.content, 'edited prompt');
+        assert.strictEqual(m40.isActive, true);
+        assert.strictEqual(m41.isActive, false);
+        assert.strictEqual(m42.isActive, false);
+    });
+    test('POST /api/messages/:id/version and :versionGroupId/navigate support user message versioning and timeline switching', async () => {
+        const app = express();
+        app.use(express.json());
+        registerMessagesRoutes(app);
+
+        // Initial conversation turn: User 50 -> Assistant 51
+        db.writeDb({
+            messages: [
+                { id: 50, conversationId: 1, role: 'user', content: 'What is the capital of France?', versionGroupId: 50, version: 1, isActive: true },
+                { id: 51, conversationId: 1, role: 'assistant', content: 'Paris', parentMsgId: 50, versionGroupId: 51, version: 1, isActive: true }
+            ]
+        });
+
+        // 1. Create version 2 of user message 50
+        const resVer = await request(app, 'POST', '/api/messages/50/version', {
+            content: 'What is the capital of Germany?',
+            role: 'user'
+        });
+        assert.strictEqual(resVer.status, 200);
+        assert.strictEqual(resVer.body.content, 'What is the capital of Germany?');
+        assert.strictEqual(resVer.body.versionGroupId, 50);
+        assert.strictEqual(resVer.body.version, 2);
+        assert.strictEqual(resVer.body.isActive, true);
+
+        const v2Id = resVer.body.id;
+
+        // Add assistant response for v2
+        const curDb = db.readDb();
+        curDb.messages.push({
+            id: 52,
+            conversationId: 1,
+            role: 'assistant',
+            content: 'Berlin',
+            parentMsgId: v2Id,
+            versionGroupId: 52,
+            version: 1,
+            isActive: true
+        });
+        db.writeDb(curDb);
+
+        // 2. Navigate back to user version 1
+        const resNav1 = await request(app, 'POST', '/api/messages/50/navigate?version=1');
+        assert.strictEqual(resNav1.status, 200);
+
+        const dbNav1 = db.readDb();
+        const m50_v1 = dbNav1.messages.find(m => m.id === 50);
+        const m51 = dbNav1.messages.find(m => m.id === 51);
+        const m50_v2 = dbNav1.messages.find(m => m.id === v2Id);
+        const m52 = dbNav1.messages.find(m => m.id === 52);
+
+        assert.strictEqual(m50_v1.isActive, true);
+        assert.strictEqual(m51.isActive, true);
+        assert.strictEqual(m50_v2.isActive, false);
+        assert.strictEqual(m52.isActive, false);
+
+        // 3. Navigate forward to user version 2
+        const resNav2 = await request(app, 'POST', '/api/messages/50/navigate?version=2');
+        assert.strictEqual(resNav2.status, 200);
+
+        const dbNav2 = db.readDb();
+        const m50_v1_after = dbNav2.messages.find(m => m.id === 50);
+        const m51_after = dbNav2.messages.find(m => m.id === 51);
+        const m50_v2_after = dbNav2.messages.find(m => m.id === v2Id);
+        const m52_after = dbNav2.messages.find(m => m.id === 52);
+
+        assert.strictEqual(m50_v1_after.isActive, false);
+        assert.strictEqual(m51_after.isActive, false);
+        assert.strictEqual(m50_v2_after.isActive, true);
+        assert.strictEqual(m52_after.isActive, true);
+    });
+
 
     test('DELETE /api/messages/:id/version-group deletes version group and descendants recursively', async () => {
         const app = express();
@@ -466,5 +574,143 @@ test.describe('Message Version Endpoints', () => {
         // 404 for nonexistent message
         const resMissing = await request(app, 'DELETE', '/api/messages/999/version-group');
         assert.strictEqual(resMissing.status, 404);
+    });
+
+    test('DELETE /api/messages/:id deletes single versioned response and activates remaining sibling version', async () => {
+        const app = express();
+        app.use(express.json());
+        registerMessagesRoutes(app);
+
+        db.writeDb({
+            messages: [
+                { id: 201, conversationId: 1, role: 'user', content: 'prompt 1', versionGroupId: 201, version: 1, isActive: true },
+                { id: 202, conversationId: 1, role: 'assistant', content: 'response v1', parentMsgId: 201, versionGroupId: 202, version: 1, isActive: false },
+                { id: 203, conversationId: 1, role: 'assistant', content: 'response v2', parentMsgId: 201, versionGroupId: 202, version: 2, isActive: true },
+                { id: 204, conversationId: 1, role: 'user', content: 'prompt 2 (from v2)', parentMsgId: 203, versionGroupId: 204, version: 1, isActive: true }
+            ]
+        });
+
+        const res = await request(app, 'DELETE', '/api/messages/203');
+
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.success, true);
+        assert.deepStrictEqual(res.body.deletedIds.sort(), [203, 204]);
+
+        const updatedDb = db.readDb();
+        assert.strictEqual(updatedDb.messages.length, 2);
+
+        const v1Msg = updatedDb.messages.find(m => m.id === 202);
+        assert.ok(v1Msg);
+        assert.strictEqual(v1Msg.isActive, true, 'Remaining sibling version should be activated');
+
+        const deletedV2 = updatedDb.messages.find(m => m.id === 203);
+        assert.strictEqual(deletedV2, undefined);
+
+        const deletedChild = updatedDb.messages.find(m => m.id === 204);
+        assert.strictEqual(deletedChild, undefined);
+    });
+
+    test('DELETE /api/messages/:id deletes edited prompt version when its assistant is deleted', async () => {
+        const app = express();
+        app.use(express.json());
+        registerMessagesRoutes(app);
+
+        db.writeDb({
+            messages: [
+                { id: 301, conversationId: 1, role: 'user', content: 'prompt v1', versionGroupId: 301, version: 1, isActive: false },
+                { id: 302, conversationId: 1, role: 'assistant', content: 'response v1', parentMsgId: 301, versionGroupId: 302, version: 1, isActive: false },
+                { id: 303, conversationId: 1, role: 'user', content: 'prompt v2', versionGroupId: 301, version: 2, isActive: true },
+                { id: 304, conversationId: 1, role: 'assistant', content: 'response v2', parentMsgId: 303, versionGroupId: 304, version: 1, isActive: true }
+            ]
+        });
+
+        const res = await request(app, 'DELETE', '/api/messages/304');
+
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.success, true);
+        assert.deepStrictEqual(res.body.deletedIds.sort(), [303, 304]);
+
+        const updatedDb = db.readDb();
+        assert.strictEqual(updatedDb.messages.length, 2);
+
+        const userV1 = updatedDb.messages.find(m => m.id === 301);
+        const asstV1 = updatedDb.messages.find(m => m.id === 302);
+        assert.ok(userV1);
+        assert.ok(asstV1);
+        assert.strictEqual(userV1.isActive, true, 'User prompt v1 should be activated');
+        assert.strictEqual(asstV1.isActive, true, 'Assistant response v1 should be activated');
+    });
+
+    test('DELETE /api/messages/:id returns 404 for nonexistent message', async () => {
+        const app = express();
+        app.use(express.json());
+        registerMessagesRoutes(app);
+
+        const res = await request(app, 'DELETE', '/api/messages/88888');
+        assert.strictEqual(res.status, 404);
+    });
+
+    test('Full lifecycle: retry, version navigation, version deletion without leaving blank entries', async () => {
+        const app = express();
+        app.use(express.json());
+        registerMessagesRoutes(app);
+
+        // 1. Initial conversation with User 1 and Assistant 1
+        db.writeDb({
+            messages: [
+                { id: 10, conversationId: 1, role: 'user', content: 'What is 2+2?', versionGroupId: 10, version: 1, isActive: true },
+                { id: 11, conversationId: 1, role: 'assistant', content: 'It is 4.', parentMsgId: 10, versionGroupId: 11, version: 1, isActive: true }
+            ]
+        });
+
+        // 2. User clicks Retry on Assistant 1 -> deactivate-tree is called
+        const deactRes = await request(app, 'POST', '/api/messages/11/deactivate-tree');
+        assert.strictEqual(deactRes.status, 200);
+        assert.strictEqual(deactRes.body.versionGroupId, 11);
+        assert.strictEqual(deactRes.body.nextVersion, 2);
+
+        // 3. New Assistant 2 version is generated and saved
+        const curDb = db.readDb();
+        curDb.messages.push({
+            id: 12,
+            conversationId: 1,
+            role: 'assistant',
+            content: '2 + 2 = 4 (alternative)',
+            parentMsgId: 10,
+            versionGroupId: 11,
+            version: 2,
+            isActive: true
+        });
+        db.writeDb(curDb);
+
+        // Verify state: Assistant 1 is inactive, Assistant 2 is active
+        const midDb = db.readDb();
+        const a1 = midDb.messages.find(m => m.id === 11);
+        const a2 = midDb.messages.find(m => m.id === 12);
+        assert.strictEqual(a1.isActive, false);
+        assert.strictEqual(a2.isActive, true);
+
+        // 4. User deletes Assistant 2 (version 2)
+        const delA2Res = await request(app, 'DELETE', '/api/messages/12');
+        assert.strictEqual(delA2Res.status, 200);
+        assert.deepStrictEqual(delA2Res.body.deletedIds, [12]);
+
+        // Verify state: Assistant 2 is gone, Assistant 1 is reactivated!
+        const afterDelA2Db = db.readDb();
+        assert.strictEqual(afterDelA2Db.messages.length, 2);
+        const a1After = afterDelA2Db.messages.find(m => m.id === 11);
+        assert.ok(a1After);
+        assert.strictEqual(a1After.isActive, true, 'Assistant 1 should be active after Assistant 2 is deleted');
+
+        // 5. User deletes Assistant 1 (only remaining answer)
+        const delA1Res = await request(app, 'DELETE', '/api/messages/11');
+        assert.strictEqual(delA1Res.status, 200);
+        assert.deepStrictEqual(delA1Res.body.deletedIds, [11]);
+
+        // Verify state: Only User 1 remains, active
+        const afterDelA1Db = db.readDb();
+        assert.strictEqual(afterDelA1Db.messages.length, 1);
+        assert.strictEqual(afterDelA1Db.messages[0].id, 10);
+        assert.strictEqual(afterDelA1Db.messages[0].isActive, true);
     });
 });
