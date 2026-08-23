@@ -1,62 +1,65 @@
 /**
- * auth.js — Client-side auth helper
- * Stores the bearer token in localStorage and injects it into all fetch calls.
+ * auth.js — Client Authentication & Fetch Wrapper
  */
 
-const AUTH_TOKEN_KEY = 'ls_auth_token';
+const TOKEN_KEY = 'ls_auth_token';
 
 export function getToken() {
-    return localStorage.getItem(AUTH_TOKEN_KEY);
+    return localStorage.getItem(TOKEN_KEY);
 }
 
 export function setToken(token) {
-    localStorage.setItem(AUTH_TOKEN_KEY, token);
+    localStorage.setItem(TOKEN_KEY, token);
 }
 
 export function clearToken() {
-    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(TOKEN_KEY);
 }
 
-/**
- * Wrapper around fetch that injects Authorization header when a token exists.
- */
 export async function authFetch(url, options = {}) {
     const token = getToken();
+    const headers = { ...(options.headers || {}) };
+
     if (token) {
-        options.headers = {
-            ...(options.headers || {}),
-            'Authorization': `Bearer ${token}`
-        };
+        headers['Authorization'] = `Bearer ${token}`;
     }
-    return fetch(url, options);
+
+    if (options.body && typeof options.body === 'object' && !(options.body instanceof FormData)) {
+        headers['Content-Type'] = 'application/json';
+        options.body = JSON.stringify(options.body);
+    }
+
+    const response = await fetch(url, { ...options, headers });
+
+    if (response.status === 401 && !url.includes('/api/auth/')) {
+        clearToken();
+        redirectToLogin();
+    }
+
+    return response;
 }
 
-/**
- * Check if current token is valid. Redirects to login.html if not.
- */
-export async function requireLogin() {
-    const token = getToken();
-
+export async function checkAuth() {
     try {
-        const headers = {};
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
+        const token = getToken();
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
         const res = await fetch('/api/auth/check', { headers });
         const data = await res.json();
-        
+
+        // If auth is disabled on the server, allow access
         if (data.authEnabled === false) {
             return true;
         }
-        
+
         if (!data.valid) {
             clearToken();
             redirectToLogin();
             return false;
         }
+
         return true;
-    } catch {
-        redirectToLogin();
+    } catch (err) {
+        console.error('Auth verification failed:', err);
         return false;
     }
 }

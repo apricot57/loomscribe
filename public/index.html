@@ -3,100 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LoomScribe — DeepSeek Workspace</title>
+    <title>LoomScribe — Interactive Workspace</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="icon" type="image/png" href="favicon.png">
-    <link rel="stylesheet" href="css/variables.css">
-    <link rel="stylesheet" href="css/layout.css">
-    <link rel="stylesheet" href="css/messages.css">
-    <link rel="stylesheet" href="css/input.css">
-    <link rel="stylesheet" href="css/modals.css">
-    <link rel="stylesheet" href="css/right-pane.css">
-    <link rel="stylesheet" href="css/preset-manager.css">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="css/style.css">
 
-    <!-- Early theme configuration to prevent flash of unstyled content -->
+    <!-- Prevent Theme Flash -->
     <script>
         (function() {
-            const validThemes = ['cyan', 'teal', 'purple', 'amber'];
-            const rawTheme = localStorage.getItem('ls_theme');
-            const cachedTheme = validThemes.includes(rawTheme) ? rawTheme : 'cyan';
-            document.documentElement.classList.add('theme-' + cachedTheme);
+            const validThemes = ['cyan', 'teal', 'purple', 'amber', 'slate'];
+            const saved = localStorage.getItem('ls_theme');
+            const theme = validThemes.includes(saved) ? saved : 'cyan';
+            document.documentElement.classList.add('theme-' + theme);
         })();
     </script>
-
 </head>
 <body>
-    <div class="app-layout">
-        <!-- Backdrop for mobile drawers -->
-        <div id="layout-backdrop" class="layout-backdrop hidden"></div>
+    <div class="app-root">
+        <!-- Backdrop for mobile drawer overlays -->
+        <div class="layout-backdrop" id="layout-backdrop"></div>
 
-        <!-- Sidebar Navigation -->
+        <!-- ===================================================================
+             Left Sidebar Navigation
+             =================================================================== -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <div class="brand">
-                    <div class="brand-logo-wrapper">
-                        <span class="brand-logo">
-                            <svg class="brand-logo-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 2L6 12C6 15 9 18 9 22H15C15 18 18 15 18 12L12 2Z" fill="currentColor" fill-opacity="0.12" />
-                                <line x1="12" y1="2" x2="12" y2="11" />
-                                <circle cx="12" cy="11" r="1.5" fill="currentColor" />
-                                <path d="M4 8C7 5 17 5 20 8" opacity="0.5" stroke-dasharray="2 2" />
-                            </svg>
-                        </span>
+                <a href="/" class="brand">
+                    <div class="brand-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2L6 12C6 15 9 18 9 22H15C15 18 18 15 18 12L12 2Z" />
+                            <line x1="12" y1="2" x2="12" y2="11" />
+                            <circle cx="12" cy="11" r="1.5" />
+                        </svg>
                     </div>
-                    <h2>LoomScribe</h2>
-                </div>
-                <button id="sidebar-close-btn" class="sidebar-close-btn" aria-label="Close sidebar">
-                    &times;
+                    <span class="brand-name">LoomScribe</span>
+                    <span class="brand-badge">Prompt Engine</span>
+                </a>
+                <button class="icon-btn" id="sidebar-close-btn" aria-label="Close sidebar" style="display: none;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
                 </button>
             </div>
-            
+
             <div class="sidebar-actions">
-                <button id="clear-chat-btn" class="sidebar-btn btn-neon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar-icon">
-                        <path d="M12 20h9"></path>
-                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 9.5-9.5z"></path>
+                <button class="new-chat-btn" id="new-chat-btn" type="button">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
                     </svg>
                     <span>New Chat</span>
                 </button>
-            </div>
-            
-            <div class="sidebar-menu">
-                <div class="menu-section-label">Recent Chats</div>
-                <div id="chats-list" class="chats-list-container">
-                    <!-- Dynamic chat list items go here -->
+
+                <div class="search-wrap">
+                    <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" class="search-input" id="conv-search-input" placeholder="Search chats..." autocomplete="off">
                 </div>
             </div>
 
-            <div class="sidebar-settings">
-                <button id="settings-btn" class="sidebar-item" aria-label="Configure Settings">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar-icon">
+            <div class="sidebar-history" id="sidebar-history">
+                <!-- Chronological conversation groups populated by sidebar.js -->
+            </div>
+
+            <div class="sidebar-footer">
+                <button class="footer-btn" id="settings-btn" type="button" aria-label="Open Settings">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="3"></circle>
                         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                     </svg>
                     <span>Settings</span>
-                    <span id="key-status-dot" class="status-dot"></span>
+                    <span class="key-status-dot" id="key-status-dot" title="Model Status"></span>
                 </button>
             </div>
-
         </aside>
 
-        <!-- Main Workspace -->
-        <main class="main-content">
-            <!-- Header bar -->
-            <header class="chat-header">
-                <button id="sidebar-toggle-btn" class="header-btn" aria-label="Toggle sidebar">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="header-icon">
-                        <rect width="18" height="18" x="3" y="3" rx="2"></rect>
-                        <path d="M9 3v18"></path>
-                    </svg>
-                </button>
-                <div class="header-title">
-                    <h3>LoomScribe</h3>
+        <!-- ===================================================================
+             Central Chat Viewport
+             =================================================================== -->
+        <main class="main-viewport">
+            <header class="top-header" id="top-header">
+                <div class="header-left">
+                    <button class="icon-btn" id="sidebar-toggle-btn" aria-label="Toggle sidebar">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect width="18" height="18" x="3" y="3" rx="2"></rect>
+                            <path d="M9 3v18"></path>
+                        </svg>
+                    </button>
+                    <span class="active-chat-title" id="chat-header-title" title="Click to rename">New Chat</span>
                 </div>
-                <div class="header-actions">
-                    <button id="right-pane-toggle-btn" class="header-btn visible" aria-label="Toggle settings" title="Toggle Settings">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="header-icon">
+
+                <div class="header-right">
+                    <button class="icon-btn" id="export-chat-btn" title="Export Chat to Markdown" aria-label="Export chat">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                    </button>
+
+                    <button class="icon-btn active" id="inspector-toggle-btn" title="Toggle Prompt Engine Inspector" aria-label="Toggle inspector">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="21" x2="14" y1="4" y2="4"></line>
                             <line x1="10" x2="3" y1="4" y2="4"></line>
                             <line x1="21" x2="12" y1="12" y2="12"></line>
@@ -108,597 +125,500 @@
                             <line x1="16" x2="16" y1="18" y2="22"></line>
                         </svg>
                     </button>
-                    <button id="export-chat-btn" class="header-btn visible" aria-label="Export conversation to Markdown" title="Export to Markdown">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="header-icon">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                    </button>
-                    <button id="logout-btn" class="header-btn" aria-label="Log Out" title="Log Out" style="color: var(--accent-danger, #f43f5e); display: none;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="header-icon">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                            <polyline points="16 17 21 12 16 7"></polyline>
-                            <line x1="21" y1="12" x2="9" y2="12"></line>
-                        </svg>
-                    </button>
                 </div>
             </header>
-            
-            <!-- Message container -->
-            <div class="messages-wrapper" id="chat-container">
-                <div class="messages-container"></div>
+
+            <!-- Chat Message Feed -->
+            <div class="chat-container" id="chat-container">
+                <div class="messages-list" id="messages-list">
+                    <!-- Populated dynamically by chat.js -->
+                </div>
             </div>
-            
-            <!-- Input control -->
-            <footer class="chat-footer">
-                <div class="input-area-container">
-                    <div class="chat-config-row">
-                        <div class="model-select-wrapper">
-                            <button id="model-select-btn" class="model-dropdown-btn">
-                                <span id="active-model-name">DeepSeek V4 Pro</span>
-                                <svg class="dropdown-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="6 9 12 15 18 9"></polyline>
+
+            <!-- Sticky Bottom Input Dock -->
+            <div class="chat-input-dock">
+                <form class="input-card" id="chat-form" novalidate>
+                    <textarea class="chat-textarea" id="chat-input" placeholder="Message Assistant or specify direction..." rows="1"></textarea>
+                    <div class="input-footer">
+                        <div class="input-controls">
+                            <!-- Toggle Button for Chips (Settings Icon) -->
+                            <button class="chat-settings-btn" id="chat-settings-toggle-btn" type="button" title="Show chat options" aria-label="Toggle chat options" aria-expanded="false">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                                 </svg>
                             </button>
-                            <div id="model-dropdown-menu" class="model-dropdown-menu hidden">
-                                <button class="dropdown-item" data-model="deepseek-v4-pro">
-                                    <div class="item-info">
-                                        <span class="item-name">DeepSeek V4 Pro</span>
-                                        <span class="item-desc">Maximum reasoning & intelligence</span>
+
+                            <div class="input-chips collapsed" id="input-chips">
+                                <!-- Model Dropdown -->
+                                <div class="dropdown-wrapper">
+                                    <button class="chip-btn" id="active-model-chip" type="button" aria-label="Select model">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                                            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                                            <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                                            <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                                        </svg>
+                                        <span class="chip-name">Select Model</span>
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="6 9 12 15 18 9"></polyline>
+                                        </svg>
+                                    </button>
+                                    <div class="dropdown-menu hidden" id="model-dropdown-menu">
+                                        <!-- Populated dynamically -->
                                     </div>
-                                    <span class="item-badge">v4</span>
+                                </div>
+
+                                <!-- Thinking Toggle -->
+                                <button class="chip-btn active" id="thinking-toggle-chip" type="button" title="Toggle Thinking Mode">
+                                    <span class="chip-dot"></span>
+                                    <span>Thinking</span>
                                 </button>
-                                <button class="dropdown-item" data-model="deepseek-v4-flash">
-                                    <div class="item-info">
-                                        <span class="item-name">DeepSeek V4 Flash</span>
-                                        <span class="item-desc">High-speed, efficient generation</span>
-                                    </div>
-                                    <span class="item-badge">v4</span>
+
+                                <!-- Preset Chip -->
+                                <button class="chip-btn" id="active-preset-chip" type="button" title="Configure Scenario Preset">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                                    </svg>
+                                    <span class="chip-name">Creative Writer</span>
+                                </button>
+
+                                <!-- Continue Story Chip -->
+                                <button class="chip-btn continue-chip hidden" id="continue-story-btn" type="button" title="Continue writing narrative">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <polygon points="5 4 15 12 5 20 5 4"></polygon>
+                                        <line x1="19" y1="5" x2="19" y2="19"></line>
+                                    </svg>
+                                    <span>Continue</span>
                                 </button>
                             </div>
                         </div>
-                        <!-- Thinking Mode Toggle -->
-                        <button id="thinking-toggle-btn" class="thinking-toggle-btn" type="button" title="Toggle DeepSeek Thinking Mode (Reasoning)">
-                            <svg class="thinking-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
-                                <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"></path>
-                                <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"></path>
-                                <path d="M12 5v14"></path>
-                                <path d="M12 12h6"></path>
-                                <path d="M12 12H6"></path>
-                            </svg>
-                            <span id="thinking-status-text">Thinking: On</span>
-                        </button>
-                        <div class="prompt-select-wrapper">
-                            <button id="active-preset-indicator-btn" class="prompt-select-btn" type="button" title="Active Preset settings">
-                                <svg class="prompt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
-                                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
-                                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                        <div class="input-actions">
+                            <button class="send-btn" id="send-btn" type="submit" aria-label="Send message" disabled>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="19" x2="12" y2="5"></line>
+                                    <polyline points="5 12 12 5 19 12"></polyline>
                                 </svg>
-                                <span id="active-preset-indicator-name">No Preset</span>
+                            </button>
+                            <button class="stop-btn hidden" id="stop-btn" type="button" aria-label="Stop generation">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                    <rect width="18" height="18" x="3" y="3" rx="2"></rect>
+                                </svg>
                             </button>
                         </div>
-                        <!-- Dynamic Continue Button for Creative Storytelling -->
-                        <button id="continue-btn" class="continue-btn hidden" type="button" title="Continue the story automatically">
-                            <svg class="continue-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
-                                <polygon points="5 4 15 12 5 20 5 4"></polygon>
-                                <line x1="19" y1="5" x2="19" y2="19"></line>
-                            </svg>
-                            <span>Continue</span>
-                        </button>
                     </div>
-                    <form id="chat-form">
-                        <button type="button" id="toggle-chips-btn" aria-label="Toggle settings chips" title="Toggle settings chips">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="3"></circle>
-                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                            </svg>
-                        </button>
-                        <textarea id="user-input" placeholder="Message DeepSeek..." rows="1" required></textarea>
-                        <button type="submit" id="send-btn" aria-label="Send message">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <polyline points="16 12 12 8 8 12"></polyline>
-                                <line x1="12" y1="16" x2="12" y2="8"></line>
-                            </svg>
-                        </button>
-                        <button type="button" id="stop-btn" class="hidden" aria-label="Stop generation">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <rect x="9" y="9" width="6" height="6" rx="1"></rect>
-                            </svg>
-                        </button>
-                    </form>
-                </div>
-            </footer>
+                </form>
+            </div>
         </main>
 
-        <!-- Right Settings Pane -->
-        <aside class="right-pane" id="right-pane">
-            <div class="right-pane-header">
-                <h3>Preset Settings</h3>
-                <button id="right-pane-close-btn" class="right-pane-close-btn" aria-label="Close settings">
-                    &times;
+        <!-- ===================================================================
+             Right Prompt Engine Inspector Pane
+             =================================================================== -->
+        <aside class="inspector-pane" id="inspector-pane">
+            <div class="inspector-header">
+                <span class="inspector-title">Prompt Engine</span>
+                <button class="icon-btn" id="inspector-close-btn" aria-label="Close inspector">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
                 </button>
             </div>
-            <div class="right-pane-content">
-                <!-- Warning Banner if parameters modified since last save -->
-                <div id="settings-warning-banner" class="settings-warning-banner hidden">
-                    ⚠️ Settings modified. Cache will bust on next send.
+
+            <div class="inspector-content" id="inspector-content">
+                <!-- Scenario Preset Active Card -->
+                <div class="inspector-section">
+                    <span class="section-label">Active Scenario</span>
+                    <div class="preset-card-active">
+                        <div class="preset-title-row">
+                            <span class="preset-title-text" id="inspector-preset-title">Creative Writer</span>
+                            <span class="preset-badge-cat" id="inspector-preset-cat">General</span>
+                        </div>
+                        <p class="preset-desc-text" id="inspector-preset-desc">General creative writing preset.</p>
+                        <button class="change-preset-btn" id="inspector-change-preset-btn" type="button">Change Scenario Preset</button>
+                    </div>
                 </div>
 
-                <!-- Preset info and change button -->
-                <section class="settings-section preset-section">
-                    <h4 class="section-title">Scenario Preset</h4>
-                    <div class="preset-card">
-                        <div id="preset-active-info" class="preset-active-info">
-                            <div class="preset-header-row">
-                                <strong id="preset-title">No Preset Selected</strong>
-                                <span id="preset-category-badge" class="category-badge hidden">General</span>
-                            </div>
-                            <p id="preset-desc" class="preset-desc">Pick a scenario preset to construct a tailored prompt.</p>
-                        </div>
-                        <button id="change-preset-btn" class="btn btn-secondary btn-full">
-                            Change Preset
-                        </button>
+                <!-- Dynamic Parameter Controls -->
+                <div class="inspector-section">
+                    <span class="section-label">Writing Directives</span>
+                    <div id="inspector-params-container" style="display:flex; flex-direction:column; gap:14px;">
+                        <!-- Rendered by inspector.js -->
                     </div>
-                </section>
+                </div>
 
-                <div id="preset-settings-container" class="hidden">
-                    <!-- Dynamic Parameter Controls (System Slot) -->
-                    <section class="settings-section">
-                        <h4 class="section-title">Writing Settings</h4>
-                        <div id="system-params-container" class="params-list">
-                            <!-- Dynamic system parameters render here -->
-                        </div>
-                    </section>
+                <!-- Director's Note Section -->
+                <div class="inspector-section">
+                    <span class="section-label">Director's Note (Post-History)</span>
+                    <textarea class="director-textarea" id="director-note-input" placeholder="Add per-turn direction (e.g. 'increase tension', 'focus on character reaction')..." rows="3"></textarea>
+                    <span class="field-hint">Injected after chat history for highest model recency attention.</span>
+                </div>
 
-                    <!-- Per-Turn Settings (Post-History Slot) -->
-                    <section class="settings-section">
-                        <h4 class="section-title">Per-Turn Directives</h4>
-                        <div id="post-history-params-container" class="params-list">
-                            <!-- Dynamic post-history parameters render here -->
-                        </div>
-                        <div class="director-note-container">
-                            <label for="director-note-textarea" class="field-label">Director's Note</label>
-                            <textarea id="director-note-textarea" placeholder="Add per-turn direction (e.g. 'increase tension', 'focus on character X's reaction')..." rows="3"></textarea>
-                            <span class="field-helper">Appended after chat history for highest recency.</span>
-                        </div>
-                    </section>
+                <!-- Live Prompt Preview Compilation -->
+                <div class="inspector-section">
+                    <div style="display:flex; align-items:center; justify-content:space-between;">
+                        <span class="section-label">Compiled Prompt Preview</span>
+                        <button class="btn-ghost" id="copy-preview-btn" type="button" style="font-size:0.7rem; padding:2px 6px;">Copy</button>
+                    </div>
+                    <div class="preview-tabs">
+                        <button class="preview-tab-btn active" id="tab-slot1" type="button">Slot 1 (System)</button>
+                        <button class="preview-tab-btn" id="tab-slot2" type="button">Slot 2 (Post-History)</button>
+                    </div>
+                    <textarea class="preview-textarea" id="inspector-preview-textarea" readonly placeholder="Click Compile to inspect compiled prompt instructions..."></textarea>
+                    <button class="btn btn-secondary" id="compile-preview-btn" type="button" style="width:100%; height:32px; font-size:0.78rem;">Compile Preview</button>
+                </div>
 
-                    <!-- Collapsible Prompt Preview -->
-                    <section class="settings-section collapsible-section" id="preview-collapsible">
-                        <div class="collapsible-header">
-                            <h4 class="section-title">Prompt Preview</h4>
-                            <span class="collapsible-icon">▶</span>
-                        </div>
-                        <div class="collapsible-body hidden">
-                            <div class="preview-tabs">
-                                <button class="preview-tab-btn active" data-tab="slot1">Slot 1 (System)</button>
-                                <button class="preview-tab-btn" data-tab="slot2">Slot 2 (Post-Hist)</button>
-                            </div>
-                            <div class="preview-tab-content">
-                                <textarea id="prompt-preview-textarea" readonly rows="12" placeholder="Click compile to view..."></textarea>
-                            </div>
-                            <button id="refresh-preview-btn" class="btn btn-secondary btn-full btn-sm">
-                                Compile & Refresh
-                            </button>
-                        </div>
-                    </section>
-
-                    <!-- Collapsible Advanced Blocks Override -->
-                    <section class="settings-section collapsible-section" id="blocks-collapsible">
-                        <div class="collapsible-header">
-                            <h4 class="section-title">Advanced Blocks</h4>
-                            <span class="collapsible-icon">▶</span>
-                        </div>
-                        <div class="collapsible-body hidden">
-                            <p class="section-intro">Manually override default markdown prompt blocks:</p>
-                            <div id="advanced-blocks-list" class="blocks-list">
-                                <!-- Dynamic block checkboxes render here -->
-                            </div>
-                            <button id="reset-overrides-btn" class="btn btn-danger btn-full btn-sm" style="margin-top: 10px;">
-                                Reset Block Overrides
-                            </button>
-                        </div>
-                    </section>
+                <!-- Advanced Block Overrides -->
+                <div class="inspector-section">
+                    <span class="section-label">Advanced Markdown Blocks</span>
+                    <div id="inspector-blocks-list" style="display:flex; flex-direction:column; gap:8px;">
+                        <!-- Rendered by inspector.js -->
+                    </div>
                 </div>
             </div>
         </aside>
+    </div>
 
-        <!-- Settings Modal (Centered Glassmorphic Popup overlay) -->
-        <div id="settings-modal" class="modal-overlay hidden">
-            <div class="modal-content settings-modal-content">
-                <!-- LEFT SIDEBAR -->
-                <aside class="settings-sidebar">
-                    <h2 class="settings-title">Settings</h2>
-                    <nav class="settings-nav-tabs">
-                        <button type="button" class="settings-tab-btn active" data-target="tab-general">
-                            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="3"></circle>
-                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                            </svg>
-                            <span>General</span>
-                        </button>
-                        
-                        <button type="button" class="settings-tab-btn" data-target="tab-models">
-                            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
-                                <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
-                                <line x1="6" y1="6" x2="6.01" y2="6"></line>
-                                <line x1="6" y1="18" x2="6.01" y2="18"></line>
-                            </svg>
-                            <span>Models</span>
-                        </button>
-                        
-                        <button type="button" class="settings-tab-btn" data-target="tab-appearance">
-                            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 14.7255 3.09032 17.1962 4.85857 19C5.34776 19.4892 5.34776 20.2822 4.85857 20.7714L4.70711 20.9228C4.31658 21.3134 3.68342 21.3134 3.29289 20.9228C1.2961 18.926 0 16.1091 0 13C0 6.37258 5.37258 1 12 1C18.6274 1 24 6.37258 24 13C24 19.6274 18.6274 25 12 25c-.5523 0-1-.4477-1-1v-1c0-.5523.4477-1 1-1z"></path>
-                                <circle cx="7.5" cy="10.5" r="1.5" fill="currentColor"></circle>
-                                <circle cx="11.5" cy="7.5" r="1.5" fill="currentColor"></circle>
-                                <circle cx="16.5" cy="9.5" r="1.5" fill="currentColor"></circle>
-                            </svg>
-                            <span>Appearance</span>
-                        </button>
-                    </nav>
+    <!-- ===================================================================
+         Modals Container
+         =================================================================== -->
+
+    <!-- Settings Modal -->
+    <div class="modal-backdrop hidden" id="settings-modal">
+        <div class="modal-dialog large settings-modal-dialog">
+            <div class="modal-header">
+                <span class="modal-title">Settings</span>
+                <button class="icon-btn" id="settings-modal-close-btn" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Two-column Settings Layout: Tabs on Left, Content on Right -->
+            <div class="settings-layout-body">
+                <!-- Left: Vertical Tab Navigation Sidebar -->
+                <aside class="settings-sidebar-pane">
+                    <button class="settings-nav-item active" data-tab="general" type="button">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                        <span>General</span>
+                    </button>
+                    <button class="settings-nav-item" data-tab="models" type="button">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                            <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                            <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                        </svg>
+                        <span>Custom Models</span>
+                    </button>
+                    <button class="settings-nav-item" data-tab="appearance" type="button">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M12 2a7 7 0 0 0 7 7c0 2-2 3-2 3s-1 1-1 2a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2c0-1-1-2-1-2s-2-1-2-3a7 7 0 0 0 7-7z"></path>
+                        </svg>
+                        <span>Appearance</span>
+                    </button>
                 </aside>
 
-                <!-- RIGHT CONTENT AREA -->
-                <main class="settings-content-pane">
-                    <button id="modal-close-btn" class="close-btn" aria-label="Close settings modal">&times;</button>
-                    
-                    <!-- GENERAL TAB PANEL -->
-                    <div id="tab-general" class="settings-panel">
-                        <h3 class="panel-title">General Settings</h3>
-                        
-                        <!-- API Configurations -->
-                        <div class="settings-section no-border-top">
-                            <h4>API Configurations</h4>
-                            <p class="modal-description" style="margin-bottom: 12px; font-size: 0.8rem;">Enter your DeepSeek API key. It is saved securely on the server.</p>
-                            <div class="input-wrapper">
-                                <input type="password" id="api-key-input" placeholder="Paste sk-... key here" autocomplete="off">
-                                <button id="toggle-key-visibility" class="visibility-btn" type="button" aria-label="Toggle key visibility">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="eye-icon">
-                                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
-                                        <circle cx="12" cy="12" r="3"></circle>
-                                    </svg>
+                <!-- Right: Content Panels Column -->
+                <div class="settings-content-pane">
+                    <!-- Tab Panel: General -->
+                    <div class="settings-tab-panel" id="tab-panel-general">
+                        <!-- OpenAI Section -->
+                        <div class="settings-card" style="border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 14px; background: var(--bg-surface-elevated); margin-bottom: 16px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-weight: 600; font-size: 0.88rem;">OpenAI Provider</span>
+                                    <span class="dropdown-badge" style="font-size: 0.65rem;">Dynamic Models</span>
+                                </div>
+                                <div id="openai-key-status"></div>
+                            </div>
+                            <div class="form-field" style="margin-bottom: 8px;">
+                                <label class="form-label" for="settings-openai-key-input">OpenAI API Key</label>
+                                <div style="display:flex; gap:8px;">
+                                    <input type="password" class="form-input" id="settings-openai-key-input" placeholder="sk-proj-..." autocomplete="off">
+                                    <button class="btn btn-secondary" id="toggle-openai-key-visibility-btn" type="button" style="padding:0 10px;" aria-label="Toggle key visibility">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                                            <circle cx="12" cy="12" r="3"></circle>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:8px; align-items:center; margin-bottom: 12px;">
+                                <button class="btn btn-primary btn-sm" id="save-openai-key-btn" type="button">Save Key</button>
+                                <button class="btn btn-ghost btn-sm" id="remove-openai-key-btn" type="button" style="color:var(--danger);">Remove Key</button>
+                                <button class="btn btn-secondary btn-sm" id="fetch-openai-models-btn" type="button" style="margin-left: auto; display: flex; align-items: center; gap: 4px;">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                                    <span>Fetch Models</span>
                                 </button>
                             </div>
-                            <div class="modal-actions" style="margin-top: 12px; margin-bottom: 8px;">
-                                <button id="save-key-btn" class="btn btn-primary">Save Key</button>
-                                <button id="delete-key-btn" class="btn btn-danger">Remove Key</button>
+
+                            <!-- Pinned Models Sub-section -->
+                            <div style="border-top: 1px solid var(--border-subtle); padding-top: 10px; margin-top: 10px;">
+                                <label class="form-label" style="margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;">
+                                    <span>Pinned / Quick Models</span>
+                                    <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">Always shown in model picker</span>
+                                </label>
+                                <div id="openai-pinned-tags" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;"></div>
+                                <div style="display: flex; gap: 6px;">
+                                    <input type="text" class="form-input" id="add-pinned-openai-input" placeholder="e.g. gpt-5.6, gpt-4.5-preview, o3-mini" style="font-size: 0.78rem; padding: 4px 8px;">
+                                    <button class="btn btn-secondary btn-sm" id="add-pinned-openai-btn" type="button" style="padding: 4px 10px; font-size: 0.75rem;">+ Pin Model</button>
+                                </div>
+                                <div id="openai-models-count-status" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;"></div>
                             </div>
                         </div>
 
-                        <!-- Advanced Options -->
-                        <div class="settings-section">
-                            <h4>Advanced Options</h4>
-                            <p class="section-placeholder">More custom options coming soon...</p>
-                        </div>
-                    </div>
-
-                    <!-- MODELS TAB PANEL -->
-                    <div id="tab-models" class="settings-panel hidden">
-                        <h3 class="panel-title">Custom Providers & Models</h3>
-                        
-                        <div class="settings-section no-border-top">
-                            <p class="modal-description" style="margin-bottom: 12px; font-size: 0.8rem;">Add custom OpenAI-compatible endpoints (e.g. OpenRouter, Groq, Ollama).</p>
-                            
-                            <div id="custom-models-list" class="custom-models-list" style="margin-bottom: 16px; max-height: 180px; overflow-y: auto;">
-                                <!-- Custom models rendered dynamically here -->
+                        <!-- DeepSeek Section -->
+                        <div class="settings-card" style="border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 14px; background: var(--bg-surface-elevated);">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-weight: 600; font-size: 0.88rem;">DeepSeek Provider</span>
+                                    <span class="dropdown-badge" style="font-size: 0.65rem;">Built-in</span>
+                                </div>
+                                <div id="deepseek-key-status"></div>
                             </div>
-
-                            <form id="add-custom-model-form" style="border: 1px solid var(--border-color); padding: 14px; border-radius: 12px; background: rgba(0, 0, 0, 0.15);">
-                                <h4 style="margin-top: 0; margin-bottom: 10px; font-size: 0.85rem; color: #fff;">Add Custom Model</h4>
-                                
-                                <div style="margin-bottom: 10px;">
-                                    <label class="modal-field-label" style="font-size: 0.75rem; color: var(--text-secondary);">Display Name</label>
-                                    <input type="text" id="add-model-name" placeholder="e.g. Ollama Llama 3" style="width: 100%; box-sizing: border-box;" required>
+                            <div class="form-field" style="margin-bottom: 8px;">
+                                <label class="form-label" for="settings-deepseek-key-input">DeepSeek API Key</label>
+                                <div style="display:flex; gap:8px;">
+                                    <input type="password" class="form-input" id="settings-deepseek-key-input" placeholder="sk-..." autocomplete="off">
+                                    <button class="btn btn-secondary" id="toggle-deepseek-key-visibility-btn" type="button" style="padding:0 10px;" aria-label="Toggle key visibility">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                                            <circle cx="12" cy="12" r="3"></circle>
+                                        </svg>
+                                    </button>
                                 </div>
-
-                                <div style="margin-bottom: 10px;">
-                                    <label class="modal-field-label" style="font-size: 0.75rem; color: var(--text-secondary);">API Endpoint / Base URL</label>
-                                    <input type="text" id="add-model-endpoint" placeholder="e.g. http://localhost:11434/v1" style="width: 100%; box-sizing: border-box;" required>
-                                </div>
-
-                                <div style="margin-bottom: 10px;">
-                                    <label class="modal-field-label" style="font-size: 0.75rem; color: var(--text-secondary);">API Key (Optional)</label>
-                                    <input type="password" id="add-model-key" placeholder="API key (leave blank for local)" style="width: 100%; box-sizing: border-box;">
-                                </div>
-
-                                <div style="margin-bottom: 12px;">
-                                    <label class="modal-field-label" style="font-size: 0.75rem; color: var(--text-secondary);">Model ID / Identifier</label>
-                                    <input type="text" id="add-model-identifier" placeholder="e.g. llama3" style="width: 100%; box-sizing: border-box;" required>
-                                </div>
-
-                                <button type="submit" class="btn btn-primary btn-full" style="padding: 10px; font-size: 0.85rem; border-radius: 8px;">Add Custom Model</button>
-                            </form>
-                        </div>
-                    </div>
-
-                    <!-- APPEARANCE TAB PANEL -->
-                    <div id="tab-appearance" class="settings-panel hidden">
-                        <h3 class="panel-title">Appearance</h3>
-                        
-                        <div class="settings-section no-border-top">
-                            <h4>App Theme Color</h4>
-                            <p class="modal-description" style="margin-bottom: 12px; font-size: 0.8rem;">Select a theme color for the workspace.</p>
-                            <div class="theme-options">
-                                <button type="button" class="theme-option-btn" data-theme="cyan" title="Cosmic Cyan">
-                                    <span class="theme-color-preview" style="background-color: #38bdf8;"></span>
-                                    <span>Cyan</span>
-                                </button>
-                                <button type="button" class="theme-option-btn" data-theme="teal" title="Aurora Teal">
-                                    <span class="theme-color-preview" style="background-color: #2dd4bf;"></span>
-                                    <span>Teal</span>
-                                </button>
-                                <button type="button" class="theme-option-btn" data-theme="purple" title="Electric Purple">
-                                    <span class="theme-color-preview" style="background-color: #a855f7;"></span>
-                                    <span>Purple</span>
-                                </button>
-                                <button type="button" class="theme-option-btn" data-theme="amber" title="Solar Amber">
-                                    <span class="theme-color-preview" style="background-color: #fbbf24;"></span>
-                                    <span>Amber</span>
-                                </button>
+                            </div>
+                            <div style="display:flex; gap:8px; align-items:center;">
+                                <button class="btn btn-primary btn-sm" id="save-deepseek-key-btn" type="button">Save Key</button>
+                                <button class="btn btn-ghost btn-sm" id="remove-deepseek-key-btn" type="button" style="color:var(--danger);">Remove Key</button>
                             </div>
                         </div>
                     </div>
-                </main>
+
+                    <!-- Tab Panel: Custom Models -->
+                    <div class="settings-tab-panel hidden" id="tab-panel-models">
+                        <p style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:12px;">Connect OpenAI-compatible API providers (e.g. Ollama, OpenRouter, Groq, vLLM).</p>
+                        
+                        <div id="custom-models-list-container" style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;"></div>
+
+                        <form id="add-custom-model-form" style="border:1px solid var(--border-subtle); border-radius:var(--radius-lg); padding:14px; background:var(--bg-surface-elevated); display:flex; flex-direction:column; gap:10px;">
+                            <span id="custom-model-form-title" style="font-weight:600; font-size:0.85rem;">Add Endpoint</span>
+                            <div class="form-field">
+                                <label class="form-label">Display Name</label>
+                                <input type="text" class="form-input" id="custom-model-name" placeholder="e.g. Local Ollama Llama 3" required>
+                            </div>
+                            <div class="form-field">
+                                <label class="form-label">Base URL / Endpoint</label>
+                                <input type="text" class="form-input" id="custom-model-endpoint" placeholder="e.g. http://localhost:11434/v1" required>
+                            </div>
+                            <div class="form-field">
+                                <label class="form-label">API Key (Optional)</label>
+                                <input type="password" class="form-input" id="custom-model-key" placeholder="Leave empty for local instances">
+                                <div id="custom-model-key-hint"></div>
+                            </div>
+                            <div class="form-field">
+                                <label class="form-label">Model Identifier</label>
+                                <input type="text" class="form-input" id="custom-model-identifier" placeholder="e.g. llama3:latest" required>
+                            </div>
+                            <div style="display:flex; gap:8px; margin-top:4px;">
+                                <button class="btn btn-primary" id="custom-model-submit-btn" type="submit" style="flex:1;">Add Model</button>
+                                <button class="btn btn-ghost hidden" id="custom-model-cancel-btn" type="button">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Tab Panel: Appearance -->
+                    <div class="settings-tab-panel hidden" id="tab-panel-appearance">
+                        <span class="form-label" style="margin-bottom:10px; display:block;">Workspace Theme</span>
+                        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px;">
+                            <button class="theme-card-btn starter-card" data-theme="cyan" type="button" style="text-align:center;">
+                                <div style="width:24px; height:24px; border-radius:50%; background:#06b6d4; margin:0 auto 6px;"></div>
+                                <span style="font-weight:600; font-size:0.8rem;">Cosmic Cyan</span>
+                            </button>
+                            <button class="theme-card-btn starter-card" data-theme="teal" type="button" style="text-align:center;">
+                                <div style="width:24px; height:24px; border-radius:50%; background:#10b981; margin:0 auto 6px;"></div>
+                                <span style="font-weight:600; font-size:0.8rem;">Emerald Teal</span>
+                            </button>
+                            <button class="theme-card-btn starter-card" data-theme="purple" type="button" style="text-align:center;">
+                                <div style="width:24px; height:24px; border-radius:50%; background:#a855f7; margin:0 auto 6px;"></div>
+                                <span style="font-weight:600; font-size:0.8rem;">Electric Purple</span>
+                            </button>
+                            <button class="theme-card-btn starter-card" data-theme="amber" type="button" style="text-align:center;">
+                                <div style="width:24px; height:24px; border-radius:50%; background:#f59e0b; margin:0 auto 6px;"></div>
+                                <span style="font-weight:600; font-size:0.8rem;">Solar Amber</span>
+                            </button>
+                            <button class="theme-card-btn starter-card" data-theme="slate" type="button" style="text-align:center;">
+                                <div style="width:24px; height:24px; border-radius:50%; background:#e4e4e7; margin:0 auto 6px;"></div>
+                                <span style="font-weight:600; font-size:0.8rem;">Minimal Slate</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-
-        <!-- New Chat Modal (Step 2: Title) -->
-        <div id="new-chat-modal" class="modal-overlay hidden">
-            <div class="modal-content">
-                <button id="new-chat-modal-close-btn" class="close-btn">&times;</button>
-                <h2>New Chat</h2>
-                <p class="modal-description">Give your chat a title to get started.</p>
-                <div class="input-wrapper">
-                    <input type="text" id="new-chat-title-input" placeholder="Chat title (optional)" autocomplete="off">
+    </div>
+    <div class="modal-backdrop hidden" id="preset-picker-modal">
+        <div class="modal-dialog large">
+            <div class="modal-header">
+                <div>
+                    <span class="modal-title">Select Scenario Preset</span>
+                    <p style="font-size:0.78rem; color:var(--text-secondary); margin-top:2px;">Choose a narrative engine preset to apply system prompt & parameter defaults.</p>
                 </div>
-                <div class="modal-actions">
-                    <button id="start-chat-btn" class="btn btn-primary">Start Chat</button>
+                <button class="icon-btn" id="preset-picker-close-btn" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="search-wrap" style="margin-bottom:12px;">
+                    <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" class="search-input" id="preset-picker-search" placeholder="Filter scenario presets by name or category...">
+                </div>
+
+                <!-- Category filter chips bar -->
+                <div class="category-tabs-bar" id="preset-category-tabs"></div>
+
+                <div id="preset-picker-grid" style="max-height:460px; overflow-y:auto; padding:2px; display:flex; flex-direction:column; gap:20px;">
+                    <!-- Rendered by modals.js with category sections -->
                 </div>
             </div>
-        </div>
 
-        <!-- Preset Picker Modal -->
-        <div id="preset-picker-modal" class="modal-overlay hidden">
-            <div class="modal-content preset-picker-modal-content" style="max-width: 900px; width: 92%; max-height: 88vh; display: flex; flex-direction: column;">
-                <button id="preset-picker-close-btn" class="close-btn" aria-label="Close modal">&times;</button>
-                <h2>Choose Preset</h2>
-                <p class="modal-description">Select a narrative scenario preset. This will configure writing parameter defaults and enable matching markdown blocks.</p>
-                <div class="preset-search-box" style="margin-bottom: 16px;">
-                    <input type="text" id="preset-search-input" placeholder="Search presets..." autocomplete="off" style="width: 100%; padding: 12px 16px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 12px; color: var(--text-primary); outline: none; transition: var(--transition-m3);">
+            <div class="modal-footer">
+                <button class="btn btn-ghost" id="picker-manage-presets-btn" type="button">Manage & Create Presets &rarr;</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preset Manager Modal (CRUD + JSON Dropzone) -->
+    <div class="modal-backdrop hidden" id="preset-manager-modal">
+        <div class="modal-dialog large" style="max-width:960px; height:85vh;">
+            <div class="modal-header">
+                <div>
+                    <span class="modal-title">Preset Manager</span>
+                    <p style="font-size:0.78rem; color:var(--text-secondary); margin-top:2px;">Create, edit, import and export narrative prompt engine presets.</p>
                 </div>
-                <div id="preset-categories-container" class="preset-categories-container" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding-right: 4px;">
-                    <!-- Populated dynamically -->
-                </div>
-                <!-- Footer: Manage Presets link -->
-                <div class="preset-picker-footer">
-                    <button id="manage-presets-btn" class="manage-presets-link">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 9.5-9.5z"/>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button class="btn btn-primary" id="pm-new-preset-btn" type="button" style="height:32px; font-size:0.8rem;">+ New Preset</button>
+                    <button class="icon-btn" id="preset-manager-close-btn" aria-label="Close">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
                         </svg>
-                        Manage Presets
                     </button>
                 </div>
             </div>
-        </div>
 
-        <!-- Preset Manager Modal -->
-        <div id="preset-manager-modal" class="modal-overlay hidden">
-            <div class="modal-content">
-                <!-- Header -->
-                <div class="pm-header">
-                    <h2>Preset Manager</h2>
-                    <div class="pm-header-actions">
-                        <button id="pm-new-preset-btn" class="btn-sm primary">
-                            + New Preset
-                        </button>
-                        <button id="pm-close-btn" class="close-btn" style="position:static; font-size:22px;" aria-label="Close">&times;</button>
-                    </div>
+            <div class="modal-body" style="display:grid; grid-template-columns:260px 1fr; gap:20px; padding:0; height:100%; overflow:hidden;">
+                <!-- Left Presets List -->
+                <div style="border-right:1px solid var(--border-subtle); display:flex; flex-direction:column; padding:16px; gap:10px; overflow-y:auto;">
+                    <input type="text" class="search-input" id="pm-search-input" placeholder="Search presets..." style="height:32px;">
+                    <div id="pm-presets-scroll-list" style="display:flex; flex-direction:column; gap:4px; flex:1; overflow-y:auto;"></div>
                 </div>
 
-                <!-- Two-column body -->
-                <div class="pm-body">
-
-                    <!-- LEFT: Preset list -->
-                    <div class="pm-list-panel">
-                        <div class="pm-list-search">
-                            <input type="text" id="pm-search-input" class="pm-search-input" placeholder="Search presets..." autocomplete="off">
-                        </div>
-                        <div id="pm-list-scroll" class="pm-list-scroll">
-                            <!-- Populated dynamically -->
-                        </div>
+                <!-- Right Preset Editor -->
+                <div style="display:flex; flex-direction:column; padding:20px; overflow-y:auto; gap:16px;">
+                    <!-- Empty State -->
+                    <div id="pm-editor-empty" style="text-align:center; margin:auto 0; color:var(--text-muted);">
+                        <p>Select a preset on the left or click <strong>+ New Preset</strong> to build one.</p>
                     </div>
 
-                    <!-- RIGHT: Editor -->
-                    <div class="pm-editor-panel">
-                        <!-- Toolbar -->
-                        <div class="pm-editor-toolbar">
-                            <span id="pm-editor-mode-label" class="pm-editor-mode-label">Select a preset to edit</span>
-                            <div id="pm-dirty-indicator" class="pm-dirty-indicator">
-                                <span class="pm-dirty-dot"></span>
-                                Unsaved changes
+                    <!-- Editor Form -->
+                    <div id="pm-editor-form" class="hidden" style="display:flex; flex-direction:column; gap:14px;">
+                        <!-- Import Dropzone -->
+                        <div id="pm-import-dropzone" style="border:1px dashed var(--border-hover); border-radius:var(--radius-lg); padding:16px; text-align:center; background:rgba(255,255,255,0.02); cursor:pointer;">
+                            <input type="file" id="pm-import-file-input" accept=".json" style="display:none;">
+                            <span style="font-size:0.8rem; color:var(--text-secondary);">Drop a <strong>.json</strong> preset file here or <label for="pm-import-file-input" style="color:var(--accent); text-decoration:underline; cursor:pointer;">browse</label> to auto-fill.</span>
+                        </div>
+
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                            <div class="form-field">
+                                <label class="form-label" for="pm-field-id">Preset ID (lowercase_underscores)</label>
+                                <input type="text" class="form-input" id="pm-field-id" placeholder="my_custom_preset" required>
                             </div>
-                            <div class="pm-editor-action-bar">
-                                <button id="pm-discard-btn" class="btn-sm ghost hidden">Discard</button>
-                                <button id="pm-save-btn" class="btn-sm primary hidden">Save Preset</button>
+                            <div class="form-field">
+                                <label class="form-label" for="pm-field-title">Display Title</label>
+                                <input type="text" class="form-input" id="pm-field-title" placeholder="My Custom Scenario" required>
                             </div>
                         </div>
 
-                        <!-- Scrollable editor area -->
-                        <div id="pm-editor-scroll" class="pm-editor-scroll">
-                            <!-- Empty state (shown when nothing selected) -->
-                            <div id="pm-editor-empty" class="pm-editor-empty">
-                                <div class="pm-editor-empty-icon">✦</div>
-                                <p>Select a preset from the list to edit it, or click <strong>+ New Preset</strong> to create one from scratch.</p>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                            <div class="form-field">
+                                <label class="form-label" for="pm-field-category">Category</label>
+                                <input type="text" class="form-input" id="pm-field-category" placeholder="creative, narrative, etc.">
                             </div>
+                            <div class="form-field">
+                                <label class="form-label" for="pm-field-description">Short Description</label>
+                                <input type="text" class="form-input" id="pm-field-description" placeholder="Brief summary of writing style">
+                            </div>
+                        </div>
 
-                            <!-- Editor form (hidden until preset selected/created) -->
-                            <form id="pm-editor-form" class="pm-form hidden" autocomplete="off" onsubmit="return false;">
+                        <div class="form-field">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <label class="form-label" for="pm-field-system-body">System Body Prompt</label>
+                                <span class="param-value-tag" id="pm-word-count-badge">0 words</span>
+                            </div>
+                            <textarea class="form-input" id="pm-field-system-body" rows="6" placeholder="Scenario-specific system prompt instructions..." style="height:auto; font-family:var(--font-mono); font-size:0.8rem;"></textarea>
+                        </div>
 
-                                <!-- Import dropzone (only shown for new presets) -->
-                                <div id="pm-import-zone" class="pm-import-zone hidden">
-                                    <input type="file" id="pm-import-file" accept=".json" tabindex="-1">
-                                    <div class="pm-import-icon">📥</div>
-                                    <p><strong>Drop a .json preset file here</strong><br>or click to browse — the form will be pre-filled for review before saving.</p>
-                                </div>
+                        <div class="form-field">
+                            <label class="form-label" for="pm-field-post-history">Post-History Body (Optional)</label>
+                            <textarea class="form-input" id="pm-field-post-history" rows="3" placeholder="Standing instructions appended after conversation history..." style="height:auto; font-family:var(--font-mono); font-size:0.8rem;"></textarea>
+                        </div>
 
-                                <!-- Identity fields -->
-                                <div class="pm-field-row">
-                                    <div class="pm-field-group">
-                                        <label class="pm-label" for="pm-field-id">
-                                            Preset ID
-                                            <span class="pm-label-hint">lowercase_underscores</span>
-                                        </label>
-                                        <input type="text" id="pm-field-id" class="pm-input" placeholder="my_preset_id">
-                                    </div>
-                                    <div class="pm-field-group">
-                                        <label class="pm-label" for="pm-field-title">Title</label>
-                                        <input type="text" id="pm-field-title" class="pm-input" placeholder="Display title">
-                                    </div>
-                                </div>
-
-                                <div class="pm-field-row">
-                                    <div class="pm-field-group">
-                                        <label class="pm-label" for="pm-field-category">Category</label>
-                                        <input type="text" id="pm-field-category" class="pm-input" placeholder="e.g. power-control" list="pm-category-datalist">
-                                        <datalist id="pm-category-datalist"></datalist>
-                                    </div>
-                                    <div class="pm-field-group">
-                                        <label class="pm-label" for="pm-field-description">Description</label>
-                                        <input type="text" id="pm-field-description" class="pm-input" placeholder="One-line summary">
-                                    </div>
-                                </div>
-
-                                <!-- System body -->
-                                <div class="pm-field-group">
-                                    <label class="pm-label" for="pm-field-system-body">
-                                        System Body
-                                        <span id="pm-word-count-hint" class="pm-label-hint pm-word-count-hint empty">0 words</span>
-                                    </label>
-                                    <textarea id="pm-field-system-body" class="pm-textarea system-body" placeholder="300–500 words of scenario-specific system context..."></textarea>
-                                </div>
-
-                                <!-- Post-history body -->
-                                <div class="pm-field-group">
-                                    <label class="pm-label" for="pm-field-post-history">Post-History Body
-                                        <span class="pm-label-hint">usually empty</span>
-                                    </label>
-                                    <textarea id="pm-field-post-history" class="pm-textarea" placeholder="High-recency standing instructions (optional)..." rows="3"></textarea>
-                                </div>
-
-                                <!-- Defaults section -->
-                                <div class="pm-section-divider">
-                                    <span class="pm-section-divider-label">Default Parameters</span>
-                                    <div class="pm-section-divider-line"></div>
-                                </div>
-
-                                <div class="pm-defaults-grid" style="grid-template-columns: 1fr 1fr;">
-                                    <div class="pm-field-group">
-                                        <label class="pm-label" for="pm-default-pov">Point of View</label>
-                                        <select id="pm-default-pov" class="pm-select">
-                                            <option value="third">Close Third</option>
-                                            <option value="first">Deep First</option>
-                                            <option value="author">Omniscient</option>
-                                            <option value="off">Off</option>
-                                        </select>
-                                    </div>
-                                    <div class="pm-field-group">
-                                        <label class="pm-label" for="pm-default-intensity">Scene Intensity</label>
-                                        <select id="pm-default-intensity" class="pm-select">
-                                            <option value="tender">Tender</option>
-                                            <option value="sensory">Sensory</option>
-                                            <option value="charged">Charged</option>
-                                            <option value="raw">Raw</option>
-                                            <option value="off">Off</option>
-                                        </select>
-                                    </div>
-                                    <div class="pm-field-group">
-                                        <label class="pm-label" for="pm-default-dialogue-style">Dialogue Style</label>
-                                        <select id="pm-default-dialogue-style" class="pm-select">
-                                            <option value="silent">Silent</option>
-                                            <option value="playful">Playful</option>
-                                            <option value="candid">Candid</option>
-                                            <option value="commanding">Commanding</option>
-                                            <option value="off">Off</option>
-                                        </select>
-                                    </div>
-                                    <div class="pm-field-group">
-                                        <label class="pm-label" for="pm-default-pov-focus">POV Focus</label>
-                                        <select id="pm-default-pov-focus" class="pm-select">
-                                            <option value="balanced">Balanced</option>
-                                            <option value="self">POV Interiority</option>
-                                            <option value="partner">Partner Reaction</option>
-                                            <option value="off">Off</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <!-- Sliders row -->
-                                <div class="pm-field-row" style="margin-top:4px;">
-                                    <div class="pm-field-group" style="width: 50%;">
-                                        <label class="pm-label" for="pm-default-word-count">
-                                            Response Length
-                                            <span id="pm-word-count-val" class="pm-label-hint">1500 words</span>
-                                        </label>
-                                        <input type="range" id="pm-default-word-count" min="600" max="3000" step="100" value="1500" style="width:100%; accent-color: var(--accent-color);">
-                                    </div>
-                                    <div class="pm-field-group" style="width: 50%;">
-                                        <label class="pm-label" for="pm-default-pushback">
-                                            Pushback / Resistance
-                                            <span id="pm-pushback-val" class="pm-label-hint">3 — Realistic</span>
-                                        </label>
-                                        <input type="range" id="pm-default-pushback" min="0" max="5" step="1" value="3" style="width:100%; accent-color: var(--accent-color);">
-                                    </div>
-                                </div>
-
-                                <!-- Mode toggles -->
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                                    <div class="pm-toggle-row">
-                                        <span class="pm-toggle-label">Outline Mode</span>
-                                        <div id="pm-toggle-outline" class="pm-toggle-pill" role="switch" aria-checked="false" tabindex="0"></div>
-                                    </div>
-                                    <div class="pm-toggle-row">
-                                        <span class="pm-toggle-label">Premises Mode</span>
-                                        <div id="pm-toggle-premises" class="pm-toggle-pill" role="switch" aria-checked="false" tabindex="0"></div>
-                                    </div>
-                                    <div class="pm-toggle-row">
-                                        <span class="pm-toggle-label">Complication Gen</span>
-                                        <div id="pm-toggle-complication" class="pm-toggle-pill" role="switch" aria-checked="false" tabindex="0"></div>
-                                    </div>
-                                    <div class="pm-toggle-row">
-                                        <span class="pm-toggle-label">Suggest Choices</span>
-                                        <div id="pm-toggle-choices" class="pm-toggle-pill" role="switch" aria-checked="false" tabindex="0"></div>
-                                    </div>
-                                </div>
-
-                            </form>
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px;">
+                            <div style="display:flex; gap:8px;">
+                                <button class="btn btn-primary" id="pm-save-btn" type="button">Save Preset</button>
+                                <button class="btn btn-secondary" id="pm-export-btn" type="button">Export JSON</button>
+                            </div>
+                            <button class="btn btn-ghost" id="pm-delete-btn" type="button" style="color:var(--danger);">Delete Preset</button>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Delete Confirmation Modal (In-App custom premium pop-up) -->
-        <div id="delete-confirm-modal" class="modal-overlay hidden">
-            <div class="modal-content">
-                <button id="delete-confirm-close-btn" class="close-btn" aria-label="Close modal">&times;</button>
-                <h2>Delete Chat?</h2>
-                <p class="modal-description">Are you sure you want to delete this conversation? This will permanently remove all messages and version branches inside it. This action cannot be undone.</p>
-                <div class="modal-actions">
-                    <button id="delete-confirm-cancel-btn" class="btn btn-secondary">Cancel</button>
-                    <button id="delete-confirm-btn" class="btn btn-danger">Delete Chat</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="vendor/jszip.min.js"></script>
+    <!-- Delete Confirmation Modal -->
+    <div class="modal-backdrop hidden" id="delete-modal">
+        <div class="modal-dialog" style="max-width:420px;">
+            <div class="modal-header">
+                <span class="modal-title">Confirm Deletion</span>
+                <button class="icon-btn" id="delete-modal-close-btn" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p id="delete-modal-desc" style="font-size:0.85rem; color:var(--text-secondary); line-height:1.5;">Are you sure you want to delete this?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="delete-modal-cancel-btn" type="button">Cancel</button>
+                <button class="btn btn-danger" id="delete-modal-confirm-btn" type="button">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vendor Libraries -->
     <script src="vendor/marked.min.js"></script>
     <script src="vendor/purify.min.js"></script>
+
+    <!-- Application Main Module -->
     <script type="module" src="app.js"></script>
 </body>
 </html>

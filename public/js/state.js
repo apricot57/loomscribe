@@ -1,84 +1,104 @@
-const rawState = {
-    serverConfig: { hasKey: false, activeModel: 'deepseek-v4-pro', thinkingMode: 'enabled', customModels: [] },
+/**
+ * state.js — Reactive State Management for LoomScribe
+ */
+
+const listeners = new Map();
+
+export const state = {
+    // Current Active Chat
     currentConversationId: null,
-    abortControllers: {},
-    activeStreams: {},
-    engineSchema: null,
-    enginePresets: null,
-    currentConversationPresetId: null,
-    modalSelectedPresetId: null,
-    /** 'changePreset' | 'newChat' — controls what the preset-picker modal does on selection */
-    presetPickerContext: 'changePreset',
-    conversationIdToDelete: null,
-    messageIdToDelete: null,
-    DEFAULT_SYSTEM_PROMPT: 'You are a helpful and concise AI assistant.',
+    activeConversation: null,
+    conversations: [],
+
+    // Message History for Active Chat
     allMessages: [],
-    activeMessages: []
-};
+    activeMessages: [],
 
-const subscribers = new Set();
-
-export const stateEvents = {
-    subscribe(callback) {
-        subscribers.add(callback);
-        return () => subscribers.delete(callback);
+    // Server Configurations
+    serverConfig: {
+        hasKey: false,
+        activeModel: 'deepseek-v4-pro',
+        thinkingMode: 'enabled',
+        theme: 'cyan',
+        customModels: []
     },
-    emit(property, value, prevValue) {
-        for (const cb of subscribers) {
-            try { cb(property, value, prevValue); } catch (e) { console.error("stateEvents subscription error:", e); }
-        }
-    }
+
+    // Engine Presets & Schema
+    enginePresets: [],
+    engineSchema: null,
+
+    // Live Streaming State
+    isStreaming: false,
+    activeStreamMsgId: null,
+    activeStreamConvId: null,
+
+    // UI Panel Toggles
+    sidebarOpen: false,
+    inspectorOpen: true,
+
+    // Modals State
+    modal: null // 'settings' | 'preset-picker' | 'preset-manager' | 'new-chat' | 'delete' | 'fork'
 };
 
-const proxyCache = new WeakMap();
+/**
+ * Subscribe to state changes on specific property or '*' for any change.
+ */
+export function subscribe(prop, callback) {
+    if (!listeners.has(prop)) {
+        listeners.set(prop, new Set());
+    }
+    listeners.get(prop).add(callback);
 
-function makeObservable(obj, path = '') {
-    if (proxyCache.has(obj)) {
-        return proxyCache.get(obj);
+    // Return unsubscribe function
+    return () => {
+        listeners.get(prop)?.delete(callback);
+    };
+}
+
+/**
+ * Update a state property and emit notifications to listeners.
+ */
+export function setState(prop, value) {
+    const prevValue = state[prop];
+    state[prop] = value;
+
+    // Sync activeConversationId to localStorage
+    if (prop === 'currentConversationId') {
+        if (value) {
+            localStorage.setItem('activeConversationId', value);
+        } else {
+            localStorage.removeItem('activeConversationId');
+        }
     }
 
-    const proxy = new Proxy(obj, {
-        set(target, prop, val) {
-            const prev = target[prop];
-            if (prev === val) return true;
-            
-            const fullPath = path ? `${path}.${prop}` : prop;
-            
-            // Enforce state invariants: sync activeConversationId to localStorage
-            if (fullPath === 'currentConversationId') {
-                if (val !== null) {
-                    localStorage.setItem('activeConversationId', val);
-                } else {
-                    localStorage.removeItem('activeConversationId');
-                }
+    // Notify specific listeners
+    if (listeners.has(prop)) {
+        for (const cb of listeners.get(prop)) {
+            try {
+                cb(value, prevValue);
+            } catch (err) {
+                console.error(`Error in state subscriber for ${prop}:`, err);
             }
-            
-            target[prop] = val;
-            stateEvents.emit(fullPath, val, prev);
-            return true;
-        },
-        get(target, prop) {
-            const val = target[prop];
-            // Only deeply observe plain JSON objects, avoiding native/host/Array types
-            if (val && typeof val === 'object' && Object.prototype.toString.call(val) === '[object Object]') {
-                return makeObservable(val, path ? `${path}.${prop}` : prop);
-            }
-            return val;
         }
-    });
+    }
 
-    proxyCache.set(obj, proxy);
-    return proxy;
+    // Notify global wildcard listeners
+    if (listeners.has('*')) {
+        for (const cb of listeners.get('*')) {
+            try {
+                cb(prop, value, prevValue);
+            } catch (err) {
+                console.error('Error in wildcard state subscriber:', err);
+            }
+        }
+    }
 }
 
-export const state = makeObservable(rawState);
-
-export function prettifyCategory(str) {
-    return str.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-}
-
-export function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+/**
+ * Update multiple state properties at once.
+ */
+export function updateState(partialState) {
+    for (const [key, value] of Object.entries(partialState)) {
+        setState(key, value);
+    }
 }

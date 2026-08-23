@@ -1,239 +1,281 @@
-import { state } from './state.js';
+/**
+ * api.js — REST Client for LoomScribe Endpoints
+ */
+
 import { authFetch } from './auth.js';
 
-/**
- * Fetches all messages for a conversation, sorted chronologically,
- * and returns them as an API payload array (role + content only).
- * System prompt injection is handled server-side by compilePrompt().
- */
-export async function buildApiPayload(conversationId) {
-    const mRes = await authFetch(`/api/messages?conversationId=${conversationId}`);
-    const all = mRes.ok ? await mRes.json() : [];
-    all.sort((a, b) => a.timestamp - b.timestamp);
-    const active = all.filter(m => m.isActive !== false);
-    const payload = [];
-    for (const msg of active) {
-        payload.push({ role: msg.role, content: msg.content });
+// ==========================================================================
+// Config & Settings API
+// ==========================================================================
+
+export async function getConfig() {
+    const res = await authFetch('/api/config');
+    if (!res.ok) throw new Error('Failed to load server configuration');
+    return res.json();
+}
+
+export async function updateConfig(settings) {
+    const res = await authFetch('/api/config', {
+        method: 'POST',
+        body: settings
+    });
+    if (!res.ok) throw new Error('Failed to save settings');
+    return res.json();
+}
+
+export async function fetchOpenAIModels(apiKey = null) {
+    const res = await authFetch('/api/config/fetch-openai-models', {
+        method: 'POST',
+        body: apiKey ? { apiKey } : {}
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to fetch OpenAI models');
     }
-    return payload;
+    return res.json();
 }
 
-/**
- * Same as buildApiPayload but stops after the specified message ID.
- * Used for regeneration.
- */
-export async function buildApiPayloadUpTo(conversationId, stopAfterMsgId) {
-    const mRes = await authFetch(`/api/messages?conversationId=${conversationId}`);
-    const all = mRes.ok ? await mRes.json() : [];
-    all.sort((a, b) => a.timestamp - b.timestamp);
-    const active = all.filter(m => m.isActive !== false);
-    const payload = [];
-    for (const msg of active) {
-        payload.push({ role: msg.role, content: msg.content });
-        if (msg.id === stopAfterMsgId) break;
+export async function addCustomModel(modelData) {
+    const res = await authFetch('/api/config/custom-models', {
+        method: 'POST',
+        body: modelData
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to add custom model');
     }
-    return payload;
+    return res.json();
 }
 
-export async function checkIsLastActiveAssistant(msgId) {
-    if (!state.currentConversationId) return false;
-    const mRes = await authFetch(`/api/messages?conversationId=${state.currentConversationId}`);
-    const all = mRes.ok ? await mRes.json() : [];
-    all.sort((a, b) => a.timestamp - b.timestamp);
-    const activeAssistants = all.filter(m => m.role === 'assistant' && m.isActive !== false);
-    if (activeAssistants.length === 0) return false;
-    return activeAssistants[activeAssistants.length - 1].id === msgId;
+export async function updateCustomModel(id, modelData) {
+    const res = await authFetch(`/api/config/custom-models/${id}`, {
+        method: 'PUT',
+        body: modelData
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to update custom model');
+    }
+    return res.json();
 }
 
-export async function autoTitleConversation(convId, promptText) {
-    const title = buildAutoTitle(promptText);
-    if (!title) return;
+export async function deleteCustomModel(id) {
+    const res = await authFetch(`/api/config/custom-models/${id}`, {
+        method: 'DELETE'
+    });
+    if (!res.ok) throw new Error('Failed to delete custom model');
+    return res.json();
+}
 
-    try {
-        const convRes = await authFetch(`/api/conversations/${convId}`);
-        if (convRes.ok) {
-            const conv = await convRes.json();
-            const currentTitle = (conv?.title || '').trim();
-            if (currentTitle && currentTitle !== 'New Chat') {
-                return;
+// ==========================================================================
+// Conversations API
+// ==========================================================================
+
+export async function getConversations() {
+    const res = await authFetch('/api/conversations');
+    if (!res.ok) throw new Error('Failed to fetch conversations');
+    return res.json();
+}
+
+export async function getConversation(id) {
+    const res = await authFetch(`/api/conversations/${id}`);
+    if (!res.ok) throw new Error(`Failed to fetch conversation ${id}`);
+    return res.json();
+}
+
+export async function createConversation(data = {}) {
+    const res = await authFetch('/api/conversations', {
+        method: 'POST',
+        body: {
+            title: data.title || 'New Chat',
+            presetId: data.presetId || null,
+            params: data.params || {},
+            blockOverrides: data.blockOverrides || {},
+            directorNote: data.directorNote || ''
+        }
+    });
+    if (!res.ok) throw new Error('Failed to create conversation');
+    return res.json();
+}
+
+export async function updateConversation(id, data) {
+    const res = await authFetch(`/api/conversations/${id}`, {
+        method: 'PUT',
+        body: data
+    });
+    if (!res.ok) throw new Error(`Failed to update conversation ${id}`);
+    return res.json();
+}
+
+export async function deleteConversation(id) {
+    const res = await authFetch(`/api/conversations/${id}`, {
+        method: 'DELETE'
+    });
+    if (!res.ok) throw new Error(`Failed to delete conversation ${id}`);
+    return res.json();
+}
+
+export async function forkConversation(id, { messageId, title }) {
+    const res = await authFetch(`/api/conversations/${id}/fork`, {
+        method: 'POST',
+        body: { messageId, title }
+    });
+    if (!res.ok) throw new Error('Failed to fork conversation');
+    return res.json();
+}
+
+// ==========================================================================
+// Messages & Version Branching API
+// ==========================================================================
+
+export async function getMessages(conversationId) {
+    const res = await authFetch(`/api/messages?conversationId=${conversationId}`);
+    if (!res.ok) throw new Error('Failed to fetch messages');
+    return res.json();
+}
+
+export async function createMessage(messageData) {
+    const res = await authFetch('/api/messages', {
+        method: 'POST',
+        body: messageData
+    });
+    if (!res.ok) throw new Error('Failed to save message');
+    return res.json();
+}
+
+export async function updateMessage(id, updates) {
+    const res = await authFetch(`/api/messages/${id}`, {
+        method: 'PUT',
+        body: updates
+    });
+    if (!res.ok) throw new Error(`Failed to update message ${id}`);
+    return res.json();
+}
+
+export async function createMessageVersion(id, data) {
+    const res = await authFetch(`/api/messages/${id}/version`, {
+        method: 'POST',
+        body: data
+    });
+    if (!res.ok) throw new Error('Failed to create message version');
+    return res.json();
+}
+
+export async function navigateMessageVersion(versionGroupId, targetVersion) {
+    const res = await authFetch(`/api/messages/${versionGroupId}/navigate?version=${targetVersion}`, {
+        method: 'POST',
+        body: { version: targetVersion, targetVersion }
+    });
+    if (!res.ok) throw new Error('Failed to navigate version');
+    return res.json();
+}
+
+export async function navigateTurn({ userMsgId, assistantMsgId }) {
+    const res = await authFetch('/api/messages/navigate-turn', {
+        method: 'POST',
+        body: { userMsgId, assistantMsgId }
+    });
+    if (!res.ok) throw new Error('Failed to navigate turn');
+    return res.json();
+}
+export async function deleteMessage(id) {
+    const res = await authFetch(`/api/messages/${id}`, {
+        method: 'DELETE'
+    });
+    if (!res.ok) throw new Error('Failed to delete message');
+    return res.json();
+}
+
+export async function deleteMessageVersionGroup(id) {
+    const res = await authFetch(`/api/messages/${id}/version-group`, {
+        method: 'DELETE'
+    });
+    if (!res.ok) throw new Error('Failed to delete version group');
+    return res.json();
+}
+
+export async function deactivateMessageTree(id) {
+    const res = await authFetch(`/api/messages/${id}/deactivate-tree`, {
+        method: 'POST'
+    });
+    if (!res.ok) throw new Error('Failed to deactivate tree');
+    return res.json();
+}
+
+export async function getEnginePresets() {
+    const res = await authFetch('/api/engine/presets');
+    if (!res.ok) throw new Error('Failed to fetch engine presets');
+    const data = await res.json();
+    if (Array.isArray(data)) return data;
+    const list = [];
+    if (data && typeof data === 'object') {
+        for (const cat of Object.keys(data)) {
+            if (Array.isArray(data[cat])) {
+                list.push(...data[cat]);
             }
         }
-    } catch (err) {
-        console.warn('Skipping auto-title check because conversation lookup failed:', err);
     }
+    return list;
+}
 
-    await authFetch(`/api/conversations/${convId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title })
+export async function getEnginePreset(id) {
+    const res = await authFetch(`/api/engine/presets/${id}`);
+    if (!res.ok) throw new Error(`Failed to fetch preset ${id}`);
+    return res.json();
+}
+
+export async function createEnginePreset(presetData) {
+    const res = await authFetch('/api/engine/presets', {
+        method: 'POST',
+        body: presetData
     });
-
-    syncConversationTitleInUI(convId, title);
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to create preset');
+    }
+    return res.json();
 }
 
-function buildAutoTitle(promptText) {
-    if (!promptText) return null;
-
-    const cleaned = promptText
-        .replace(/\[[^\]]*\]/g, ' ')
-        .replace(/```[\s\S]*?```/g, ' ')
-        .replace(/[*_`>#\[\]()]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-
-    if (!cleaned) return null;
-
-    let title = cleaned;
-
-    const prefixes = [
-        /^can you\s+/i,
-        /^could you\s+/i,
-        /^would you\s+/i,
-        /^will you\s+/i,
-        /^please\s+/i,
-        /^help me\s+/i,
-        /^i need you to\s+/i,
-        /^i need\s+/i,
-        /^i want you to\s+/i,
-        /^write\s+/i,
-        /^draft\s+/i,
-        /^create\s+/i,
-        /^make\s+/i,
-        /^generate\s+/i,
-        /^summarize\s+/i,
-        /^summarise\s+/i,
-        /^explain\s+/i,
-        /^analyze\s+/i,
-        /^analyse\s+/i,
-        /^review\s+/i,
-        /^rewrite\s+/i,
-        /^improve\s+/i,
-        /^fix\s+/i,
-        /^convert\s+/i
-    ];
-
-    for (const prefix of prefixes) {
-        title = title.replace(prefix, '');
+export async function updateEnginePreset(id, presetData) {
+    const res = await authFetch(`/api/engine/presets/${id}`, {
+        method: 'PUT',
+        body: presetData
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Failed to update preset ${id}`);
     }
-
-    title = title
-        .replace(/^(a|an|the)\s+/i, '')
-        .replace(/^(for|to|about)\s+/i, '')
-        .replace(/\s+[?.!]+$/, '')
-        .replace(/[?.!,;:]+$/g, '')
-        .trim();
-
-    if (!title) return null;
-
-    const words = title.split(' ');
-    const maxWords = 6;
-    if (words.length > maxWords) {
-        title = words.slice(0, maxWords).join(' ');
-    }
-
-    const smallWords = new Set(['a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'from', 'in', 'into', 'nor', 'of', 'on', 'or', 'over', 'per', 'the', 'to', 'up', 'via', 'with']);
-    title = title
-        .toLowerCase()
-        .split(' ')
-        .map((word, index) => {
-            if (!word) return word;
-            if (index > 0 && smallWords.has(word)) return word;
-            return word.charAt(0).toUpperCase() + word.slice(1);
-        })
-        .join(' ');
-
-    if (title.length > 40) {
-        title = title.slice(0, 40).trim();
-        const lastSpace = title.lastIndexOf(' ');
-        if (lastSpace > 20) {
-            title = title.slice(0, lastSpace);
-        }
-    }
-
-    return title || null;
+    return res.json();
 }
 
-function syncConversationTitleInUI(convId, title) {
-    const item = document.querySelector(`.chat-list-item[data-id="${convId}"]`);
-    if (!item) return;
-
-    item.title = title;
-    const titleNode = item.querySelector('.chat-item-title');
-    if (titleNode) {
-        titleNode.textContent = title;
+export async function deleteEnginePreset(id, force = false) {
+    const url = `/api/engine/presets/${id}${force ? '?force=true' : ''}`;
+    const res = await authFetch(url, {
+        method: 'DELETE'
+    });
+    if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const err = new Error(data.error || 'Failed to delete preset');
+        err.usedInConversations = data.usedInConversations;
+        throw err;
     }
+    return res.json();
 }
 
 export async function getEngineSchema() {
-    if (state.engineSchema) return state.engineSchema;
     const res = await authFetch('/api/engine/schema');
-    if (res.ok) {
-        state.engineSchema = await res.json();
-        return state.engineSchema;
-    }
-    throw new Error("Failed to load parameters schema");
+    if (!res.ok) throw new Error('Failed to fetch engine schema');
+    return res.json();
 }
 
-export async function getEnginePresets(forceRefresh = false) {
-    if (state.enginePresets && !forceRefresh) return state.enginePresets;
-    const res = await authFetch('/api/engine/presets');
-    if (res.ok) {
-        state.enginePresets = await res.json();
-        return state.enginePresets;
-    }
-    throw new Error("Failed to load presets");
-}
-
-export async function createOrImportPreset(presetJson) {
-    const res = await authFetch('/api/engine/presets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(presetJson)
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to create preset');
-    state.enginePresets = null; // bust cache
-    return data;
-}
-
-export async function updatePreset(id, presetJson) {
-    const res = await authFetch(`/api/engine/presets/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(presetJson)
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to update preset');
-    state.enginePresets = null; // bust cache
-    return data;
-}
-
-export async function deletePreset(id, force = false) {
-    const url = `/api/engine/presets/${id}${force ? '?force=1' : ''}`;
-    const res = await authFetch(url, { method: 'DELETE' });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to delete preset');
-    state.enginePresets = null; // bust cache
-    return data;
-}
-
-export async function getEnginePreset(presetId) {
-    const res = await authFetch(`/api/engine/presets/${presetId}`);
-    if (res.ok) {
-        return await res.json();
-    }
-    throw new Error(`Failed to load preset: ${presetId}`);
-}
-
-export async function compilePromptPreview({ presetId, params, blockOverrides, directorNote }) {
+export async function compilePrompt(compilePayload) {
     const res = await authFetch('/api/engine/compile', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ presetId, params, blockOverrides, directorNote })
+        body: compilePayload
     });
-    if (res.ok) {
-        return await res.json();
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to compile prompt');
     }
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.error || "Failed to compile prompt preview");
+    return res.json();
 }
