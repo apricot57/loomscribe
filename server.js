@@ -1,4 +1,8 @@
-require('dotenv').config();
+try {
+    process.loadEnvFile();
+} catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+}
 
 const express = require('express');
 const fs = require('fs');

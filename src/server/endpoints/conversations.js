@@ -16,7 +16,7 @@ function registerConversationsRoutes(app) {
         const newConv = {
             id: generateUniqueId(db, 'conversations'),
             title: body.title || 'New Chat',
-            activeModel: body.activeModel || 'deepseek-v4-pro',
+            activeModel: body.activeModel || db.settings?.activeModel || 'deepseek-v4-pro',
             systemPromptId: body.systemPromptId || null,
             presetId: body.presetId || null,
             params: body.params || {},

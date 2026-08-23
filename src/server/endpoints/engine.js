@@ -1,10 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 const { compilePrompt } = require('../../../engine/compiler');
+const { readDb } = require('../db');
 
 const PRESETS_DIR = path.resolve(__dirname, '../../../engine/presets');
 const SCHEMA_PATH = path.resolve(__dirname, '../../../engine/schema.json');
-const DB_PATH = path.resolve(__dirname, '../../../data/db.json');
 
 // Keys allowed in a preset file (strip everything else)
 const ALLOWED_KEYS = ['id', 'title', 'category', 'description', 'system_body', 'post_history_body', 'blocks', 'defaults'];
@@ -22,14 +22,8 @@ function validatePresetId(id) {
 }
 
 function isPresetUsedByConversation(id) {
-    try {
-        if (!fs.existsSync(DB_PATH)) return false;
-        const db = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
-        const conversations = db.conversations || [];
-        return conversations.some(c => c.presetId === id);
-    } catch {
-        return false;
-    }
+    const db = readDb();
+    return (db.conversations || []).some(c => c.presetId === id);
 }
 
 function registerEngineRoutes(app) {

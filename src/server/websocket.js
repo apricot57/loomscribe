@@ -1,7 +1,4 @@
 const { WebSocketServer } = require('ws');
-const https = require('https');
-const http = require('http');
-const url = require('url');
 const { readDb, writeDb, mutateDb } = require('./db');
 const { generateUniqueId } = require('./utils');
 const { compilePrompt } = require('../../engine/compiler');
@@ -20,9 +17,8 @@ function initWebSocketServer(server) {
     server.on('upgrade', (request, socket, head) => {
         // Validate auth token from query string if APP_PASSWORD is set
         if (process.env.APP_PASSWORD) {
-            const parsedUrl = url.parse(request.url, true);
-            const token = parsedUrl.query.token || '';
-            // Inline token check against the auth module's token store via a lightweight HTTP-style check
+            const parsedUrl = new URL(request.url, 'http://localhost');
+            const token = parsedUrl.searchParams.get('token') || '';
             const authHeader = `Bearer ${token}`;
             const fakeReq = { headers: { authorization: authHeader } };
             const fakeRes = {
@@ -136,9 +132,9 @@ async function handleGenerate(ws, payload) {
     if (activeStreams.has(conversationId)) {
         const oldState = activeStreams.get(conversationId);
         logger.info('ws_stream_abort_existing', { conversationId, streamMsgId: oldState.streamMsgId });
-        if (oldState.req && !oldState.req.destroyed) {
+        if (oldState.controller) {
             try {
-                oldState.req.destroy();
+                oldState.controller.abort();
             } catch (e) {}
         }
         activeStreams.delete(conversationId);
@@ -147,17 +143,38 @@ async function handleGenerate(ws, payload) {
     // Read DB configuration
     const db = readDb();
     const customModelConfig = (db.settings?.customModels || []).find(m => m.id === model);
-    const apiKey = db.settings?.apiKey;
-    if (!customModelConfig && !apiKey) {
-        ws.send(JSON.stringify({
-            type: 'error',
-            conversationId,
-            streamMsgId,
-            error: "API Key is missing on the server. Please configure it in Settings."
-        }));
-        return;
-    }
+    const deepseekApiKey = db.settings?.apiKey || db.settings?.deepseekApiKey;
+    const openaiApiKey = db.settings?.openaiApiKey;
 
+    const isOpenAI = !customModelConfig && (
+        (db.settings?.openaiModels || []).some(m => (typeof m === 'string' ? m : m.id) === model) ||
+        (db.settings?.pinnedOpenAIModels || []).includes(model) ||
+        /^gpt-|^o[1-9]|^chatgpt-/i.test(model)
+    );
+
+    if (customModelConfig) {
+        // Handled via custom endpoint
+    } else if (isOpenAI) {
+        if (!openaiApiKey) {
+            ws.send(JSON.stringify({
+                type: 'error',
+                conversationId,
+                streamMsgId,
+                error: "OpenAI API Key is missing on the server. Please configure it in Settings."
+            }));
+            return;
+        }
+    } else {
+        if (!deepseekApiKey) {
+            ws.send(JSON.stringify({
+                type: 'error',
+                conversationId,
+                streamMsgId,
+                error: "API Key is missing on the server. Please configure it in Settings."
+            }));
+            return;
+        }
+    }
     // Wrap prompt and compile it
     let apiMessages = messages || [];
     if (conversationId !== undefined && conversationId !== null) {
@@ -243,9 +260,10 @@ async function handleGenerate(ws, payload) {
     }
 
     // Set up active stream state
+    const controller = new AbortController();
     const streamState = {
         ws,
-        req: null,
+        controller,
         streamMsgId,
         fullContent: '',
         fullReasoning: '',
@@ -255,7 +273,6 @@ async function handleGenerate(ws, payload) {
     };
 
     activeStreams.set(conversationId, streamState);
-
     logger.info('ws_stream_start', {
         conversationId,
         streamMsgId,
@@ -272,7 +289,7 @@ async function handleGenerate(ws, payload) {
 
     let apiModel = model || 'deepseek-chat';
     let apiEndpoint = 'https://api.deepseek.com/chat/completions';
-    let apiAuthKey = apiKey;
+    let apiAuthKey = deepseekApiKey;
     let isCustomEndpoint = false;
 
     // Check if the selected model matches a custom model configuration
@@ -281,17 +298,20 @@ async function handleGenerate(ws, payload) {
         apiEndpoint = customModelConfig.endpoint;
         apiAuthKey = customModelConfig.apiKey;
         isCustomEndpoint = true;
+    } else if (isOpenAI) {
+        apiModel = model;
+        apiEndpoint = 'https://api.openai.com/v1/chat/completions';
+        apiAuthKey = openaiApiKey;
+        isCustomEndpoint = true;
     }
-
     // Normalize endpoint url to ends with chat/completions
     if (apiEndpoint && !apiEndpoint.endsWith('/chat/completions') && !apiEndpoint.endsWith('/chat/completions/')) {
         const cleaned = apiEndpoint.endsWith('/') ? apiEndpoint.slice(0, -1) : apiEndpoint;
         apiEndpoint = `${cleaned}/chat/completions`;
     }
 
-    let parsedUrl;
     try {
-        parsedUrl = new URL(apiEndpoint);
+        new URL(apiEndpoint);
     } catch (urlErr) {
         logger.error('ws_invalid_endpoint', { conversationId, apiEndpoint, message: urlErr.message });
         ws.send(JSON.stringify({
@@ -302,11 +322,6 @@ async function handleGenerate(ws, payload) {
         }));
         return;
     }
-
-    const protocol = parsedUrl.protocol;
-    const hostname = parsedUrl.hostname;
-    const port = parsedUrl.port || (protocol === 'https:' ? 443 : 80);
-    const path = parsedUrl.pathname + parsedUrl.search;
 
     const requestBodyObj = {
         model: apiModel,
@@ -320,8 +335,6 @@ async function handleGenerate(ws, payload) {
         requestBodyObj.thinking = thinking || { type: 'enabled' };
     }
 
-    const requestBody = JSON.stringify(requestBodyObj);
-
     const headers = {
         'Content-Type': 'application/json'
     };
@@ -329,24 +342,20 @@ async function handleGenerate(ws, payload) {
         headers['Authorization'] = `Bearer ${apiAuthKey}`;
     }
 
-    const options = {
-        hostname,
-        port,
-        path,
-        method: 'POST',
-        headers
-    };
+    (async () => {
+        try {
+            const response = await fetch(apiEndpoint, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(requestBodyObj),
+                signal: controller.signal
+            });
 
-    const clientModule = protocol === 'http:' ? http : https;
-
-    const proxyReq = clientModule.request(options, (proxyRes) => {
-        if (proxyRes.statusCode !== 200) {
-            let errBody = '';
-            proxyRes.on('data', (d) => errBody += d.toString());
-            proxyRes.on('end', () => {
-                const providerName = isCustomEndpoint ? `custom endpoint` : 'DeepSeek API';
-                let errMsg = `${providerName} returned status ${proxyRes.statusCode}`;
+            if (!response.ok) {
+                const providerName = isCustomEndpoint ? 'custom endpoint' : 'Upstream API';
+                let errMsg = `${providerName} returned status ${response.status}`;
                 try {
+                    const errBody = await response.text();
                     const parsedErr = JSON.parse(errBody);
                     if (parsedErr.error && parsedErr.error.message) {
                         errMsg = parsedErr.error.message;
@@ -363,88 +372,89 @@ async function handleGenerate(ws, payload) {
                 if (activeState && activeState.streamMsgId === streamMsgId) {
                     activeStreams.delete(conversationId);
                 }
-            });
-            return;
-        }
+                return;
+            }
 
-        let buffer = '';
-        proxyRes.on('data', (chunk) => {
-            buffer += chunk.toString();
-            const lines = buffer.split('\n');
-            buffer = lines.pop() || '';
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
 
-            for (const line of lines) {
-                const trimmed = line.trim();
-                if (!trimmed || !trimmed.startsWith('data: ')) continue;
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
 
-                const dataPayload = trimmed.slice(6);
-                if (dataPayload === '[DONE]') continue;
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
 
-                try {
-                    const parsed = JSON.parse(dataPayload);
-                    if (parsed.error) {
-                        const errMsg = parsed.error.message || 'Stream error occurred';
-                        handleStreamFinish(conversationId, streamMsgId, false, errMsg);
-                        return;
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (!trimmed || !trimmed.startsWith('data: ')) continue;
+
+                    const dataPayload = trimmed.slice(6);
+                    if (dataPayload === '[DONE]') continue;
+
+                    try {
+                        const parsed = JSON.parse(dataPayload);
+                        if (parsed.error) {
+                            const errMsg = parsed.error.message || 'Stream error occurred';
+                            handleStreamFinish(conversationId, streamMsgId, false, errMsg);
+                            return;
+                        }
+
+                        const choice = parsed.choices?.[0];
+                        const reasoningDelta = choice?.delta?.reasoning_content;
+                        const delta = choice?.delta?.content;
+                        const finishReason = choice?.finish_reason;
+
+                        if (reasoningDelta) {
+                            streamState.fullReasoning += reasoningDelta;
+                            sendToSocket(ws, {
+                                type: 'token',
+                                conversationId,
+                                streamMsgId,
+                                reasoning: reasoningDelta
+                            });
+                        }
+                        if (delta) {
+                            streamState.fullContent += delta;
+                            sendToSocket(ws, {
+                                type: 'token',
+                                conversationId,
+                                streamMsgId,
+                                content: delta
+                            });
+                        }
+
+                        if (finishReason === 'content_filter' || finishReason === 'guardrail') {
+                            handleStreamFinish(conversationId, streamMsgId, false, 'Response flagged by safety guardrails/content filter.');
+                            return;
+                        }
+                    } catch (e) {
+                        // Ignore malformed JSON lines
                     }
-
-                    const choice = parsed.choices?.[0];
-                    const reasoningDelta = choice?.delta?.reasoning_content;
-                    const delta = choice?.delta?.content;
-                    const finishReason = choice?.finish_reason;
-
-                    if (reasoningDelta) {
-                        streamState.fullReasoning += reasoningDelta;
-                        sendToSocket(ws, {
-                            type: 'token',
-                            conversationId,
-                            streamMsgId,
-                            reasoning: reasoningDelta
-                        });
-                    }
-                    if (delta) {
-                        streamState.fullContent += delta;
-                        sendToSocket(ws, {
-                            type: 'token',
-                            conversationId,
-                            streamMsgId,
-                            content: delta
-                        });
-                    }
-
-                    if (finishReason === 'content_filter' || finishReason === 'guardrail') {
-                        handleStreamFinish(conversationId, streamMsgId, false, 'Response flagged by safety guardrails/content filter.');
-                        return;
-                    }
-                } catch (e) {
-                    // Ignore malformed JSON lines
                 }
             }
-        });
 
-        proxyRes.on('end', () => {
             handleStreamFinish(conversationId, streamMsgId, false);
-        });
-    });
-
-    proxyReq.on('error', (e) => {
-        const activeState = activeStreams.get(conversationId);
-        if (activeState && activeState.streamMsgId === streamMsgId) {
-            logger.error('ws_api_request_error', { conversationId, message: e.message });
-            const providerName = isCustomEndpoint ? `custom endpoint (${apiEndpoint})` : 'DeepSeek API';
-            sendToSocket(ws, {
-                type: 'error',
-                conversationId,
-                streamMsgId,
-                error: `Failed to connect to the ${providerName}. Error: ${e.message}`
-            });
-            activeStreams.delete(conversationId);
+        } catch (e) {
+            if (e.name === 'AbortError') {
+                return;
+            }
+            const activeState = activeStreams.get(conversationId);
+            if (activeState && activeState.streamMsgId === streamMsgId) {
+                logger.error('ws_api_request_error', { conversationId, message: e.message });
+                const providerName = isCustomEndpoint ? `custom endpoint (${apiEndpoint})` : 'Upstream API';
+                sendToSocket(ws, {
+                    type: 'error',
+                    conversationId,
+                    streamMsgId,
+                    error: `Failed to connect to the ${providerName}. Error: ${e.message}`
+                });
+                activeStreams.delete(conversationId);
+            }
         }
-    });
-
-    streamState.req = proxyReq;
-    proxyReq.write(requestBody);
-    proxyReq.end();
+    })();
 }
 
 async function handleAbort(payload) {
@@ -461,13 +471,12 @@ async function handleStreamFinish(conversationId, streamMsgId, aborted = false, 
 
     activeStreams.delete(conversationId);
 
-    // Abort the request if it's still active
-    if (streamState.req && !streamState.req.destroyed) {
+    // Abort the fetch request if it's still active
+    if (streamState.controller) {
         try {
-            streamState.req.destroy();
+            streamState.controller.abort();
         } catch (e) {}
     }
-
     if (streamState.fullContent || errorMsg) {
         try {
             let newMsg = null;

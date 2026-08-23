@@ -4,7 +4,8 @@ const {
     deactivateMessageTree,
     deactivateVersionGroupAndDescendants,
     showDescendants,
-    deleteVersionGroupAndDescendants
+    deleteVersionGroupAndDescendants,
+    deleteMessageAndDescendants
 } = require('../services/version-tree');
 
 function registerMessagesRoutes(app) {
@@ -123,8 +124,8 @@ function registerMessagesRoutes(app) {
     app.post('/api/messages/:versionGroupId/navigate', (req, res) => {
         const versionGroupIdStr = req.params.versionGroupId;
         const versionGroupId = isNaN(versionGroupIdStr) ? versionGroupIdStr : parseInt(versionGroupIdStr, 10);
-        const targetVersionStr = req.query.version;
-        const targetVersion = targetVersionStr ? parseInt(targetVersionStr, 10) : null;
+        const targetVersionRaw = req.query.version || req.body?.version || req.body?.targetVersion;
+        const targetVersion = targetVersionRaw !== undefined && targetVersionRaw !== null ? parseInt(targetVersionRaw, 10) : null;
 
         if (targetVersion === null || isNaN(targetVersion)) {
             res.status(400).send('Invalid version parameter');
@@ -240,6 +241,22 @@ function registerMessagesRoutes(app) {
         } else {
             res.status(404).send('Not Found');
         }
+    });
+
+    app.delete('/api/messages/:id', (req, res) => {
+        const msgIdStr = req.params.id;
+        const msgId = isNaN(msgIdStr) ? msgIdStr : parseInt(msgIdStr, 10);
+        const db = readDb();
+
+        const msg = db.messages.find(m => m.id === msgId);
+        if (!msg) {
+            res.status(404).send('Message Not Found');
+            return;
+        }
+
+        const deletedIds = deleteMessageAndDescendants(db, msgId);
+        writeDb(db);
+        res.json({ success: true, deletedIds });
     });
 
     app.delete('/api/messages/:id/version-group', (req, res) => {

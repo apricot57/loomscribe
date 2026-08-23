@@ -46,7 +46,7 @@ function writeDb(data) {
         }
         fs.writeFileSync(tempFile, JSON.stringify(data, null, 4), 'utf-8');
         fs.renameSync(tempFile, DB_FILE);
-        cachedDb = JSON.parse(JSON.stringify(data)); // Refresh cache with clone
+        cachedDb = structuredClone(data); // Refresh cache with clone
         return true;
     } catch (e) {
         try {
