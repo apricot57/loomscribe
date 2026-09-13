@@ -183,7 +183,6 @@
                                     </svg>
                                     <span class="chip-name">Creative Writer</span>
                                 </button>
-
                                 <!-- Continue Story Chip -->
                                 <button class="chip-btn continue-chip hidden" id="continue-story-btn" type="button" title="Continue writing narrative">
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -191,6 +190,10 @@
                                         <line x1="19" y1="5" x2="19" y2="19"></line>
                                     </svg>
                                     <span>Continue</span>
+                                </button>
+                                <!-- Conversation Cost Chip -->
+                                <button class="chip-btn cost-chip" id="conversation-cost-chip" type="button" title="Total Conversation Cost" style="display:none;">
+                                    <span class="chip-name" id="conversation-cost-text">$0.0000</span>
                                 </button>
                             </div>
                         </div>
@@ -236,10 +239,9 @@
                             <span class="preset-badge-cat" id="inspector-preset-cat">General</span>
                         </div>
                         <p class="preset-desc-text" id="inspector-preset-desc">General creative writing preset.</p>
-                        <button class="change-preset-btn" id="inspector-change-preset-btn" type="button">Change Scenario Preset</button>
+                        <button class="change-preset-btn" id="inspector-change-preset-btn" type="button" style="margin-top: 10px;">Change Scenario Preset</button>
                     </div>
                 </div>
-
                 <!-- Dynamic Parameter Controls -->
                 <div class="inspector-section">
                     <span class="section-label">Writing Directives</span>
@@ -301,7 +303,25 @@
             <div class="settings-layout-body">
                 <!-- Left: Vertical Tab Navigation Sidebar -->
                 <aside class="settings-sidebar-pane">
-                    <button class="settings-nav-item active" data-tab="general" type="button">
+                    <button class="settings-nav-item active" data-tab="providers" type="button">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                        </svg>
+                        <span>Providers</span>
+                    </button>
+                    <button class="settings-nav-item" data-tab="openrouter" type="button">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="6" cy="6" r="3"></circle>
+                            <circle cx="6" cy="18" r="3"></circle>
+                            <circle cx="18" cy="12" r="3"></circle>
+                            <line x1="8.5" y1="7.5" x2="15.5" y2="10.5"></line>
+                            <line x1="8.5" y1="16.5" x2="15.5" y2="13.5"></line>
+                        </svg>
+                        <span>OpenRouter</span>
+                    </button>
+                    <button class="settings-nav-item" data-tab="general" type="button">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="3"></circle>
                             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
@@ -329,66 +349,256 @@
                 <!-- Right: Content Panels Column -->
                 <div class="settings-content-pane">
                     <!-- Tab Panel: General -->
-                    <div class="settings-tab-panel" id="tab-panel-general">
-                        <!-- OpenAI Section -->
-                        <div class="settings-card" style="border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 14px; background: var(--bg-surface-elevated); margin-bottom: 16px;">
+                    <div class="settings-tab-panel hidden" id="tab-panel-general">
+                        <!-- Sliding Context Window Section -->
+                        <div class="settings-card" style="border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 14px; background: var(--bg-surface-elevated);">
                             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
                                 <div style="display: flex; align-items: center; gap: 8px;">
-                                    <span style="font-weight: 600; font-size: 0.88rem;">OpenAI Provider</span>
-                                    <span class="dropdown-badge" style="font-size: 0.65rem;">Dynamic Models</span>
+                                    <span style="font-weight: 600; font-size: 0.88rem;">Sliding Context Window</span>
+                                    <span class="dropdown-badge" id="sliding-window-badge" style="font-size: 0.65rem;">16 msgs</span>
                                 </div>
-                                <div id="openai-key-status"></div>
+                                <div id="sliding-window-status"></div>
                             </div>
-                            <div class="form-field" style="margin-bottom: 8px;">
-                                <label class="form-label" for="settings-openai-key-input">OpenAI API Key</label>
-                                <div style="display:flex; gap:8px;">
-                                    <input type="password" class="form-input" id="settings-openai-key-input" placeholder="sk-proj-..." autocomplete="off">
-                                    <button class="btn btn-secondary" id="toggle-openai-key-visibility-btn" type="button" style="padding:0 10px;" aria-label="Toggle key visibility">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
-                                            <circle cx="12" cy="12" r="3"></circle>
-                                        </svg>
-                                    </button>
+                            <p style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.4;">
+                                Sets how many recent messages are sent to the model per turn. A bounded window keeps responses fast and saves prompt tokens, or turn it off to send the full conversation history.
+                            </p>
+
+                            <!-- Toggle Card -->
+                            <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); margin-bottom: 12px;">
+                                <div>
+                                    <div style="font-weight: 500; font-size: 0.82rem; color: var(--text-primary);">Sliding Window Limit</div>
+                                    <div id="sliding-window-toggle-desc" style="font-size: 0.72rem; color: var(--text-muted);">Enabled (limits history to recent turns)</div>
                                 </div>
-                            </div>
-                            <div style="display:flex; gap:8px; align-items:center; margin-bottom: 12px;">
-                                <button class="btn btn-primary btn-sm" id="save-openai-key-btn" type="button">Save Key</button>
-                                <button class="btn btn-ghost btn-sm" id="remove-openai-key-btn" type="button" style="color:var(--danger);">Remove Key</button>
-                                <button class="btn btn-secondary btn-sm" id="fetch-openai-models-btn" type="button" style="margin-left: auto; display: flex; align-items: center; gap: 4px;">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-                                    <span>Fetch Models</span>
+                                <button type="button" class="btn btn-secondary btn-sm" id="sliding-window-toggle-btn" style="min-width: 76px; font-weight: 600;">
+                                    ON
                                 </button>
                             </div>
 
-                            <!-- Pinned Models Sub-section -->
-                            <div style="border-top: 1px solid var(--border-subtle); padding-top: 10px; margin-top: 10px;">
-                                <label class="form-label" style="margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;">
-                                    <span>Pinned / Quick Models</span>
-                                    <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">Always shown in model picker</span>
-                                </label>
-                                <div id="openai-pinned-tags" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;"></div>
-                                <div style="display: flex; gap: 6px;">
-                                    <input type="text" class="form-input" id="add-pinned-openai-input" placeholder="e.g. gpt-5.6, gpt-4.5-preview, o3-mini" style="font-size: 0.78rem; padding: 4px 8px;">
-                                    <button class="btn btn-secondary btn-sm" id="add-pinned-openai-btn" type="button" style="padding: 4px 10px; font-size: 0.75rem;">+ Pin Model</button>
+                            <!-- Window Size Slider & Number Input -->
+                            <div id="sliding-window-controls-wrap" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <label class="form-label" for="sliding-window-size-input" style="margin-bottom: 0;">Messages to Retain</label>
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <input type="number" class="form-input" id="sliding-window-size-input" min="1" max="200" step="1" value="16" style="width: 65px; padding: 4px 8px; text-align: center; font-size: 0.82rem; font-weight: 600;">
+                                        <span style="font-size: 0.75rem; color: var(--text-muted);">messages</span>
+                                    </div>
                                 </div>
-                                <div id="openai-models-count-status" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;"></div>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <input type="range" class="form-range" id="sliding-window-size-slider" min="2" max="100" step="2" value="16" style="flex: 1; cursor: pointer;">
+                                </div>
+                                <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted);">
+                                    <span>2 (minimal)</span>
+                                    <span>16 (default)</span>
+                                    <span>100 (deep history)</span>
+                                </div>
+                            </div>
+
+                            <!-- Disabled Warning Banner -->
+                            <div id="sliding-window-disabled-banner" class="hidden" style="padding: 10px 12px; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: var(--radius-md); font-size: 0.78rem; color: var(--warning); display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                                <span>Sliding window is <strong>OFF</strong>. The full conversation history will be sent to the model on every generation.</span>
+                            </div>
+
+                            <div style="display:flex; gap:8px; align-items:center;">
+                                <button class="btn btn-primary btn-sm" id="save-sliding-window-btn" type="button">Save Settings</button>
+                                <button class="btn btn-ghost btn-sm" id="reset-sliding-window-btn" type="button" style="color:var(--text-muted);">Reset (16)</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab Panel: Providers -->
+                    <div class="settings-tab-panel" id="tab-panel-providers">
+                        <!-- OpenAI Section -->
+                        <div class="provider-card" id="provider-card-openai">
+                            <div class="provider-card-header" data-provider="openai">
+                                <div class="provider-card-header-left">
+                                    <span style="font-weight: 600; font-size: 0.88rem;">OpenAI Provider</span>
+                                    <span class="dropdown-badge" style="font-size: 0.65rem;">Dynamic Models</span>
+                                </div>
+                                <div class="provider-card-header-right">
+                                    <div id="openai-key-status"></div>
+                                    <svg class="provider-card-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="6 9 12 15 18 9"></polyline>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="provider-card-body">
+                                <div class="form-field" style="margin-bottom: 8px;">
+                                    <label class="form-label" for="settings-openai-key-input">OpenAI API Key</label>
+                                    <div style="display:flex; gap:8px;">
+                                        <input type="password" class="form-input" id="settings-openai-key-input" placeholder="sk-proj-..." autocomplete="off">
+                                        <button class="btn btn-secondary" id="toggle-openai-key-visibility-btn" type="button" style="padding:0 10px;" aria-label="Toggle key visibility">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                                                <circle cx="12" cy="12" r="3"></circle>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div style="display:flex; gap:8px; align-items:center; margin-bottom: 12px;">
+                                    <button class="btn btn-primary btn-sm" id="save-openai-key-btn" type="button">Save Key</button>
+                                    <button class="btn btn-ghost btn-sm" id="remove-openai-key-btn" type="button" style="color:var(--danger);">Remove Key</button>
+                                    <button class="btn btn-secondary btn-sm" id="fetch-openai-models-btn" type="button" style="margin-left: auto; display: flex; align-items: center; gap: 4px;">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                                        <span>Fetch Models</span>
+                                    </button>
+                                </div>
+
+                                <!-- Pinned Models Sub-section -->
+                                <div style="border-top: 1px solid var(--border-subtle); padding-top: 10px; margin-top: 10px;">
+                                    <label class="form-label" style="margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;">
+                                        <span>Pinned / Quick Models</span>
+                                        <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">Always shown in model picker</span>
+                                    </label>
+                                    <div id="openai-pinned-tags" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;"></div>
+                                    <div style="display: flex; gap: 6px;">
+                                        <input type="text" class="form-input" id="add-pinned-openai-input" list="openai-discovered-datalist" placeholder="e.g. gpt-5.6, gpt-4.5-preview, o3-mini" style="font-size: 0.78rem; padding: 4px 8px;">
+                                        <datalist id="openai-discovered-datalist"></datalist>
+                                        <button class="btn btn-secondary btn-sm" id="add-pinned-openai-btn" type="button" style="padding: 4px 10px; font-size: 0.75rem;">+ Pin Model</button>
+                                    </div>
+                                    <div id="openai-models-count-status" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- GLM Provider (Z.AI) -->
+                        <div class="provider-card" id="provider-card-glm">
+                            <div class="provider-card-header" data-provider="glm">
+                                <div class="provider-card-header-left">
+                                    <span style="font-weight: 600; font-size: 0.88rem;">GLM Provider (Z.AI)</span>
+                                    <span class="dropdown-badge" style="font-size: 0.65rem;">Thinking & Fast Prose</span>
+                                </div>
+                                <div class="provider-card-header-right">
+                                    <div id="glm-key-status"></div>
+                                    <svg class="provider-card-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="6 9 12 15 18 9"></polyline>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="provider-card-body">
+                                <div class="form-field" style="margin-bottom: 8px;">
+                                    <label class="form-label" for="settings-glm-key-input">GLM / Z.AI API Key</label>
+                                    <div style="display:flex; gap:8px;">
+                                        <input type="password" class="form-input" id="settings-glm-key-input" placeholder="09d418..." autocomplete="off">
+                                        <button class="btn btn-secondary" id="toggle-glm-key-visibility-btn" type="button" style="padding:0 10px;" aria-label="Toggle key visibility">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                                                <circle cx="12" cy="12" r="3"></circle>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom: 12px;">
+                                    <button class="btn btn-primary btn-sm" id="save-glm-key-btn" type="button">Save Key</button>
+                                    <button class="btn btn-ghost btn-sm" id="remove-glm-key-btn" type="button" style="color:var(--danger);">Remove Key</button>
+
+                                    <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+                                        <div class="custom-select-wrap custom-select-wrap-compact" id="wrap-glm-thinking">
+                                            <button type="button" class="custom-select-trigger custom-select-trigger-compact" id="glm-thinking-trigger" aria-label="Select GLM thinking level" title="Thinking Level">
+                                                <span style="font-size: 0.78rem; color: var(--text-muted); white-space: nowrap;">Thinking:</span>
+                                                <span class="custom-select-value" id="glm-thinking-value" style="font-weight: 500;">Low</span>
+                                                <svg class="custom-select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                                </svg>
+                                            </button>
+                                            <div class="custom-select-menu hidden" id="glm-thinking-menu">
+                                                <button type="button" class="custom-select-option selected" data-value="low">
+                                                    <span>Low</span>
+                                                </button>
+                                                <button type="button" class="custom-select-option" data-value="medium">
+                                                    <span>Medium</span>
+                                                </button>
+                                                <button type="button" class="custom-select-option" data-value="high">
+                                                    <span>High</span>
+                                                </button>
+                                                <button type="button" class="custom-select-option" data-value="max">
+                                                    <span>Max</span>
+                                                </button>
+                                                <button type="button" class="custom-select-option" data-value="disabled">
+                                                    <span>Disabled</span>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <button class="btn btn-secondary btn-sm" id="fetch-glm-models-btn" type="button" style="display: flex; align-items: center; gap: 4px;">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                                            <span>Fetch Models</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Pinned GLM Models Sub-section -->
+                                <div style="border-top: 1px solid var(--border-subtle); padding-top: 10px; margin-top: 10px;">
+                                    <label class="form-label" style="margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;">
+                                        <span>Pinned / Quick Models</span>
+                                        <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">Always shown in model picker</span>
+                                    </label>
+                                    <div id="glm-pinned-tags" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;"></div>
+                                    <div style="display: flex; gap: 6px;">
+                                        <input type="text" class="form-input" id="add-pinned-glm-input" list="glm-discovered-datalist" placeholder="e.g. glm-4.7-flash, glm-4.7, glm-5.3-flash" style="font-size: 0.78rem; padding: 4px 8px;">
+                                        <datalist id="glm-discovered-datalist"></datalist>
+                                        <button class="btn btn-secondary btn-sm" id="add-pinned-glm-btn" type="button" style="padding: 4px 10px; font-size: 0.75rem;">+ Pin Model</button>
+                                    </div>
+                                    <div id="glm-models-count-status" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;"></div>
+                                </div>
                             </div>
                         </div>
 
                         <!-- DeepSeek Section -->
-                        <div class="settings-card" style="border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 14px; background: var(--bg-surface-elevated);">
-                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                                <div style="display: flex; align-items: center; gap: 8px;">
+                        <div class="provider-card" id="provider-card-deepseek">
+                            <div class="provider-card-header" data-provider="deepseek">
+                                <div class="provider-card-header-left">
                                     <span style="font-weight: 600; font-size: 0.88rem;">DeepSeek Provider</span>
                                     <span class="dropdown-badge" style="font-size: 0.65rem;">Built-in</span>
                                 </div>
-                                <div id="deepseek-key-status"></div>
+                                <div class="provider-card-header-right">
+                                    <div id="deepseek-key-status"></div>
+                                    <svg class="provider-card-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="6 9 12 15 18 9"></polyline>
+                                    </svg>
+                                </div>
                             </div>
+                            <div class="provider-card-body">
+                                <div class="form-field" style="margin-bottom: 8px;">
+                                    <label class="form-label" for="settings-deepseek-key-input">DeepSeek API Key</label>
+                                    <div style="display:flex; gap:8px;">
+                                        <input type="password" class="form-input" id="settings-deepseek-key-input" placeholder="sk-..." autocomplete="off">
+                                        <button class="btn btn-secondary" id="toggle-deepseek-key-visibility-btn" type="button" style="padding:0 10px;" aria-label="Toggle key visibility">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                                                <circle cx="12" cy="12" r="3"></circle>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div style="display:flex; gap:8px; align-items:center;">
+                                    <button class="btn btn-primary btn-sm" id="save-deepseek-key-btn" type="button">Save Key</button>
+                                    <button class="btn btn-ghost btn-sm" id="remove-deepseek-key-btn" type="button" style="color:var(--danger);">Remove Key</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab Panel: OpenRouter -->
+                    <div class="settings-tab-panel hidden" id="tab-panel-openrouter">
+                        <!-- OpenRouter Key Card -->
+                        <div class="settings-card" style="border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 14px; background: var(--bg-surface-elevated); margin-bottom: 12px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-weight: 600; font-size: 0.88rem;">OpenRouter API Key</span>
+                                    <span class="dropdown-badge" style="font-size: 0.65rem;">Gateway</span>
+                                </div>
+                                <div id="openrouter-key-status"></div>
+                            </div>
+                            <p style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.4;">
+                                Access hundreds of AI models from Anthropic, Meta, DeepSeek, Mistral, and more through OpenRouter's unified endpoint.
+                            </p>
+
                             <div class="form-field" style="margin-bottom: 8px;">
-                                <label class="form-label" for="settings-deepseek-key-input">DeepSeek API Key</label>
+                                <label class="form-label" for="settings-openrouter-key-input">OpenRouter API Key</label>
                                 <div style="display:flex; gap:8px;">
-                                    <input type="password" class="form-input" id="settings-deepseek-key-input" placeholder="sk-..." autocomplete="off">
-                                    <button class="btn btn-secondary" id="toggle-deepseek-key-visibility-btn" type="button" style="padding:0 10px;" aria-label="Toggle key visibility">
+                                    <input type="password" class="form-input" id="settings-openrouter-key-input" placeholder="sk-or-v1-..." autocomplete="off">
+                                    <button class="btn btn-secondary" id="toggle-openrouter-key-visibility-btn" type="button" style="padding:0 10px;" aria-label="Toggle key visibility">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                             <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
                                             <circle cx="12" cy="12" r="3"></circle>
@@ -397,9 +607,44 @@
                                 </div>
                             </div>
                             <div style="display:flex; gap:8px; align-items:center;">
-                                <button class="btn btn-primary btn-sm" id="save-deepseek-key-btn" type="button">Save Key</button>
-                                <button class="btn btn-ghost btn-sm" id="remove-deepseek-key-btn" type="button" style="color:var(--danger);">Remove Key</button>
+                                <button class="btn btn-primary btn-sm" id="save-openrouter-key-btn" type="button">Save Key</button>
+                                <button class="btn btn-ghost btn-sm" id="remove-openrouter-key-btn" type="button" style="color:var(--danger);">Remove Key</button>
+                                <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" style="margin-left: auto; font-size: 0.75rem; color: var(--accent); text-decoration: none; display: flex; align-items: center; gap: 4px;">
+                                    <span>Get API Key</span>
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                                </a>
                             </div>
+                        </div>
+
+                        <!-- OpenRouter Model Management Card -->
+                        <div class="settings-card" style="border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 14px; background: var(--bg-surface-elevated);">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                                <div>
+                                    <div style="font-weight: 600; font-size: 0.88rem;">OpenRouter Models & Live Pricing</div>
+                                    <div style="font-size: 0.73rem; color: var(--text-muted); margin-top: 2px;">
+                                        Add any model ID from OpenRouter to show in your model picker with live token pricing.
+                                    </div>
+                                </div>
+                                <button class="btn btn-secondary btn-sm" id="refresh-all-openrouter-btn" type="button" style="display: flex; align-items: center; gap: 4px; font-size: 0.75rem;">
+                                    <svg class="refresh-spinner" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                                    <span>Refresh All</span>
+                                </button>
+                            </div>
+
+                            <!-- Quick Suggestions -->
+                            <div style="margin-bottom: 12px; border-top: 1px solid var(--border-subtle); padding-top: 10px;">
+                                <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 500;">Quick suggestions:</div>
+                                <div class="openrouter-suggestions" id="openrouter-suggestions"></div>
+                            </div>
+
+                            <!-- Add Model Input -->
+                            <div style="display: flex; gap: 6px; margin-bottom: 14px;">
+                                <input type="text" class="form-input" id="add-openrouter-model-input" placeholder="e.g. deepseek/deepseek-v4-flash, xiaomi/mimo-v2.5" style="font-size: 0.78rem; padding: 6px 10px; flex: 1;">
+                                <button class="btn btn-primary btn-sm" id="add-openrouter-model-btn" type="button" style="padding: 6px 14px; font-size: 0.78rem; white-space: nowrap;">+ Add Model</button>
+                            </div>
+
+                            <!-- Models List Container -->
+                            <div id="openrouter-models-list" class="openrouter-models-list"></div>
                         </div>
                     </div>
 
@@ -578,7 +823,6 @@
                             <label class="form-label" for="pm-field-post-history">Post-History Body (Optional)</label>
                             <textarea class="form-input" id="pm-field-post-history" rows="3" placeholder="Standing instructions appended after conversation history..." style="height:auto; font-family:var(--font-mono); font-size:0.8rem;"></textarea>
                         </div>
-
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px;">
                             <div style="display:flex; gap:8px;">
                                 <button class="btn btn-primary" id="pm-save-btn" type="button">Save Preset</button>

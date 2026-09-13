@@ -27,7 +27,9 @@ export function renderMarkdown(content) {
         });
 
         const rawHtml = marked.parse(content);
-        const cleanHtml = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawHtml) : rawHtml;
+        const cleanHtml = typeof DOMPurify !== 'undefined'
+            ? DOMPurify.sanitize(rawHtml)
+            : `<p>${escapeHtml(content).replace(/\n/g, '<br>')}</p>`;
 
         // Process code blocks to add header and copy buttons
         const tempDiv = document.createElement('div');

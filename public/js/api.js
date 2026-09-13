@@ -35,6 +35,18 @@ export async function fetchOpenAIModels(apiKey = null) {
     return res.json();
 }
 
+export async function fetchGlmModels(apiKey = null) {
+    const res = await authFetch('/api/config/fetch-glm-models', {
+        method: 'POST',
+        body: apiKey ? { apiKey } : {}
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to fetch GLM models');
+    }
+    return res.json();
+}
+
 export async function addCustomModel(modelData) {
     const res = await authFetch('/api/config/custom-models', {
         method: 'POST',
@@ -64,6 +76,27 @@ export async function deleteCustomModel(id) {
         method: 'DELETE'
     });
     if (!res.ok) throw new Error('Failed to delete custom model');
+    return res.json();
+}
+
+export async function fetchOpenRouterModels(force = false) {
+    const res = await authFetch(`/api/openrouter/models${force ? '?force=true' : ''}`);
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to fetch OpenRouter models');
+    }
+    return res.json();
+}
+
+export async function fetchOpenRouterModelInfo(model, force = false, save = false) {
+    const params = new URLSearchParams({ model });
+    if (force) params.set('force', 'true');
+    if (save) params.set('save', 'true');
+    const res = await authFetch(`/api/openrouter/model-info?${params.toString()}`);
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Failed to fetch info for model ${model}`);
+    }
     return res.json();
 }
 
@@ -249,14 +282,14 @@ export async function updateEnginePreset(id, presetData) {
 }
 
 export async function deleteEnginePreset(id, force = false) {
-    const url = `/api/engine/presets/${id}${force ? '?force=true' : ''}`;
+    const url = `/api/engine/presets/${id}${force ? '?force=1' : ''}`;
     const res = await authFetch(url, {
         method: 'DELETE'
     });
     if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         const err = new Error(data.error || 'Failed to delete preset');
-        err.usedInConversations = data.usedInConversations;
+        err.usedInConversations = !!(data.inUse || data.usedInConversations);
         throw err;
     }
     return res.json();

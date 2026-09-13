@@ -50,6 +50,11 @@ export function initInspector() {
             }
         });
     }
+
+    // Close dropdowns on outside click — registered once at init, not per render
+    document.addEventListener('click', () => {
+        closeAllCustomDropdowns();
+    });
 }
 
 export async function renderInspector(conv = state.activeConversation) {
@@ -146,15 +151,16 @@ function renderParameterControls(params, schema) {
 
     const outlineMode = params.outline_mode === true || params.outline_mode === 'true';
     const premisesMode = params.premises_mode === true || params.premises_mode === 'true';
-    const complicationGen = params.complication_generator === true || params.complication_generator === 'true';
+    const complicationGen = params.complication_generator === true || params.complication_generator === 'true' || params.complication_gen === true || params.complication_gen === 'true';
     const suggestChoices = params.suggest_choices === true || params.suggest_choices === 'true';
     const proseBypassActive = outlineMode || premisesMode;
+    const isPremisesMode = premisesMode;
 
     container.innerHTML = `
-        <div class="param-group ${proseBypassActive ? 'disabled' : ''}">
+        <div class="param-group ${proseBypassActive ? 'bypassed' : ''}">
             <div class="param-header">
                 <span>Point of View</span>
-                <span class="param-value-tag" id="pov-value-tag">${proseBypassActive ? 'Bypassed' : povVal}</span>
+                <span class="param-value-tag ${proseBypassActive ? 'bypassed' : ''}" id="pov-value-tag">${proseBypassActive ? 'Bypassed' : povVal}</span>
             </div>
             <div class="custom-select-wrap" id="wrap-param-pov">
                 <button type="button" class="custom-select-trigger" id="param-pov-trigger" ${proseBypassActive ? 'disabled' : ''}>
@@ -174,10 +180,10 @@ function renderParameterControls(params, schema) {
             </div>
         </div>
 
-        <div class="param-group ${proseBypassActive ? 'disabled' : ''}">
+        <div class="param-group ${proseBypassActive ? 'bypassed' : ''}">
             <div class="param-header">
                 <span>Scene Intensity</span>
-                <span class="param-value-tag" id="intensity-value-tag">${proseBypassActive ? 'Bypassed' : intensityVal}</span>
+                <span class="param-value-tag ${proseBypassActive ? 'bypassed' : ''}" id="intensity-value-tag">${proseBypassActive ? 'Bypassed' : intensityVal}</span>
             </div>
             <div class="custom-select-wrap" id="wrap-param-intensity">
                 <button type="button" class="custom-select-trigger" id="param-intensity-trigger" ${proseBypassActive ? 'disabled' : ''}>
@@ -197,10 +203,10 @@ function renderParameterControls(params, schema) {
             </div>
         </div>
 
-        <div class="param-group ${proseBypassActive ? 'disabled' : ''}">
+        <div class="param-group ${proseBypassActive ? 'bypassed' : ''}">
             <div class="param-header">
                 <span>Dialogue Style</span>
-                <span class="param-value-tag" id="dialogue-value-tag">${proseBypassActive ? 'Bypassed' : dialogueVal}</span>
+                <span class="param-value-tag ${proseBypassActive ? 'bypassed' : ''}" id="dialogue-value-tag">${proseBypassActive ? 'Bypassed' : dialogueVal}</span>
             </div>
             <div class="custom-select-wrap" id="wrap-param-dialogue">
                 <button type="button" class="custom-select-trigger" id="param-dialogue-trigger" ${proseBypassActive ? 'disabled' : ''}>
@@ -220,10 +226,10 @@ function renderParameterControls(params, schema) {
             </div>
         </div>
 
-        <div class="param-group ${proseBypassActive ? 'disabled' : ''}">
+        <div class="param-group ${proseBypassActive ? 'bypassed' : ''}">
             <div class="param-header">
                 <span>POV Focus Spotlight</span>
-                <span class="param-value-tag" id="focus-value-tag">${proseBypassActive ? 'Bypassed' : focusVal}</span>
+                <span class="param-value-tag ${proseBypassActive ? 'bypassed' : ''}" id="focus-value-tag">${proseBypassActive ? 'Bypassed' : focusVal}</span>
             </div>
             <div class="custom-select-wrap" id="wrap-param-focus">
                 <button type="button" class="custom-select-trigger" id="param-focus-trigger" ${proseBypassActive ? 'disabled' : ''}>
@@ -243,21 +249,22 @@ function renderParameterControls(params, schema) {
             </div>
         </div>
 
-        <div class="param-group ${proseBypassActive ? 'disabled' : ''}">
+        <div class="param-group ${proseBypassActive ? 'bypassed' : ''}">
             <div class="param-header">
                 <span>Pushback / Resistance</span>
-                <span class="param-value-tag" id="param-pushback-label">${PUSHBACK_LABELS[pushbackVal] || pushbackVal}</span>
+                <span class="param-value-tag ${proseBypassActive ? 'bypassed' : ''}" id="param-pushback-label">${proseBypassActive ? 'Bypassed' : (PUSHBACK_LABELS[pushbackVal] || pushbackVal)}</span>
             </div>
             <input type="range" class="param-range" id="param-pushback" min="0" max="5" step="1" value="${pushbackVal}" ${proseBypassActive ? 'disabled' : ''}>
         </div>
 
-        <div class="param-group">
+        <div class="param-group ${isPremisesMode ? 'bypassed' : ''}">
             <div class="param-header">
                 <span>Target Length</span>
-                <span class="param-value-tag" id="param-word-count-label">${wordCountVal} words</span>
+                <span class="param-value-tag ${isPremisesMode ? 'bypassed' : ''}" id="param-word-count-label">${isPremisesMode ? 'Fixed (6 premises)' : `${wordCountVal} words`}</span>
             </div>
-            <input type="range" class="param-range" id="param-word-count" min="600" max="3000" step="100" value="${wordCountVal}">
+            <input type="range" class="param-range" id="param-word-count" min="600" max="3000" step="100" value="${wordCountVal}" ${isPremisesMode ? 'disabled title="Target length is overridden in Premises Mode"' : ''}>
         </div>
+
 
         <div class="param-group">
             <div class="param-header">
@@ -280,7 +287,7 @@ function renderParameterControls(params, schema) {
                     <span style="font-size:0.75rem; color:var(--text-primary); font-weight:500;">Premises Mode</span>
                     <div class="toggle-switch-pill"></div>
                 </div>
-                <div class="param-toggle-card ${complicationGen ? 'checked' : ''}" id="toggle-complication-gen">
+                <div class="param-toggle-card ${complicationGen ? 'checked' : ''} ${proseBypassActive ? 'bypassed' : ''}" id="toggle-complication-gen" ${proseBypassActive ? 'title="Complications bypassed in Narrative Mode"' : ''}>
                     <span style="font-size:0.75rem; color:var(--text-primary); font-weight:500;">Complications</span>
                     <div class="toggle-switch-pill"></div>
                 </div>
@@ -309,6 +316,7 @@ function attachParameterListeners() {
     const setupDropdown = (trigger, menu, onSelect) => {
         if (!trigger || !menu) return;
         trigger.addEventListener('click', (e) => {
+            if (trigger.disabled || trigger.closest('.bypassed')) return;
             e.stopPropagation();
             const isOpen = !menu.classList.contains('hidden');
             closeAllCustomDropdowns();
@@ -357,10 +365,6 @@ function attachParameterListeners() {
         updateParamInState('pov_focus', val);
     });
 
-    // Close dropdowns on outside click
-    document.addEventListener('click', () => {
-        closeAllCustomDropdowns();
-    });
 
     const pushbackInput = document.getElementById('param-pushback');
     const pushbackLabel = document.getElementById('param-pushback-label');

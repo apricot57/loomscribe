@@ -17,9 +17,22 @@ export const state = {
     // Server Configurations
     serverConfig: {
         hasKey: false,
+        hasDeepSeekKey: false,
+        hasOpenAIKey: false,
+        hasGlmKey: false,
+        hasOpenRouterKey: false,
         activeModel: 'deepseek-v4-pro',
-        thinkingMode: 'enabled',
+        thinkingMode: 'disabled',
+        glmThinkingMode: 'low',
         theme: 'cyan',
+        openaiModels: [],
+        pinnedOpenAIModels: [],
+        glmModels: [],
+        pinnedGlmModels: [],
+        pinnedOpenRouterModels: [],
+        openrouterModelDetails: {},
+        slidingWindowEnabled: false,
+        slidingWindowSize: 16,
         customModels: []
     },
 

@@ -289,7 +289,10 @@ function startInlineRename(item, id) {
     input.focus();
     input.select();
 
+    let finished = false;
     const finish = async (save) => {
+        if (finished) return;
+        finished = true;
         const newTitle = input.value.trim();
         if (save && newTitle && newTitle !== currentTitle) {
             try {
@@ -336,8 +339,10 @@ function updateKeyStatus(config) {
 
     const hasOpenAI = !!config?.hasOpenAIKey;
     const hasDeepSeek = !!(config?.hasDeepSeekKey || config?.hasKey);
+    const hasGlm = !!config?.hasGlmKey;
+    const hasOpenRouter = !!config?.hasOpenRouterKey;
     const hasCustom = (config?.customModels || []).length > 0;
-    const isConfigured = hasOpenAI || hasDeepSeek || hasCustom;
+    const isConfigured = hasOpenAI || hasDeepSeek || hasGlm || hasOpenRouter || hasCustom;
 
     if (isConfigured) {
         dot.classList.add('configured');

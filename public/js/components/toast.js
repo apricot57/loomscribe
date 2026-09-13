@@ -1,6 +1,7 @@
 /**
  * toast.js — Minimal Modern Toast Notification System
  */
+import { escapeHtml } from '../markdown.js';
 
 let toastContainer = null;
 
@@ -31,7 +32,7 @@ export function showToast(message, type = 'info', duration = 3500) {
 
     toast.innerHTML = `
         ${iconSvg}
-        <span>${message}</span>
+        <span>${escapeHtml(message)}</span>
     `;
 
     container.appendChild(toast);
