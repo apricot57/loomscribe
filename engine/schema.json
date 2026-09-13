@@ -39,11 +39,44 @@
         "label": "Omniscient"
       },
       {
+        "value": "second",
+        "label": "Second Person (You)"
+      },
+      {
         "value": "off",
         "label": "Off"
       }
     ],
     "default": "third",
+    "slot": "system"
+  },
+  {
+    "id": "narrative_tone",
+    "label": "Narrative Tone",
+    "type": "select",
+    "options": [
+      {
+        "value": "gritty",
+        "label": "Visceral & Gritty"
+      },
+      {
+        "value": "atmospheric",
+        "label": "Atmospheric & Subtext"
+      },
+      {
+        "value": "cinematic",
+        "label": "Cinematic & High-Tension"
+      },
+      {
+        "value": "tender",
+        "label": "Tender & Intimate"
+      },
+      {
+        "value": "off",
+        "label": "Off / Preset Default"
+      }
+    ],
+    "default": "off",
     "slot": "system"
   },
   {

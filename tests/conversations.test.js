@@ -300,4 +300,60 @@ test.describe('Conversation Endpoints (/api/conversations)', () => {
         const currentDb = db.readDb();
         assert.strictEqual(currentDb.conversations.length, count);
     });
+
+    test('POST, PUT, and fork /api/conversations properly persist and clone worldRules', async () => {
+        const app = express();
+        app.use(express.json());
+        registerConversationsRoutes(app);
+
+        // 1. Create with custom worldRules
+        const resCreate = await request(app, 'POST', '/api/conversations', {
+            title: 'Vampire Gothic Tale',
+            worldRules: [
+                { id: 'r1', text: 'Sunlight causes rapid necrosis.', enabled: true },
+                { id: 'r2', text: 'Silver burns on contact.', enabled: false }
+            ]
+        });
+        assert.strictEqual(resCreate.status, 200);
+        assert.strictEqual(resCreate.body.worldRules.length, 2);
+        assert.strictEqual(resCreate.body.worldRules[0].text, 'Sunlight causes rapid necrosis.');
+        assert.strictEqual(resCreate.body.worldRules[0].enabled, true);
+        assert.strictEqual(resCreate.body.worldRules[1].enabled, false);
+
+        const convId = resCreate.body.id;
+
+        // 2. Update worldRules via PUT
+        const resUpdate = await request(app, 'PUT', `/api/conversations/${convId}`, {
+            worldRules: [
+                { id: 'r1', text: 'Sunlight causes rapid necrosis.', enabled: true },
+                { id: 'r3', text: 'Threshold invitation is required.', enabled: true }
+            ]
+        });
+        assert.strictEqual(resUpdate.status, 200);
+        assert.strictEqual(resUpdate.body.worldRules.length, 2);
+        assert.strictEqual(resUpdate.body.worldRules[1].id, 'r3');
+        assert.strictEqual(resUpdate.body.worldRules[1].text, 'Threshold invitation is required.');
+
+        // Add a message to fork from
+        await db.mutateDb(d => {
+            d.messages.push({
+                id: 50,
+                conversationId: convId,
+                role: 'user',
+                content: 'Enter the manor',
+                isActive: true,
+                parentMsgId: null
+            });
+        });
+
+        // 3. Fork conversation and ensure worldRules are cloned
+        const resFork = await request(app, 'POST', `/api/conversations/${convId}/fork`, {
+            messageId: 50,
+            title: 'Forked Vampire Tale'
+        });
+        assert.strictEqual(resFork.status, 200);
+        assert.strictEqual(resFork.body.worldRules.length, 2);
+        assert.strictEqual(resFork.body.worldRules[0].text, 'Sunlight causes rapid necrosis.');
+        assert.strictEqual(resFork.body.worldRules[1].text, 'Threshold invitation is required.');
+    });
 });

@@ -5,6 +5,12 @@
   "description": "Gritty, atmospheric crime thriller focused on internal monologue, dark urban streets, and high-tension interrogation.",
   "system_body": "This scenario operates under the lens of classic hardboiled detective noir. The narrative features cynical investigators, corrupt city streets, rain-slicked pavement, and deep shadows. The tension is psychological and moral, driven by secrets, betrayals, and the difficulty of finding truth in a compromised world. Write with a sharp, laconic tone, focusing heavily on first-person interiority or close third-person limited perspective. Descriptions should use sensory details like the smell of cheap gin and wet asphalt, the flicker of neon signs through office blinds, and the sound of distant sirens. Dialogue must be fast, cynical, and loaded with subtext, where characters constantly probe for weaknesses.",
   "post_history_body": "",
+  "world_rules": [
+    "The municipal police precinct is deeply factionalized; invoking internal affairs guarantees hostile non-cooperation on the streets.",
+    "Ballistic evidence is controlled by the waterfront mob morgue; clean forensics requires private cash payment to the coroner.",
+    "Nighttime visibility is strictly limited by coal power outages and rolling blackouts across the industrial docks.",
+    "Information in the underworld is transactional; informants will feed false leads if not backed by leverage or protection."
+  ],
   "blocks": [
     {
       "id": "base_writer",

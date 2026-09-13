@@ -1,0 +1,60 @@
+{
+  "id": "chrono_paradox",
+  "title": "Chrono Paradox & Drift",
+  "category": "Sci-Fi & Temporal",
+  "description": "Fragile causal timelines, memory decay, and temporal law enforcement across fractured historical eras.",
+  "system_body": "This scenario explores the psychological strain, existential horror, and logistical hazard of time manipulation. Time is not a smooth stream but a fragile tension cable under immense load. Agents navigating divergent eras suffer timeline vertigo—contradictory memories warring for dominance as history shifts beneath their boots. Focus heavily on grounded physical sensations: the smell of ozone before a displacement jump, the uncanny stillness of temporal pockets, chronometer dials spinning backward, and the eerie sensation of seeing an acquaintance who was erased two jumps ago. Characters are driven by impossible choices, cold regulatory mandates, and the haunting guilt of preserving a canon timeline at the cost of countless alternate lives.",
+  "post_history_body": "",
+  "world_rules": [
+    "Displaced physical matter degrades through chronal decay into ionizing Cherenkov radiation after 24 hours unless returned to its native era.",
+    "Interacting directly with an ancestor causes acute memory vertigo, phantom tactile sensations, and severe neural bleeding.",
+    "Timeline divergence alters localized entropy: uncoiling paradoxes produce localized freezing, atmospheric static, and spatial distortion.",
+    "The Temporal Bureau can detect any timeline divergence exceeding 0.04 variance units via tachyon seismic sensors.",
+    "Fixed historical nexus points cannot be prevented; attempting to avert them merely shifts the catastrophe onto adjacent participants."
+  ],
+  "blocks": [
+    {
+      "id": "base_writer",
+      "enabled": true,
+      "order": 10
+    },
+    {
+      "id": "tone_register",
+      "enabled": true,
+      "order": 20
+    },
+    {
+      "id": "format_rules",
+      "enabled": true,
+      "order": 50
+    },
+    {
+      "id": "pov_third",
+      "enabled": true,
+      "order": 80
+    },
+    {
+      "id": "pov_first",
+      "enabled": false,
+      "order": 81
+    },
+    {
+      "id": "pov_author",
+      "enabled": false,
+      "order": 82
+    }
+  ],
+  "defaults": {
+    "word_count": 1300,
+    "pov": "third",
+    "scene_intensity": "sensory",
+    "dialogue_style": "literary",
+    "pov_focus": "balanced",
+    "pushback": 4,
+    "complication_generator": true,
+    "suggest_choices": true,
+    "outline_mode": false,
+    "premises_mode": false,
+    "sliding_window": 16
+  }
+}

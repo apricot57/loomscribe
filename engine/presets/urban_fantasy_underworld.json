@@ -1,0 +1,60 @@
+{
+  "id": "urban_fantasy_underworld",
+  "title": "Urban Arcana & Veil Syndicate",
+  "category": "Urban Fantasy & Occult Noir",
+  "description": "Hidden occult factions, blood-ink contracts, and modern alchemical cartels operating beneath neon city streets.",
+  "system_body": "This scenario operates at the intersection of modern urban grit and ancient esoteric law. Beneath the surface rhythm of subway cars and skyscraper boardrooms exists a cutthroat magical underworld bound by the ancient Veil Covenant. Modern occultists carry Glock handguns loaded with silver-jacketed hollow points and consult divination algorithms on encrypted smartphones. Atmosphere should be nocturnal, electric, and paranoid: cigarette smoke swirling through warding runes, rain drumming on fire escapes where gargoyles whisper extortion, and speakeasies hidden behind dry cleaners where fae loan-sharks collect interest in human memories. Focus on the sharp friction between ancient supernatural oaths and ruthless modern criminal commerce.",
+  "post_history_body": "",
+  "world_rules": [
+    "The Veil Covenant mandates lethal retribution against any practitioner who exposes supernatural manifestations to uninitiated mortals.",
+    "Every spell cast discharges an ozone-scented occult residue that can be tracked by canine enforcement hounds for six hours.",
+    "Fae and bound entities are constitutionally incapable of breaking the literal phrasing of a written blood-ink contract.",
+    "Alchemical reagents and enchanted materials rapidly destabilize and lose potency under prolonged exposure to fluorescent lighting.",
+    "Crossing flowing water (bridges, ferries, culverts) momentarily dampens active glamour spells and magical wards."
+  ],
+  "blocks": [
+    {
+      "id": "base_writer",
+      "enabled": true,
+      "order": 10
+    },
+    {
+      "id": "tone_register",
+      "enabled": true,
+      "order": 20
+    },
+    {
+      "id": "format_rules",
+      "enabled": true,
+      "order": 50
+    },
+    {
+      "id": "pov_third",
+      "enabled": true,
+      "order": 80
+    },
+    {
+      "id": "pov_first",
+      "enabled": false,
+      "order": 81
+    },
+    {
+      "id": "pov_author",
+      "enabled": false,
+      "order": 82
+    }
+  ],
+  "defaults": {
+    "word_count": 1400,
+    "pov": "third",
+    "scene_intensity": "sensory",
+    "dialogue_style": "commanding",
+    "pov_focus": "balanced",
+    "pushback": 4,
+    "complication_generator": true,
+    "suggest_choices": true,
+    "outline_mode": false,
+    "premises_mode": false,
+    "sliding_window": 16
+  }
+}

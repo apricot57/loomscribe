@@ -252,4 +252,31 @@ test.describe('Prompt Engine Compiler (compilePrompt)', () => {
         }
         assert.strictEqual(({}).enabled, undefined);
     });
+
+    test('Compiles worldRules into Slot 1 (systemPrompt) and Slot 2 (postHistory)', () => {
+        const rules = [
+            { id: 'r1', text: 'Direct sunlight burns vampire flesh within 10 seconds.', enabled: true },
+            { id: 'r2', text: 'Silver causes immediate paralyzing agony.', enabled: false },
+            { id: 'r3', text: 'Blood drinking creates a telepathic tether.', enabled: true }
+        ];
+
+        const { systemPrompt, postHistory } = compilePrompt({
+            presetId: 'detective_noir',
+            worldRules: rules
+        });
+
+        // Slot 1 (systemPrompt) checks
+        assert.ok(systemPrompt.includes('## World Rules & Setting Laws'));
+        assert.ok(systemPrompt.includes('Direct sunlight burns vampire flesh within 10 seconds.'));
+        assert.ok(systemPrompt.includes('Blood drinking creates a telepathic tether.'));
+        // Disabled rule must NOT appear
+        assert.ok(!systemPrompt.includes('Silver causes immediate paralyzing agony.'));
+
+        // Slot 2 (postHistory) recency reinforcement checks
+        assert.ok(postHistory.includes('[Active World Constraints: Enforce established setting laws'));
+        assert.ok(postHistory.includes('Direct sunlight burns vampire flesh within 10 seconds.'));
+        assert.ok(postHistory.includes('Blood drinking creates a telepathic tether.'));
+        // Disabled rule must NOT appear
+        assert.ok(!postHistory.includes('Silver causes immediate paralyzing agony.'));
+    });
 });

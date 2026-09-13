@@ -471,3 +471,79 @@
     border-color: var(--accent);
     color: var(--accent-hover);
 }
+/* ==========================================================================
+   Interactive Story Continuations / Choice Chips
+   ========================================================================== */
+
+.story-choices-container {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.story-choices-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--accent, #6366f1);
+}
+
+.story-choices-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.story-choice-btn {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    text-align: left;
+    transition: all var(--transition-fast);
+    outline: none;
+}
+
+.story-choice-btn:hover {
+    background: var(--bg-surface-elevated);
+    border-color: var(--accent);
+    transform: translateX(2px);
+}
+
+.story-choice-btn:active {
+    transform: scale(0.99);
+}
+
+.choice-num {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--accent-subtle);
+    border: 1px solid var(--accent-muted);
+    border-radius: var(--radius-pill);
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.choice-text {
+    font-size: 0.82rem;
+    color: var(--text-primary);
+    line-height: 1.4;
+    flex: 1;
+}

@@ -8,6 +8,37 @@ import { renderMarkdown, escapeHtml } from '../../markdown.js';
 import { showToast } from '../toast.js';
 import { openDeleteModal } from '../delete-modal.js';
 import { getTurnVersions, renderVersionNavHtml, attachVersionNavEvents } from './message-versions.js';
+/**
+ * Parses trailing numbered choice options (e.g. 1. ... 2. ... 3. ...) from narrative turn output.
+ *
+ * @param {string} content Message content text
+ * @returns {Array<{ number: number, text: string }>}
+ */
+export function extractChoiceOptions(content) {
+    if (!content || typeof content !== 'string') return [];
+    const lines = content.trim().split('\n');
+    const choiceRegex = /^\s*([1-9])[\.\)]\s+(.+)$/;
+    const trailingChoices = [];
+
+    for (let i = lines.length - 1; i >= 0; i--) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        const match = line.match(choiceRegex);
+        if (match) {
+            trailingChoices.unshift({
+                number: parseInt(match[1], 10),
+                text: match[2].trim()
+            });
+        } else {
+            break;
+        }
+    }
+
+    if (trailingChoices.length >= 2 && trailingChoices[0].number === 1) {
+        return trailingChoices;
+    }
+    return [];
+}
 
 /**
  * Builds assistant message DOM node (.msg-row.assistant), reasoning box, markdown body, version nav, and action buttons.
@@ -47,11 +78,32 @@ export function createAssistantMessageNode(msg, allMessages = []) {
     if (versions.total > 1) {
         versionNavHtml = renderVersionNavHtml(versions);
     }
+    const choices = extractChoiceOptions(msg.content);
+    let choicesHtml = '';
+    if (choices.length > 0) {
+        choicesHtml = `
+            <div class="story-choices-container">
+                <div class="story-choices-header">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+                    <span>Suggested Continuations</span>
+                </div>
+                <div class="story-choices-grid">
+                    ${choices.map(c => `
+                        <button class="story-choice-btn" type="button" data-choice="${escapeHtml(c.text)}">
+                            <span class="choice-num">${c.number}</span>
+                            <span class="choice-text">${escapeHtml(c.text)}</span>
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
 
     row.innerHTML = `
         <div class="msg-bubble">
             ${reasoningHtml}
             <div class="markdown-body">${renderMarkdown(msg.content)}</div>
+            ${choicesHtml}
         </div>
         <div class="msg-actions">
             ${versionNavHtml}
@@ -180,6 +232,18 @@ export function attachAssistantMessageEvents(row, msg, versions) {
             enterAssistantInlineEdit(row, msg);
         });
     }
+    row.querySelectorAll('.story-choice-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const choiceText = btn.dataset.choice;
+            const chatInput = document.getElementById('chat-input');
+            if (chatInput && choiceText) {
+                chatInput.value = choiceText.replace(/\*\*/g, '');
+                chatInput.dispatchEvent(new Event('input', { bubbles: true }));
+                chatInput.focus();
+                showToast(`Loaded Choice ${btn.querySelector('.choice-num')?.textContent || ''}`, 'info', 1000);
+            }
+        });
+    });
 
     const copyBtn = row.querySelector('.copy-msg-btn');
     if (copyBtn) {

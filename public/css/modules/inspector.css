@@ -491,4 +491,94 @@
     resize: none;
     margin-top: 8px;
 }
+/* ==========================================================================
+   World & Setting Rules Panel
+   ========================================================================== */
+
+.rule-count-badge {
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: var(--radius-pill);
+    background: var(--accent-subtle);
+    color: var(--accent);
+    border: 1px solid var(--accent-muted);
+}
+
+.rule-item-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: 6px 8px;
+    transition: border-color var(--transition-fast), opacity var(--transition-fast);
+}
+
+.rule-item-card:hover {
+    border-color: var(--border-default);
+}
+
+.rule-item-card.disabled {
+    opacity: 0.55;
+}
+
+.rule-item-card.disabled .rule-text-editable {
+    text-decoration: line-through;
+    color: var(--text-muted);
+}
+
+.rule-toggle-checkbox {
+    margin-top: 3px;
+    cursor: pointer;
+    accent-color: var(--accent);
+    flex-shrink: 0;
+}
+
+.rule-text-editable {
+    flex: 1;
+    font-size: 0.74rem;
+    color: var(--text-primary);
+    line-height: 1.35;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    padding: 1px 4px;
+    outline: none;
+    cursor: text;
+    transition: all var(--transition-fast);
+}
+
+.rule-text-editable:hover {
+    background: var(--bg-surface-elevated);
+}
+
+.rule-text-editable:focus {
+    background: var(--bg-surface-elevated);
+    border-color: var(--accent);
+}
+
+.rule-delete-btn {
+    opacity: 0;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: opacity var(--transition-fast), color var(--transition-fast);
+}
+
+.rule-item-card:hover .rule-delete-btn {
+    opacity: 1;
+}
+
+.rule-delete-btn:hover {
+    color: var(--danger, #ef4444);
+    background: rgba(239, 68, 68, 0.1);
+}
 

@@ -5,6 +5,12 @@
   "description": "Epic fantasy quest setting with focus on magical lore, companion dynamics, and atmospheric world-building.",
   "system_body": "This scenario operates under the lens of epic high fantasy. The narrative focuses on journeying through vast, ancient landscapes, uncovering lost magical lore, and navigating the close-knit bonds and conflicts of an adventuring party. Emphasize the weight of ancient history, the strangeness of magic, and the immediate physical challenges of the wild. Dialogue should reflect the diverse backgrounds of the companions—ranging from formal elven phrasing to rough, pragmatic dwarven dialects. Maintain high tension regarding external threats, such as looming monstrous beasts or corrupt arcane forces, while exploring the quiet moments of respite around campfires.",
   "post_history_body": "",
+  "world_rules": [
+    "Raw ley-line magic causes arcane fatigue; spellcasters must ground their channeling through consecrated focus stones.",
+    "Ancient ruins are guarded by autonomous sentinel wards that awaken upon detecting organic blood.",
+    "Oaths sworn under the open canopy of the Oldwood cannot be broken without incurring physical disfigurement.",
+    "Cold steel blunts rapidly against wyrm-scaled hides; targeting joint seams or soft tissue is required."
+  ],
   "blocks": [
     {
       "id": "base_writer",

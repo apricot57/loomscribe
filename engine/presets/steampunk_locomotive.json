@@ -1,0 +1,60 @@
+{
+  "id": "steampunk_locomotive",
+  "title": "Iron Leviathan & Steam",
+  "category": "Steampunk & Industrial",
+  "description": "High-pressure steam mechanics, coal-smoke guilds, and brutal industrial politics aboard massive rail engines.",
+  "system_body": "This scenario operates in the soot-choked reality of heavy industrial steampunk. The world is forged in iron, boiling brass, and the unrelenting roar of coal combustion. Civilization clings to the tracks: colossal multi-tiered locomotives traversing barren permafrost and rust canyons, where a frozen boiler means mass extinction. Atmosphere must feature tangible thermodynamic weight—screaming relief valves, vibrating floorplates, hot cylinder oil, grease-stained leather aprons, and the bitter taste of sulfur smog. Character dynamics reflect hard class stratifications between the velvet-lined observation cars of transit magnates and the scorched, deafening heat of the stoker decks. Write with mechanical precision and visceral social tension where every kilowatt of kinetic power is paid for in human sweat.",
+  "post_history_body": "",
+  "world_rules": [
+    "High-pressure boilers require constant manual pressure-valve regulation; exceeding safety thresholds causes catastrophic steam explosion.",
+    "Coal-smoke lung rot is chronic and lethal; operating near the lower fireboxes requires brass respirators with tallow-soaked charcoal filters.",
+    "Pneumatic telegraphy and brass clicker relays are strictly limited to 15-mile mechanical transmission cables; beyond that, steam couriers are required.",
+    "The Guild of Stokers enforces fuel allocation by martial decree; unauthorized tapping of coal bunkers is treated as high sabotage.",
+    "Clockwork prosthetics run on wound mainsprings that require hand-key tensioning every six hours or face sudden mechanical lockup."
+  ],
+  "blocks": [
+    {
+      "id": "base_writer",
+      "enabled": true,
+      "order": 10
+    },
+    {
+      "id": "tone_register",
+      "enabled": true,
+      "order": 20
+    },
+    {
+      "id": "format_rules",
+      "enabled": true,
+      "order": 50
+    },
+    {
+      "id": "pov_third",
+      "enabled": true,
+      "order": 80
+    },
+    {
+      "id": "pov_first",
+      "enabled": false,
+      "order": 81
+    },
+    {
+      "id": "pov_author",
+      "enabled": false,
+      "order": 82
+    }
+  ],
+  "defaults": {
+    "word_count": 1300,
+    "pov": "third",
+    "scene_intensity": "sensory",
+    "dialogue_style": "guarded",
+    "pov_focus": "balanced",
+    "pushback": 3,
+    "complication_generator": true,
+    "suggest_choices": true,
+    "outline_mode": false,
+    "premises_mode": false,
+    "sliding_window": 16
+  }
+}

@@ -3,14 +3,14 @@
  */
 
 import { state, setState, subscribe } from '../state.js';
-import { updateConversation, compilePrompt, getEngineSchema, getEnginePresets } from '../api.js';
+import { updateConversation, compilePrompt, getEngineSchema, getEnginePresets, createEnginePreset, scaffoldWorld } from '../api.js';
 import { showToast } from './toast.js';
 import { escapeHtml } from '../markdown.js';
 
 let debounceTimer = null;
 let activePreviewTab = 'slot1'; // 'slot1' | 'slot2'
 let compiledCache = { systemPrompt: '', postHistory: '' };
-
+let currentForgedBlueprint = null;
 export function initInspector() {
     const inspectorCloseBtn = document.getElementById('inspector-close-btn');
     const changePresetBtn = document.getElementById('inspector-change-preset-btn');
@@ -50,6 +50,179 @@ export function initInspector() {
             }
         });
     }
+    // Quick-Add World Rule Event Handlers
+    const ruleInput = document.getElementById('inspector-rule-input');
+    const addRuleBtn = document.getElementById('inspector-add-rule-btn');
+    const handleAddRule = () => {
+        const text = ruleInput?.value.trim();
+        if (!text || !state.activeConversation) return;
+        const currentRules = Array.isArray(state.activeConversation.worldRules) ? [...state.activeConversation.worldRules] : [];
+        const newRule = {
+            id: `r_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+            text,
+            enabled: true
+        };
+        currentRules.push(newRule);
+        ruleInput.value = '';
+        state.activeConversation.worldRules = currentRules;
+        scheduleSave({ worldRules: currentRules });
+        renderWorldRules(state.activeConversation);
+        showToast('Added setting rule', 'success', 1200);
+    };
+    if (addRuleBtn) addRuleBtn.addEventListener('click', handleAddRule);
+    if (ruleInput) {
+        ruleInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleAddRule();
+            }
+        });
+    }
+
+    // AI World Forge Modal Handlers
+    const aiForgeBtn = document.getElementById('inspector-ai-forge-btn');
+    const forgeModal = document.getElementById('world-forge-modal');
+    const forgeCloseBtn = document.getElementById('world-forge-close-btn');
+    const forgeSubmitBtn = document.getElementById('world-forge-submit-btn');
+    const forgeApplyBtn = document.getElementById('world-forge-apply-btn');
+    const forgeSavePresetBtn = document.getElementById('world-forge-save-preset-btn');
+    const forgeBaseSelect = document.getElementById('world-forge-base-preset');
+    const forgePromptInput = document.getElementById('world-forge-prompt');
+    const forgePreviewContainer = document.getElementById('world-forge-preview-container');
+
+    const openForgeModal = () => {
+        if (!forgeModal) return;
+        forgeModal.classList.remove('hidden');
+        if (forgePreviewContainer) forgePreviewContainer.classList.add('hidden');
+        currentForgedBlueprint = null;
+
+        if (forgeBaseSelect) {
+            const presets = state.enginePresets || [];
+            let optionsHtml = '<option value="">-- No Base (Generate from Scratch) --</option>';
+            presets.forEach(p => {
+                const isCurrent = state.activeConversation?.presetId === p.id;
+                optionsHtml += `<option value="${escapeHtml(p.id)}" ${isCurrent ? 'selected' : ''}>${escapeHtml(p.title)} (${escapeHtml(p.category || 'General')})</option>`;
+            });
+            forgeBaseSelect.innerHTML = optionsHtml;
+        }
+        if (forgePromptInput) {
+            forgePromptInput.value = '';
+            forgePromptInput.focus();
+        }
+    };
+
+    const closeForgeModal = () => {
+        if (forgeModal) forgeModal.classList.add('hidden');
+    };
+
+    if (aiForgeBtn) aiForgeBtn.addEventListener('click', openForgeModal);
+    if (forgeCloseBtn) forgeCloseBtn.addEventListener('click', closeForgeModal);
+    if (forgeModal) {
+        forgeModal.addEventListener('click', (e) => {
+            if (e.target === forgeModal) closeForgeModal();
+        });
+    }
+
+    if (forgeSubmitBtn) {
+        forgeSubmitBtn.addEventListener('click', async () => {
+            const prompt = forgePromptInput?.value.trim();
+            if (!prompt) {
+                showToast('Please enter a world concept description', 'warning');
+                return;
+            }
+            const basePresetId = forgeBaseSelect?.value || undefined;
+
+            forgeSubmitBtn.disabled = true;
+            forgeSubmitBtn.innerHTML = `<span>Forging Blueprint...</span>`;
+
+            try {
+                const res = await scaffoldWorld({ prompt, basePresetId });
+                currentForgedBlueprint = res.world;
+
+                const titleEl = document.getElementById('world-forge-preview-title');
+                const catEl = document.getElementById('world-forge-preview-cat');
+                const descEl = document.getElementById('world-forge-preview-desc');
+                const rulesEl = document.getElementById('world-forge-preview-rules');
+
+                if (titleEl) titleEl.textContent = currentForgedBlueprint.title;
+                if (catEl) catEl.textContent = currentForgedBlueprint.category || 'Custom World';
+                if (descEl) descEl.textContent = currentForgedBlueprint.description || '';
+                if (rulesEl && Array.isArray(currentForgedBlueprint.world_rules)) {
+                    rulesEl.innerHTML = currentForgedBlueprint.world_rules.map(r => `<li>${escapeHtml(r)}</li>`).join('');
+                }
+
+                if (forgePreviewContainer) forgePreviewContainer.classList.remove('hidden');
+                showToast('World blueprint forged!', 'success');
+            } catch (err) {
+                console.error('World forge error:', err);
+                showToast(err.message || 'Failed to forge world', 'error');
+            } finally {
+                forgeSubmitBtn.disabled = false;
+                forgeSubmitBtn.innerHTML = `
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                    <span>Generate Blueprint</span>
+                `;
+            }
+        });
+    }
+
+    if (forgeApplyBtn) {
+        forgeApplyBtn.addEventListener('click', async () => {
+            if (!currentForgedBlueprint || !state.currentConversationId) return;
+
+            const rules = (currentForgedBlueprint.world_rules || []).map((r, idx) => ({
+                id: `r_${Date.now()}_${idx}`,
+                text: typeof r === 'string' ? r : (r.text || ''),
+                enabled: true
+            }));
+
+            const updatePayload = {
+                title: currentForgedBlueprint.title || state.activeConversation.title,
+                worldRules: rules
+            };
+            if (currentForgedBlueprint.defaults) {
+                updatePayload.params = { ...(state.activeConversation.params || {}), ...currentForgedBlueprint.defaults };
+            }
+
+            try {
+                const updated = await updateConversation(state.currentConversationId, updatePayload);
+                setState('activeConversation', updated);
+                renderInspector(updated);
+                closeForgeModal();
+                showToast(`Applied world: ${currentForgedBlueprint.title}`, 'success');
+            } catch (err) {
+                showToast('Failed to apply world blueprint', 'error');
+            }
+        });
+    }
+
+    if (forgeSavePresetBtn) {
+        forgeSavePresetBtn.addEventListener('click', async () => {
+            if (!currentForgedBlueprint) return;
+            const safeId = (currentForgedBlueprint.title || 'custom_world')
+                .toLowerCase()
+                .replace(/[^a-z0-9_]+/g, '_')
+                .replace(/^_+|_+$/g, '')
+                .slice(0, 32);
+
+            try {
+                await createEnginePreset({
+                    id: safeId,
+                    title: currentForgedBlueprint.title,
+                    category: currentForgedBlueprint.category || 'Custom',
+                    description: currentForgedBlueprint.description || '',
+                    system_body: currentForgedBlueprint.system_body || '',
+                    world_rules: currentForgedBlueprint.world_rules || [],
+                    defaults: currentForgedBlueprint.defaults || {}
+                });
+                const presets = await getEnginePresets();
+                setState('enginePresets', presets);
+                showToast(`Saved preset "${currentForgedBlueprint.title}" globally`, 'success');
+            } catch (err) {
+                showToast(err.message || 'Failed to save preset', 'error');
+            }
+        });
+    }
 
     // Close dropdowns on outside click — registered once at init, not per render
     document.addEventListener('click', () => {
@@ -77,6 +250,7 @@ export async function renderInspector(conv = state.activeConversation) {
     const overrides = conv.blockOverrides || {};
 
     updatePresetCardUI(preset);
+    renderWorldRules(conv);
     renderParameterControls(params, schema);
     renderDirectorNote(conv.directorNote || '');
     renderAdvancedBlocks(preset, overrides);
@@ -99,55 +273,117 @@ function updatePresetCardUI(preset) {
     }
     if (descEl) descEl.textContent = preset?.description || 'Standard AI assistant without scenario-specific prompt engine instructions.';
 }
+function renderWorldRules(conv) {
+    const countBadge = document.getElementById('inspector-rules-count');
+    const rulesList = document.getElementById('inspector-rules-list');
+    if (!rulesList) return;
 
-const PUSHBACK_LABELS = ['Off', 'Compliant', 'Hesitant', 'Realistic', 'Reluctant', 'Resistant'];
+    const rules = Array.isArray(conv?.worldRules) ? conv.worldRules : [];
+    const activeCount = rules.filter(r => r && r.enabled !== false).length;
+
+    if (countBadge) {
+        countBadge.textContent = String(activeCount);
+    }
+
+    if (rules.length === 0) {
+        rulesList.innerHTML = `<div style="text-align:center; padding:12px 6px; color:var(--text-muted); font-size:0.75rem;">No world rules set yet. Add a rule above or use AI Forge.</div>`;
+        return;
+    }
+
+    rulesList.innerHTML = rules.map((rule, idx) => {
+        const isEnabled = rule.enabled !== false;
+        const ruleId = escapeHtml(rule.id || `r_${idx}`);
+        const ruleText = escapeHtml(rule.text || '');
+        return `
+            <div class="rule-item-card ${isEnabled ? '' : 'disabled'}" data-rule-id="${ruleId}">
+                <input type="checkbox" class="rule-toggle-checkbox" ${isEnabled ? 'checked' : ''} title="Toggle active constraint" />
+                <span class="rule-text-editable" contenteditable="true" spellcheck="false" title="Click to edit rule">${ruleText}</span>
+                <button class="rule-delete-btn" title="Delete rule" type="button">×</button>
+            </div>
+        `;
+    }).join('');
+
+    // Attach event listeners for each rule card
+    rulesList.querySelectorAll('.rule-item-card').forEach((card) => {
+        const ruleId = card.dataset.ruleId;
+        const ruleIndex = rules.findIndex(r => String(r.id) === ruleId);
+        if (ruleIndex === -1) return;
+
+        const checkbox = card.querySelector('.rule-toggle-checkbox');
+        const textSpan = card.querySelector('.rule-text-editable');
+        const deleteBtn = card.querySelector('.rule-delete-btn');
+
+        if (checkbox) {
+            checkbox.addEventListener('change', () => {
+                const isChecked = checkbox.checked;
+                rules[ruleIndex].enabled = isChecked;
+                card.classList.toggle('disabled', !isChecked);
+                const newActiveCount = rules.filter(r => r && r.enabled !== false).length;
+                if (countBadge) countBadge.textContent = String(newActiveCount);
+                scheduleSave({ worldRules: rules });
+            });
+        }
+
+        if (textSpan) {
+            const handleTextSave = () => {
+                const newText = textSpan.textContent.trim();
+                if (newText && newText !== rules[ruleIndex].text) {
+                    rules[ruleIndex].text = newText;
+                    scheduleSave({ worldRules: rules });
+                } else if (!newText) {
+                    textSpan.textContent = rules[ruleIndex].text;
+                }
+            };
+            textSpan.addEventListener('blur', handleTextSave);
+            textSpan.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    textSpan.blur();
+                }
+            });
+        }
+
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => {
+                const updatedRules = rules.filter(r => String(r.id) !== ruleId);
+                conv.worldRules = updatedRules;
+                scheduleSave({ worldRules: updatedRules });
+                renderWorldRules(conv);
+                showToast('Rule removed', 'info', 1200);
+            });
+        }
+    });
+}
 
 function renderParameterControls(params, schema) {
     const container = document.getElementById('inspector-params-container');
     if (!container) return;
 
     const povVal = params.pov || 'third';
-    const intensityVal = params.scene_intensity || 'charged';
-    const dialogueVal = params.dialogue_style || 'playful';
-    const focusVal = params.pov_focus || 'balanced';
-    const pushbackVal = params.pushback !== undefined ? Number(params.pushback) : 3;
+    const defaultTone = params.scene_intensity === 'raw' ? 'gritty' :
+        (params.scene_intensity === 'tender' ? 'tender' :
+        (params.scene_intensity === 'charged' ? 'cinematic' : 'atmospheric'));
+    const toneVal = params.narrative_tone || defaultTone;
     const wordCountVal = params.word_count !== undefined ? Number(params.word_count) : 1500;
-    const slidingWindowVal = params.sliding_window !== undefined ? Number(params.sliding_window) : 10;
 
     const povOptions = [
         { value: 'third', label: 'Close Third Person' },
         { value: 'first', label: 'Deep First Person' },
+        { value: 'second', label: 'Second Person ("You")' },
         { value: 'author', label: 'Omniscient Narrator' },
         { value: 'off', label: 'Off / Default' }
     ];
 
-    const intensityOptions = [
-        { value: 'tender', label: 'Tender & Atmospheric' },
-        { value: 'sensory', label: 'Sensory & Tactile' },
-        { value: 'charged', label: 'High-Tension & Charged' },
-        { value: 'raw', label: 'Raw & Direct' },
-        { value: 'off', label: 'Off / Default' }
-    ];
-
-    const dialogueOptions = [
-        { value: 'silent', label: 'Subtext-Heavy & Minimalist' },
-        { value: 'playful', label: 'Witty & Playful' },
-        { value: 'candid', label: 'Direct & Candid' },
-        { value: 'commanding', label: 'Dominant & Commanding' },
-        { value: 'off', label: 'Off / Default' }
-    ];
-
-    const focusOptions = [
-        { value: 'balanced', label: 'Balanced Dynamic' },
-        { value: 'self', label: 'POV Interiority' },
-        { value: 'partner', label: 'Partner Reaction' },
-        { value: 'off', label: 'Off / Default' }
+    const toneOptions = [
+        { value: 'gritty', label: 'Visceral & Gritty' },
+        { value: 'atmospheric', label: 'Atmospheric & Subtext' },
+        { value: 'cinematic', label: 'Cinematic & High-Tension' },
+        { value: 'tender', label: 'Tender & Intimate' },
+        { value: 'off', label: 'Preset Default / Off' }
     ];
 
     const currentPovLabel = povOptions.find(o => o.value === povVal)?.label || 'Close Third Person';
-    const currentIntensityLabel = intensityOptions.find(o => o.value === intensityVal)?.label || 'High-Tension & Charged';
-    const currentDialogueLabel = dialogueOptions.find(o => o.value === dialogueVal)?.label || 'Witty & Playful';
-    const currentFocusLabel = focusOptions.find(o => o.value === focusVal)?.label || 'Balanced Dynamic';
+    const currentToneLabel = toneOptions.find(o => o.value === toneVal)?.label || 'Atmospheric & Subtext';
 
     const outlineMode = params.outline_mode === true || params.outline_mode === 'true';
     const premisesMode = params.premises_mode === true || params.premises_mode === 'true';
@@ -159,7 +395,7 @@ function renderParameterControls(params, schema) {
     container.innerHTML = `
         <div class="param-group ${proseBypassActive ? 'bypassed' : ''}">
             <div class="param-header">
-                <span>Point of View</span>
+                <span>Narrative Perspective</span>
                 <span class="param-value-tag ${proseBypassActive ? 'bypassed' : ''}" id="pov-value-tag">${proseBypassActive ? 'Bypassed' : povVal}</span>
             </div>
             <div class="custom-select-wrap" id="wrap-param-pov">
@@ -182,79 +418,25 @@ function renderParameterControls(params, schema) {
 
         <div class="param-group ${proseBypassActive ? 'bypassed' : ''}">
             <div class="param-header">
-                <span>Scene Intensity</span>
-                <span class="param-value-tag ${proseBypassActive ? 'bypassed' : ''}" id="intensity-value-tag">${proseBypassActive ? 'Bypassed' : intensityVal}</span>
+                <span>Narrative Tone</span>
+                <span class="param-value-tag ${proseBypassActive ? 'bypassed' : ''}" id="tone-value-tag">${proseBypassActive ? 'Bypassed' : toneVal}</span>
             </div>
-            <div class="custom-select-wrap" id="wrap-param-intensity">
-                <button type="button" class="custom-select-trigger" id="param-intensity-trigger" ${proseBypassActive ? 'disabled' : ''}>
-                    <span class="custom-select-value">${escapeHtml(currentIntensityLabel)}</span>
+            <div class="custom-select-wrap" id="wrap-param-tone">
+                <button type="button" class="custom-select-trigger" id="param-tone-trigger" ${proseBypassActive ? 'disabled' : ''}>
+                    <span class="custom-select-value">${escapeHtml(currentToneLabel)}</span>
                     <svg class="custom-select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                 </button>
-                <div class="custom-select-menu hidden" id="param-intensity-menu">
-                    ${intensityOptions.map(o => `
-                        <button type="button" class="custom-select-option ${o.value === intensityVal ? 'selected' : ''}" data-value="${o.value}">
+                <div class="custom-select-menu hidden" id="param-tone-menu">
+                    ${toneOptions.map(o => `
+                        <button type="button" class="custom-select-option ${o.value === toneVal ? 'selected' : ''}" data-value="${o.value}">
                             <span>${escapeHtml(o.label)}</span>
-                            ${o.value === intensityVal ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
+                            ${o.value === toneVal ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
                         </button>
                     `).join('')}
                 </div>
             </div>
-        </div>
-
-        <div class="param-group ${proseBypassActive ? 'bypassed' : ''}">
-            <div class="param-header">
-                <span>Dialogue Style</span>
-                <span class="param-value-tag ${proseBypassActive ? 'bypassed' : ''}" id="dialogue-value-tag">${proseBypassActive ? 'Bypassed' : dialogueVal}</span>
-            </div>
-            <div class="custom-select-wrap" id="wrap-param-dialogue">
-                <button type="button" class="custom-select-trigger" id="param-dialogue-trigger" ${proseBypassActive ? 'disabled' : ''}>
-                    <span class="custom-select-value">${escapeHtml(currentDialogueLabel)}</span>
-                    <svg class="custom-select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
-                </button>
-                <div class="custom-select-menu hidden" id="param-dialogue-menu">
-                    ${dialogueOptions.map(o => `
-                        <button type="button" class="custom-select-option ${o.value === dialogueVal ? 'selected' : ''}" data-value="${o.value}">
-                            <span>${escapeHtml(o.label)}</span>
-                            ${o.value === dialogueVal ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
-                        </button>
-                    `).join('')}
-                </div>
-            </div>
-        </div>
-
-        <div class="param-group ${proseBypassActive ? 'bypassed' : ''}">
-            <div class="param-header">
-                <span>POV Focus Spotlight</span>
-                <span class="param-value-tag ${proseBypassActive ? 'bypassed' : ''}" id="focus-value-tag">${proseBypassActive ? 'Bypassed' : focusVal}</span>
-            </div>
-            <div class="custom-select-wrap" id="wrap-param-focus">
-                <button type="button" class="custom-select-trigger" id="param-focus-trigger" ${proseBypassActive ? 'disabled' : ''}>
-                    <span class="custom-select-value">${escapeHtml(currentFocusLabel)}</span>
-                    <svg class="custom-select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
-                </button>
-                <div class="custom-select-menu hidden" id="param-focus-menu">
-                    ${focusOptions.map(o => `
-                        <button type="button" class="custom-select-option ${o.value === focusVal ? 'selected' : ''}" data-value="${o.value}">
-                            <span>${escapeHtml(o.label)}</span>
-                            ${o.value === focusVal ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
-                        </button>
-                    `).join('')}
-                </div>
-            </div>
-        </div>
-
-        <div class="param-group ${proseBypassActive ? 'bypassed' : ''}">
-            <div class="param-header">
-                <span>Pushback / Resistance</span>
-                <span class="param-value-tag ${proseBypassActive ? 'bypassed' : ''}" id="param-pushback-label">${proseBypassActive ? 'Bypassed' : (PUSHBACK_LABELS[pushbackVal] || pushbackVal)}</span>
-            </div>
-            <input type="range" class="param-range" id="param-pushback" min="0" max="5" step="1" value="${pushbackVal}" ${proseBypassActive ? 'disabled' : ''}>
         </div>
 
         <div class="param-group ${isPremisesMode ? 'bypassed' : ''}">
@@ -265,34 +447,25 @@ function renderParameterControls(params, schema) {
             <input type="range" class="param-range" id="param-word-count" min="600" max="3000" step="100" value="${wordCountVal}" ${isPremisesMode ? 'disabled title="Target length is overridden in Premises Mode"' : ''}>
         </div>
 
-
-        <div class="param-group">
-            <div class="param-header">
-                <span>Context Window</span>
-                <span class="param-value-tag" id="param-sliding-window-label">${slidingWindowVal} turns</span>
-            </div>
-            <input type="range" class="param-range" id="param-sliding-window" min="2" max="30" step="1" value="${slidingWindowVal}">
-        </div>
-
         <div class="param-group">
             <div class="param-header" style="margin-bottom: 2px;">
-                <span>Narrative Modes</span>
+                <span>Story & Interactive Modes</span>
             </div>
             <div class="param-toggle-grid">
-                <div class="param-toggle-card ${outlineMode ? 'checked' : ''}" id="toggle-outline-mode">
-                    <span style="font-size:0.75rem; color:var(--text-primary); font-weight:500;">Outline Mode</span>
+                <div class="param-toggle-card ${suggestChoices ? 'checked' : ''}" id="toggle-suggest-choices" title="Generate 3 clickable continuation choices at the end of each turn">
+                    <span style="font-size:0.75rem; color:var(--text-primary); font-weight:500;">Suggest Choices</span>
                     <div class="toggle-switch-pill"></div>
                 </div>
-                <div class="param-toggle-card ${premisesMode ? 'checked' : ''}" id="toggle-premises-mode">
-                    <span style="font-size:0.75rem; color:var(--text-primary); font-weight:500;">Premises Mode</span>
-                    <div class="toggle-switch-pill"></div>
-                </div>
-                <div class="param-toggle-card ${complicationGen ? 'checked' : ''} ${proseBypassActive ? 'bypassed' : ''}" id="toggle-complication-gen" ${proseBypassActive ? 'title="Complications bypassed in Narrative Mode"' : ''}>
+                <div class="param-toggle-card ${complicationGen ? 'checked' : ''} ${proseBypassActive ? 'bypassed' : ''}" id="toggle-complication-gen" ${proseBypassActive ? 'title="Complications bypassed in Narrative Mode"' : 'title="Inject unexpected friction or obstacles before scene resolution"'}>
                     <span style="font-size:0.75rem; color:var(--text-primary); font-weight:500;">Complications</span>
                     <div class="toggle-switch-pill"></div>
                 </div>
-                <div class="param-toggle-card ${suggestChoices ? 'checked' : ''}" id="toggle-suggest-choices">
-                    <span style="font-size:0.75rem; color:var(--text-primary); font-weight:500;">Suggest Choices</span>
+                <div class="param-toggle-card ${outlineMode ? 'checked' : ''}" id="toggle-outline-mode" title="Plot and brainstorm story beats without writing full prose">
+                    <span style="font-size:0.75rem; color:var(--text-primary); font-weight:500;">Outline Mode</span>
+                    <div class="toggle-switch-pill"></div>
+                </div>
+                <div class="param-toggle-card ${premisesMode ? 'checked' : ''}" id="toggle-premises-mode" title="Generate 6 diverse premise setups and scene openers">
+                    <span style="font-size:0.75rem; color:var(--text-primary); font-weight:500;">Premises Mode</span>
                     <div class="toggle-switch-pill"></div>
                 </div>
             </div>
@@ -305,12 +478,8 @@ function renderParameterControls(params, schema) {
 function attachParameterListeners() {
     const povTrigger = document.getElementById('param-pov-trigger');
     const povMenu = document.getElementById('param-pov-menu');
-    const intensityTrigger = document.getElementById('param-intensity-trigger');
-    const intensityMenu = document.getElementById('param-intensity-menu');
-    const dialogueTrigger = document.getElementById('param-dialogue-trigger');
-    const dialogueMenu = document.getElementById('param-dialogue-menu');
-    const focusTrigger = document.getElementById('param-focus-trigger');
-    const focusMenu = document.getElementById('param-focus-menu');
+    const toneTrigger = document.getElementById('param-tone-trigger');
+    const toneMenu = document.getElementById('param-tone-menu');
 
     // Setup custom dropdown toggling
     const setupDropdown = (trigger, menu, onSelect) => {
@@ -347,34 +516,11 @@ function attachParameterListeners() {
         updateParamInState('pov', val);
     });
 
-    setupDropdown(intensityTrigger, intensityMenu, (val) => {
-        const tag = document.getElementById('intensity-value-tag');
+    setupDropdown(toneTrigger, toneMenu, (val) => {
+        const tag = document.getElementById('tone-value-tag');
         if (tag) tag.textContent = val;
-        updateParamInState('scene_intensity', val);
+        updateParamInState('narrative_tone', val);
     });
-
-    setupDropdown(dialogueTrigger, dialogueMenu, (val) => {
-        const tag = document.getElementById('dialogue-value-tag');
-        if (tag) tag.textContent = val;
-        updateParamInState('dialogue_style', val);
-    });
-
-    setupDropdown(focusTrigger, focusMenu, (val) => {
-        const tag = document.getElementById('focus-value-tag');
-        if (tag) tag.textContent = val;
-        updateParamInState('pov_focus', val);
-    });
-
-
-    const pushbackInput = document.getElementById('param-pushback');
-    const pushbackLabel = document.getElementById('param-pushback-label');
-    if (pushbackInput) {
-        pushbackInput.addEventListener('input', () => {
-            const num = Number(pushbackInput.value);
-            if (pushbackLabel) pushbackLabel.textContent = PUSHBACK_LABELS[num] || num;
-            updateParamInState('pushback', num);
-        });
-    }
 
     const wordCountInput = document.getElementById('param-word-count');
     const wordCountLabel = document.getElementById('param-word-count-label');
@@ -382,15 +528,6 @@ function attachParameterListeners() {
         wordCountInput.addEventListener('input', () => {
             if (wordCountLabel) wordCountLabel.textContent = `${wordCountInput.value} words`;
             updateParamInState('word_count', parseInt(wordCountInput.value, 10));
-        });
-    }
-
-    const slidingWindowInput = document.getElementById('param-sliding-window');
-    const slidingWindowLabel = document.getElementById('param-sliding-window-label');
-    if (slidingWindowInput) {
-        slidingWindowInput.addEventListener('input', () => {
-            if (slidingWindowLabel) slidingWindowLabel.textContent = `${slidingWindowInput.value} turns`;
-            updateParamInState('sliding_window', parseInt(slidingWindowInput.value, 10));
         });
     }
 
@@ -508,12 +645,13 @@ async function triggerCompilePreview() {
     }
 
     try {
-        const { presetId, params, blockOverrides, directorNote } = state.activeConversation;
+        const { presetId, params, blockOverrides, directorNote, worldRules } = state.activeConversation;
         const result = await compilePrompt({
             presetId,
             params,
             blockOverrides,
-            directorNote
+            directorNote,
+            worldRules: worldRules || []
         });
 
         compiledCache = {

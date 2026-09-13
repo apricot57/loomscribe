@@ -98,6 +98,13 @@
     "order": 82
   },
   {
+    "id": "pov_second",
+    "title": "POV — Second Person",
+    "file": "pov_second.md",
+    "group": "pov",
+    "order": 83
+  },
+  {
     "id": "focus_balanced",
     "title": "POV Focus — Balanced",
     "file": "focus_balanced.md",

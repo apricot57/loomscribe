@@ -312,3 +312,15 @@ export async function compilePrompt(compilePayload) {
     }
     return res.json();
 }
+
+export async function scaffoldWorld(payload) {
+    const res = await authFetch('/api/engine/scaffold-world', {
+        method: 'POST',
+        body: payload
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to scaffold world blueprint');
+    }
+    return res.json();
+}

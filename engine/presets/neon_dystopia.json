@@ -5,6 +5,12 @@
   "description": "High-tech, low-life sci-fi setting emphasizing neon-lit streets, cybernetics, corporate greed, and back-alley dealings.",
   "system_body": "This scenario operates under the lens of a gritty cyberpunk dystopia. The setting is a sprawling, multi-layered megacity ruled by mega-corporations and populated by hackers, street-docs, corporate agents, and street mercenaries. The thematic focus is on the collision of high technology and low quality of life: glitching holographic advertisements, cybernetic augmentations that buzz and whine, flickering neon lights reflecting in puddles of chemical rain, and back-alley markets selling bootleg tech. Character dynamics should be tense, guarded, and transactional, where trust is a rare and expensive commodity. Write with a fast-paced, visceral style that captures the mechanical weight and speed of cybernetic action.",
   "post_history_body": "",
+  "world_rules": [
+    "Unregistered neural cyberware triggers military netwatch ICE lockouts within 90 seconds of connecting to public nodes.",
+    "The corporate megatower airspace is restricted; unauthorized drone or transport flight is met with automated anti-air flak.",
+    "Black-market neuro-stims cause cumulative synaptic degradation and visual hallucination without weekly stabilizer injections.",
+    "Sub-level chemical rainfall corrodes unshielded optics and synthetic skin grafts with prolonged exposure."
+  ],
   "blocks": [
     {
       "id": "base_writer",

@@ -1,0 +1,60 @@
+{
+  "id": "vampire_gothic",
+  "title": "Gothic Bloodline & Masquerade",
+  "category": "Gothic & Supernatural",
+  "description": "Aristocratic dread, predatory hunger, and lethal masquerade politics in a shadow-bound gothic metropolis.",
+  "system_body": "This narrative operates through the lens of atmospheric gothic realism and predatory dread. The setting is steeped in architectural decay: damp cathedral stone, soot-stained gargoyles, suffocating velvet, smelling iron in cold rain, and flickering gas lamps casting long shadows across cobblestones. Kindred existence is defined not by romantic ease, but by physiological addiction, paranoia, and the fragile Masquerade. Characters balance the veneer of aristocratic etiquette against the ravenous Beast clawing inside their ribs. Every interaction carries the weight of ancient grudges, transactional alliances, and lethal social contracts. Prioritize sensory friction—the cold temperature of undead skin, the audible heartbeat of mortals in quiet rooms, the chemical burn of hunger in the throat, and the sudden, explosive brutality of supernatural violence when decorum fractures.",
+  "post_history_body": "",
+  "world_rules": [
+    "Direct sunlight induces agonizing third-degree dermal necrosis and vascular ignition within 10 seconds; daytime travel requires total enclosure in sealed transport.",
+    "Blood thirst escalates through three distinct physiological stages: Thirst (loss of sensory focus), Frenzy (loss of cognitive restraint), and Torpor (catalepsy).",
+    "An uninvited vampire cannot physically cross the threshold of an occupied private dwelling without genuine invitation from the rightful inhabitant.",
+    "Consuming the blood of another vampire creates an intoxicating, telepathically binding blood-debt that grants emotional sway to the sire.",
+    "Cold-wrought iron burns kindred flesh like white-hot embers, causing wounds that refuse supernatural regeneration."
+  ],
+  "blocks": [
+    {
+      "id": "base_writer",
+      "enabled": true,
+      "order": 10
+    },
+    {
+      "id": "tone_register",
+      "enabled": true,
+      "order": 20
+    },
+    {
+      "id": "format_rules",
+      "enabled": true,
+      "order": 50
+    },
+    {
+      "id": "pov_third",
+      "enabled": true,
+      "order": 80
+    },
+    {
+      "id": "pov_first",
+      "enabled": false,
+      "order": 81
+    },
+    {
+      "id": "pov_author",
+      "enabled": false,
+      "order": 82
+    }
+  ],
+  "defaults": {
+    "word_count": 1400,
+    "pov": "third",
+    "scene_intensity": "raw",
+    "dialogue_style": "commanding",
+    "pov_focus": "balanced",
+    "pushback": 4,
+    "complication_generator": true,
+    "suggest_choices": true,
+    "outline_mode": false,
+    "premises_mode": false,
+    "sliding_window": 16
+  }
+}

@@ -31,11 +31,25 @@ function interpolatePlaceholders(text, params = {}, presetId = '') {
 // Declarative block activation mappings for select parameters
 const SELECT_PARAM_BLOCK_RULES = {
     pov: {
-        managedBlocks: ['pov_third', 'pov_first', 'pov_author'],
+        managedBlocks: ['pov_third', 'pov_first', 'pov_second', 'pov_author'],
         valueMap: {
             third: ['pov_third'],
             first: ['pov_first'],
+            second: ['pov_second'],
             author: ['pov_author'],
+            off: []
+        }
+    },
+    narrative_tone: {
+        managedBlocks: [
+            'intensity_tender', 'intensity_sensory', 'intensity_charged', 'intensity_raw',
+            'dialogue_silent', 'dialogue_playful', 'dialogue_candid', 'dialogue_commanding'
+        ],
+        valueMap: {
+            gritty: ['intensity_raw', 'dialogue_candid'],
+            atmospheric: ['intensity_sensory', 'dialogue_silent'],
+            cinematic: ['intensity_charged', 'dialogue_commanding'],
+            tender: ['intensity_tender', 'dialogue_playful'],
             off: []
         }
     },
@@ -74,22 +88,29 @@ const SELECT_PARAM_BLOCK_RULES = {
 const PROSE_BYPASS_MODES = {
     premises_mode: {
         activeBlock: 'premises_mode',
-        disabledGroups: ['scene_intensity', 'dialogue_style', 'pov_focus', 'pov'],
-        disabledBlocks: ['format_rules', 'pov_third', 'pov_first', 'pov_author']
+        disabledGroups: ['narrative_tone', 'scene_intensity', 'dialogue_style', 'pov_focus', 'pov'],
+        disabledBlocks: ['format_rules', 'pov_third', 'pov_first', 'pov_second', 'pov_author']
     },
     outline_mode: {
         activeBlock: 'outline_mode',
-        disabledGroups: ['scene_intensity', 'dialogue_style', 'pov_focus', 'pov'],
-        disabledBlocks: ['format_rules', 'pov_third', 'pov_first', 'pov_author']
+        disabledGroups: ['narrative_tone', 'scene_intensity', 'dialogue_style', 'pov_focus', 'pov'],
+        disabledBlocks: ['format_rules', 'pov_third', 'pov_first', 'pov_second', 'pov_author']
     }
 };
 
 const POV_RECENCY_LABELS = {
     third: 'Close Third Person',
     first: 'Deep First Person',
+    second: 'Interactive Second Person ("You")',
     author: 'Omniscient'
 };
 
+const TONE_RECENCY_LABELS = {
+    gritty: 'Visceral & Gritty (High physical stakes, sharp friction)',
+    atmospheric: 'Atmospheric & Subtext (Sensory texture, unspoken psychological depth)',
+    cinematic: 'Cinematic & High-Tension (Dramatic pacing, commanding dialogue)',
+    tender: 'Tender & Intimate (Character vulnerability, warm pacing)'
+};
 const INTENSITY_RECENCY_LABELS = {
     tender: 'Tender & Atmospheric',
     sensory: 'Sensory & Tactile',
@@ -118,9 +139,10 @@ const FOCUS_RECENCY_LABELS = {
  * @param {Object} [options.params]
  * @param {Object} [options.blockOverrides]
  * @param {string} [options.directorNote]
+ * @param {Array} [options.worldRules]
  * @returns {{ systemPrompt: string, postHistory: string }}
  */
-function compilePrompt({ presetId, params, blockOverrides, directorNote }) {
+function compilePrompt({ presetId, params, blockOverrides, directorNote, worldRules = [] }) {
     // Stage 1: If presetId is null/falsy, return empty strings
     if (!presetId) {
         return { systemPrompt: "", postHistory: "" };
@@ -269,7 +291,14 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote }) {
         forceState('format_rules', true);
 
         // Apply declarative mappings for select parameters
+        const hasActiveTone = validParams.narrative_tone && validParams.narrative_tone !== 'off';
         for (const [paramKey, rule] of Object.entries(SELECT_PARAM_BLOCK_RULES)) {
+            if (paramKey === 'narrative_tone') {
+                if (!hasActiveTone) continue;
+            }
+            if (hasActiveTone && (paramKey === 'scene_intensity' || paramKey === 'dialogue_style')) {
+                continue;
+            }
             const paramVal = validParams[paramKey];
             const activeForParam = rule.valueMap[paramVal] || [];
 
@@ -323,6 +352,20 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote }) {
         activeBlocks: activeBlocks.map(b => b.id)
     });
 
+    // Extract active world rules (from options.worldRules or fallback to preset.world_rules)
+    let activeRules = [];
+    if (Array.isArray(worldRules) && worldRules.length > 0) {
+        activeRules = worldRules
+            .filter(r => r && r.enabled !== false)
+            .map(r => (typeof r === 'string' ? r : (r.text || '')).trim())
+            .filter(t => t.length > 0);
+    } else if (preset && Array.isArray(preset.world_rules)) {
+        activeRules = preset.world_rules
+            .filter(r => r && r.enabled !== false)
+            .map(r => (typeof r === 'string' ? r : (r.text || '')).trim())
+            .filter(t => t.length > 0);
+    }
+
     // Stage 9: Join block bodies and append preset.system_body with interpolation
     let systemPrompt = blockBodies.join('\n\n---\n\n');
     if (preset.system_body && preset.system_body.trim()) {
@@ -331,6 +374,17 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote }) {
             systemPrompt += '\n\n' + interpolatedSystemBody;
         } else {
             systemPrompt = interpolatedSystemBody;
+        }
+    }
+
+    // Append active world rules to Slot 1 (systemPrompt)
+    if (activeRules.length > 0) {
+        const rulesList = activeRules.map(r => `- ${r}`).join('\n');
+        const rulesBlock = `## World Rules & Setting Laws\nThe narrative operates under the following inviolable world axioms:\n${rulesList}`;
+        if (systemPrompt) {
+            systemPrompt += '\n\n' + rulesBlock;
+        } else {
+            systemPrompt = rulesBlock;
         }
     }
 
@@ -355,14 +409,18 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote }) {
         if (POV_RECENCY_LABELS[validParams.pov]) {
             postParts.push(`[Active POV: ${POV_RECENCY_LABELS[validParams.pov]}]`);
         }
-        if (INTENSITY_RECENCY_LABELS[validParams.scene_intensity]) {
-            postParts.push(`[Active Intensity: ${INTENSITY_RECENCY_LABELS[validParams.scene_intensity]}]`);
-        }
-        if (DIALOGUE_RECENCY_LABELS[validParams.dialogue_style]) {
-            postParts.push(`[Active Dialogue: ${DIALOGUE_RECENCY_LABELS[validParams.dialogue_style]}]`);
-        }
-        if (FOCUS_RECENCY_LABELS[validParams.pov_focus]) {
-            postParts.push(`[Active Focus: ${FOCUS_RECENCY_LABELS[validParams.pov_focus]}]`);
+        if (validParams.narrative_tone && validParams.narrative_tone !== 'off' && TONE_RECENCY_LABELS[validParams.narrative_tone]) {
+            postParts.push(`[Active Tone: ${TONE_RECENCY_LABELS[validParams.narrative_tone]}]`);
+        } else {
+            if (INTENSITY_RECENCY_LABELS[validParams.scene_intensity]) {
+                postParts.push(`[Active Intensity: ${INTENSITY_RECENCY_LABELS[validParams.scene_intensity]}]`);
+            }
+            if (DIALOGUE_RECENCY_LABELS[validParams.dialogue_style]) {
+                postParts.push(`[Active Dialogue: ${DIALOGUE_RECENCY_LABELS[validParams.dialogue_style]}]`);
+            }
+            if (FOCUS_RECENCY_LABELS[validParams.pov_focus]) {
+                postParts.push(`[Active Focus: ${FOCUS_RECENCY_LABELS[validParams.pov_focus]}]`);
+            }
         }
     }
 
@@ -389,6 +447,11 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote }) {
         postParts.push(`User Custom Directives: ${directorNote.trim()}`);
     }
 
+    // Append active world rules to Slot 2 (postHistory) for recency reinforcement
+    if (activeRules.length > 0) {
+        const rulesList = activeRules.map(r => `- ${r}`).join('\n');
+        postParts.push(`[Active World Constraints: Enforce established setting laws in all character dialogue, physical actions, and supernatural/technical costs:\n${rulesList}]`);
+    }
     const postHistory = postParts.join('\n\n');
 
     return {

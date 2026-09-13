@@ -14,13 +14,14 @@ function buildPrompt({ conversationId, messages = [], db }) {
         const convId = typeof conversationId === 'string' && !isNaN(conversationId) ? parseInt(conversationId, 10) : conversationId;
         const conv = (database.conversations || []).find(c => c.id === convId);
         if (conv) {
-            const { presetId, params, blockOverrides, directorNote } = conv;
+            const { presetId, params, blockOverrides, directorNote, worldRules } = conv;
             try {
                 const { systemPrompt, postHistory } = compilePrompt({
                     presetId,
                     params,
                     blockOverrides,
-                    directorNote
+                    directorNote,
+                    worldRules: worldRules || []
                 });
 
                 const history = apiMessages.filter(m => m.role !== 'system');

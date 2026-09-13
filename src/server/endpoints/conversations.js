@@ -1,6 +1,46 @@
+const fs = require('fs');
+const path = require('path');
 const { readDb, mutateDb } = require('../db');
 const { generateUniqueId } = require('../utils');
 
+const PRESETS_DIR = path.resolve(__dirname, '../../../engine/presets');
+
+function sanitizeWorldRules(rawRules) {
+    if (!Array.isArray(rawRules)) return [];
+    return rawRules.map((r, idx) => {
+        if (typeof r === 'string') {
+            return {
+                id: `r_${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 6)}`,
+                text: r.trim(),
+                enabled: true
+            };
+        }
+        if (r && typeof r === 'object') {
+            return {
+                id: r.id ? String(r.id) : `r_${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 6)}`,
+                text: typeof r.text === 'string' ? r.text.trim() : String(r.text || '').trim(),
+                enabled: r.enabled !== false
+            };
+        }
+        return null;
+    }).filter(r => r && r.text.length > 0);
+}
+
+function loadPresetWorldRules(presetId) {
+    if (!presetId || typeof presetId !== 'string') return [];
+    const safeId = path.basename(presetId).replace(/\.json$/i, '');
+    const presetPath = path.join(PRESETS_DIR, `${safeId}.json`);
+    try {
+        if (fs.existsSync(presetPath)) {
+            const content = fs.readFileSync(presetPath, 'utf8');
+            const parsed = JSON.parse(content);
+            if (Array.isArray(parsed.world_rules)) {
+                return sanitizeWorldRules(parsed.world_rules);
+            }
+        }
+    } catch (_) {}
+    return [];
+}
 function registerConversationsRoutes(app) {
     // --- API: Conversations CRUD ---
     app.get('/api/conversations', (req, res) => {
@@ -13,6 +53,14 @@ function registerConversationsRoutes(app) {
         const body = req.body || {};
         const newConv = await mutateDb((db) => {
             if (!db.conversations) db.conversations = [];
+
+            let initialWorldRules = [];
+            if (body.worldRules !== undefined) {
+                initialWorldRules = sanitizeWorldRules(body.worldRules);
+            } else if (body.presetId) {
+                initialWorldRules = loadPresetWorldRules(body.presetId);
+            }
+
             const conv = {
                 id: generateUniqueId(db, 'conversations'),
                 title: body.title || 'New Chat',
@@ -22,6 +70,7 @@ function registerConversationsRoutes(app) {
                 params: body.params || {},
                 blockOverrides: body.blockOverrides || {},
                 directorNote: body.directorNote || '',
+                worldRules: initialWorldRules,
                 lastAppliedEngineSignature: body.lastAppliedEngineSignature || '',
                 createdAt: Date.now()
             };
@@ -63,7 +112,8 @@ function registerConversationsRoutes(app) {
                 params,
                 blockOverrides,
                 directorNote,
-                lastAppliedEngineSignature
+                lastAppliedEngineSignature,
+                worldRules
             } = body;
             const updateObj = {};
             if (title !== undefined) updateObj.title = title;
@@ -78,7 +128,9 @@ function registerConversationsRoutes(app) {
             }
             if (directorNote !== undefined) updateObj.directorNote = directorNote;
             if (lastAppliedEngineSignature !== undefined) updateObj.lastAppliedEngineSignature = lastAppliedEngineSignature;
-            
+            if (worldRules !== undefined) {
+                updateObj.worldRules = sanitizeWorldRules(worldRules);
+            }
             db.conversations[idx] = { ...db.conversations[idx], ...updateObj };
             return db.conversations[idx];
         });
@@ -142,6 +194,7 @@ function registerConversationsRoutes(app) {
                 params: origConv.params ? { ...origConv.params } : {},
                 blockOverrides: origConv.blockOverrides ? { ...origConv.blockOverrides } : {},
                 directorNote: origConv.directorNote || '',
+                worldRules: origConv.worldRules ? origConv.worldRules.map(r => ({ ...r })) : [],
                 lastAppliedEngineSignature: origConv.lastAppliedEngineSignature || '',
                 createdAt: Date.now()
             };

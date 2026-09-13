@@ -80,8 +80,12 @@ test.describe('Engine Endpoints (/api/engine)', () => {
         } catch (e) {
             // Ignore cleanup failure
         }
-        if (fs.existsSync(testPresetPath)) {
-            fs.unlinkSync(testPresetPath);
+        try {
+            if (fs.existsSync(testPresetPath)) {
+                fs.unlinkSync(testPresetPath);
+            }
+        } catch (e) {
+            // Ignore cleanup failure
         }
     });
 
@@ -396,5 +400,46 @@ test.describe('Engine Endpoints (/api/engine)', () => {
         } finally {
             fs.unlinkSync(corruptPath);
         }
+    });
+
+    test('POST /api/engine/compile compiles with worldRules', async () => {
+        const app = express();
+        app.use(express.json());
+        registerEngineRoutes(app);
+
+        const res = await request(app, 'POST', '/api/engine/compile', {
+            presetId: 'detective_noir',
+            worldRules: [
+                { id: 'r1', text: 'Rain never stops falling in Sector 4.', enabled: true }
+            ]
+        });
+
+        assert.strictEqual(res.status, 200);
+        assert.ok(res.body.systemPrompt.includes('Rain never stops falling in Sector 4.'));
+        assert.ok(res.body.postHistory.includes('Rain never stops falling in Sector 4.'));
+    });
+
+    test('POST /api/engine/scaffold-world validates prompt and returns error when API key missing', async () => {
+        const app = express();
+        app.use(express.json());
+        registerEngineRoutes(app);
+
+        // Missing prompt -> 400
+        const resNoPrompt = await request(app, 'POST', '/api/engine/scaffold-world', {});
+        assert.strictEqual(resNoPrompt.status, 400);
+        assert.ok(resNoPrompt.body.error.includes('prompt'));
+
+        // Empty prompt -> 400
+        const resEmptyPrompt = await request(app, 'POST', '/api/engine/scaffold-world', { prompt: '   ' });
+        assert.strictEqual(resEmptyPrompt.status, 400);
+        assert.ok(resEmptyPrompt.body.error.includes('prompt'));
+
+        // Valid prompt but no API key configured in DB -> 400 with API key error
+        db.writeDb({ settings: { activeModel: 'gpt-4o' } }); // no openaiApiKey
+        const resNoKey = await request(app, 'POST', '/api/engine/scaffold-world', {
+            prompt: 'Vampires in 1920s Chicago'
+        });
+        assert.strictEqual(resNoKey.status, 400);
+        assert.ok(resNoKey.body.error.includes('API Key is missing'));
     });
 });

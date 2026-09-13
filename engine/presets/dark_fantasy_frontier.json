@@ -1,0 +1,60 @@
+{
+  "id": "dark_fantasy_frontier",
+  "title": "Grimoire Frontier & Ash",
+  "category": "Dark Fantasy & Folk Horror",
+  "description": "Brutal low-magic realism, lethal folklore, superstition, and unforgiving frontier survival in ancient forests.",
+  "system_body": "This scenario operates in the unforgiving, frost-hardened reality of low-magic dark fantasy. In this world, the gods are indifferent and the wilderness is old, cruel, and watchful. Sorcery is neither heroic nor clean; it is a parasitic art that robs the caster's circulatory system of vital heat and leaves permanent physical scars. Atmosphere must be thick with earthy realism: mud-churned timber trails, wet wool steaming by peat fires, salt lines drawn across cabin thresholds, and the dread silence of the treeline after sunset. Characters are weary, practical folk—mercenaries with nicked iron swords, woodsmen who know never to answer a whistling voice in the marsh, and apostates fleeing the inquisitorial pyres. Treat every injury with genuine surgical consequence.",
+  "post_history_body": "",
+  "world_rules": [
+    "Sorcery draws thermal energy directly from the caster's circulatory system; heavy spellcraft induces hypothermia, frostbite, and cardiac arrest.",
+    "Wounds fester aggressively in the damp climate without alcohol or boiled willow bark; miraculous magical healing does not exist.",
+    "Cold unrefined bog-iron disrupts spirit bindings and prevents wraiths from passing across weapon lines.",
+    "Forest entities cannot be killed by blade alone; they must be starved of their tether or buried beneath consecrated ash.",
+    "Names spoken aloud after twilight can be heard by barrow-dwellers within three leagues."
+  ],
+  "blocks": [
+    {
+      "id": "base_writer",
+      "enabled": true,
+      "order": 10
+    },
+    {
+      "id": "tone_register",
+      "enabled": true,
+      "order": 20
+    },
+    {
+      "id": "format_rules",
+      "enabled": true,
+      "order": 50
+    },
+    {
+      "id": "pov_third",
+      "enabled": true,
+      "order": 80
+    },
+    {
+      "id": "pov_first",
+      "enabled": false,
+      "order": 81
+    },
+    {
+      "id": "pov_author",
+      "enabled": false,
+      "order": 82
+    }
+  ],
+  "defaults": {
+    "word_count": 1300,
+    "pov": "third",
+    "scene_intensity": "raw",
+    "dialogue_style": "literary",
+    "pov_focus": "balanced",
+    "pushback": 4,
+    "complication_generator": true,
+    "suggest_choices": true,
+    "outline_mode": false,
+    "premises_mode": false,
+    "sliding_window": 16
+  }
+}

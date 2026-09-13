@@ -1,0 +1,60 @@
+{
+  "id": "post_apocalyptic_wasteland",
+  "title": "Ruin Ecology & Scarcity",
+  "category": "Post-Apocalyptic & Survival",
+  "description": "Desperate survival, contaminated rust plains, resource rationing, and scavenger territorial friction.",
+  "system_body": "This scenario operates in the harsh realism of post-collapse survival. Decades after the fall, nature is reclaiming broken asphalt while toxic industrial residues linger in soil and bone. Focus relentlessly on material friction and physical scarcity: the cracked texture of salt-pan flats, the grinding rattle of sand in rifle bolts, the metallic aftertaste of boiled chemical rainwater, and the constant caloric mathematics of every expedition. Characters are hardened survivors bound by pragmatic barter, guarded truces, and predatory vigilance. Trust is fragile and earned only through shared bloodshed or shared rations. Action should be sudden, brutal, and costly—no clean Hollywood skirmishes without ammunition depletion, infection risk, or equipment breakdown.",
+  "post_history_body": "",
+  "world_rules": [
+    "Unfiltered surface groundwater causes irreversible organ necrosis and heavy-metal poisoning within 48 hours.",
+    "Factory-stamped lead ammunition is the sole universally accepted currency; hand-pressed rounds misfire 25% of the time.",
+    "Alkaline dust squalls strip exposed human skin and corrode unsealed electrical wiring within thirty minutes.",
+    "Bioluminescent mutant fauna track prey primarily through body heat and sonic vibration rather than sight.",
+    "Combustion engines attract roving scavenger raiders; running a motor in open country guarantees armed contact within hours."
+  ],
+  "blocks": [
+    {
+      "id": "base_writer",
+      "enabled": true,
+      "order": 10
+    },
+    {
+      "id": "tone_register",
+      "enabled": true,
+      "order": 20
+    },
+    {
+      "id": "format_rules",
+      "enabled": true,
+      "order": 50
+    },
+    {
+      "id": "pov_third",
+      "enabled": true,
+      "order": 80
+    },
+    {
+      "id": "pov_first",
+      "enabled": false,
+      "order": 81
+    },
+    {
+      "id": "pov_author",
+      "enabled": false,
+      "order": 82
+    }
+  ],
+  "defaults": {
+    "word_count": 1200,
+    "pov": "third",
+    "scene_intensity": "raw",
+    "dialogue_style": "guarded",
+    "pov_focus": "balanced",
+    "pushback": 4,
+    "complication_generator": true,
+    "suggest_choices": true,
+    "outline_mode": false,
+    "premises_mode": false,
+    "sliding_window": 16
+  }
+}

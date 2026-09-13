@@ -5,6 +5,12 @@
   "description": "Suspenseful, minds-bending scenario focused on unreliable narrators, memory gaps, paranoia, and psychological manipulation.",
   "system_body": "This scenario operates under the lens of psychological suspense. The focus is on the interiority of the characters, exploring paranoia, obsession, memory distortion, and the blurring of reality. The environment should feel claustrophobic and atmospheric, mirroring the mental state of the characters. Write with a slow, creeping tension, highlighting subtle discrepancies, double-takes, and silent interactions. Dialogue should be guarded and manipulative, where characters second-guess motives and play psychological games with each other.",
   "post_history_body": "",
+  "world_rules": [
+    "Perception is unstable: sensory contradictions and altered timelines may reflect genuine dissociative trauma or deliberate gaslighting.",
+    "Physical isolation prevents outside corroboration; communications with external authorities are cut off or intercepted.",
+    "Prescription medications and sedatives induce vivid sensory hallucinations and selective amnesia if dosage is altered.",
+    "Every ally or confidant possesses a documented motive to deceive, conceal evidence, or misdirect the protagonist."
+  ],
   "blocks": [
     {
       "id": "base_writer",

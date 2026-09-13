@@ -5,6 +5,12 @@
   "description": "Character-driven romantic drama focusing on subtle emotional progression, growing intimacy, and unspoken feelings.",
   "system_body": "This scenario focuses on the gradual buildup of romantic feelings and emotional connection. Emphasize small gestures, shared looks, subtext in conversation, and the physical awareness of being near one another. Write with a warm, intimate tone, focusing heavily on character thoughts, vulnerabilities, and internal conflict. Keep physical descriptions tender and focused on connection rather than raw speed or physical mechanics.",
   "post_history_body": "",
+  "world_rules": [
+    "Social and familial contracts impose severe social stigma or reputational ruin if mutual affection is publicly disclosed.",
+    "Unspoken obligations and professional conflicts of interest force frequent physical and emotional distance between the characters.",
+    "Vulnerability is treated as dangerous; characters default to deflecting humor, formal etiquette, or pride to mask genuine feeling.",
+    "Physical intimacy progresses through strict emotional gates; neither character acts on impulse without confronting the consequences."
+  ],
   "blocks": [
     {
       "id": "base_writer",

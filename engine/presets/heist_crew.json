@@ -5,6 +5,12 @@
   "description": "High-stakes caper focusing on planning, execution, crew cooperation, and unexpected security complications.",
   "system_body": "This scenario operates under the caper/heist genre. The focus is on the coordination, timing, and professional camaraderie of a crew attempting a difficult job (e.g., bank vault, high-value art collection, corporate mainframe). Character roles (the mastermind, the hacker, the muscle, the grifter) are distinct and cooperative. Dialogue should be sharp, professional, and fast-paced. Write with an energetic, rhythmic style that highlights the tension of the timer and the split-second decisions of the crew.",
   "post_history_body": "",
+  "world_rules": [
+    "Security vault locks utilize dual-key biometric and acoustic harmonic sensors that re-scramble every 120 seconds.",
+    "Silent alarm feeds are hardwired to private tactical response units with an average response time of four minutes.",
+    "Any radio communication inside the facility must be scrambled; unencrypted frequencies trigger immediate electromagnetic lockdown.",
+    "A crew betrayal trigger is pre-seeded: at least one asset or client has hidden secondary objectives conflicting with the crew's extraction."
+  ],
   "blocks": [
     {
       "id": "base_writer",

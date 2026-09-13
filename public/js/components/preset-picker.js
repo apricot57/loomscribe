@@ -213,10 +213,24 @@ export function renderPresetPickerGrid(query = '') {
             if (!chosen) return;
 
             try {
-                const updated = await updateConversation(state.currentConversationId, {
+                let worldRulesPayload = undefined;
+                if (Array.isArray(chosen.world_rules) && chosen.world_rules.length > 0) {
+                    worldRulesPayload = chosen.world_rules.map((rule, idx) => ({
+                        id: `r_${Date.now()}_${idx}`,
+                        text: typeof rule === 'string' ? rule : (rule.text || ''),
+                        enabled: rule.enabled !== false
+                    }));
+                }
+
+                const updateData = {
                     presetId,
                     params: { ...(chosen.defaults || {}) }
-                });
+                };
+                if (worldRulesPayload) {
+                    updateData.worldRules = worldRulesPayload;
+                }
+
+                const updated = await updateConversation(state.currentConversationId, updateData);
                 setState('activeConversation', updated);
                 renderInspector(updated);
                 closePresetPickerModal();
