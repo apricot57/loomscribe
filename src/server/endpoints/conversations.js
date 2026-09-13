@@ -1,4 +1,4 @@
-const { readDb, writeDb } = require('../db');
+const { readDb, mutateDb } = require('../db');
 const { generateUniqueId } = require('../utils');
 
 function registerConversationsRoutes(app) {
@@ -9,24 +9,25 @@ function registerConversationsRoutes(app) {
         res.json(db.conversations || []);
     });
 
-    app.post('/api/conversations', (req, res) => {
-        const body = req.body;
-        const db = readDb();
-        if (!db.conversations) db.conversations = [];
-        const newConv = {
-            id: generateUniqueId(db, 'conversations'),
-            title: body.title || 'New Chat',
-            activeModel: body.activeModel || db.settings?.activeModel || 'deepseek-v4-pro',
-            systemPromptId: body.systemPromptId || null,
-            presetId: body.presetId || null,
-            params: body.params || {},
-            blockOverrides: body.blockOverrides || {},
-            directorNote: body.directorNote || '',
-            lastAppliedEngineSignature: body.lastAppliedEngineSignature || '',
-            createdAt: Date.now()
-        };
-        db.conversations.push(newConv);
-        writeDb(db);
+    app.post('/api/conversations', async (req, res) => {
+        const body = req.body || {};
+        const newConv = await mutateDb((db) => {
+            if (!db.conversations) db.conversations = [];
+            const conv = {
+                id: generateUniqueId(db, 'conversations'),
+                title: body.title || 'New Chat',
+                activeModel: body.activeModel || db.settings?.activeModel || 'deepseek-v4-pro',
+                systemPromptId: body.systemPromptId || null,
+                presetId: body.presetId || null,
+                params: body.params || {},
+                blockOverrides: body.blockOverrides || {},
+                directorNote: body.directorNote || '',
+                lastAppliedEngineSignature: body.lastAppliedEngineSignature || '',
+                createdAt: Date.now()
+            };
+            db.conversations.push(conv);
+            return conv;
+        });
         res.json(newConv);
     });
 
@@ -43,13 +44,17 @@ function registerConversationsRoutes(app) {
         }
     });
 
-    app.put('/api/conversations/:id', (req, res) => {
+    app.put('/api/conversations/:id', async (req, res) => {
         const idStr = req.params.id;
         const id = isNaN(idStr) ? idStr : parseInt(idStr, 10);
-        const body = req.body;
-        const db = readDb();
-        const idx = db.conversations.findIndex(c => c.id === id);
-        if (idx !== -1) {
+        const body = req.body || {};
+        let notFound = false;
+        const updatedConv = await mutateDb((db) => {
+            const idx = (db.conversations || []).findIndex(c => c.id === id);
+            if (idx === -1) {
+                notFound = true;
+                return null;
+            }
             const { 
                 title, 
                 activeModel, 
@@ -75,14 +80,17 @@ function registerConversationsRoutes(app) {
             if (lastAppliedEngineSignature !== undefined) updateObj.lastAppliedEngineSignature = lastAppliedEngineSignature;
             
             db.conversations[idx] = { ...db.conversations[idx], ...updateObj };
-            writeDb(db);
-            res.json(db.conversations[idx]);
-        } else {
+            return db.conversations[idx];
+        });
+
+        if (notFound) {
             res.status(404).send('Not Found');
+        } else {
+            res.json(updatedConv);
         }
     });
 
-    app.post('/api/conversations/:id/fork', (req, res) => {
+    app.post('/api/conversations/:id/fork', async (req, res) => {
         const idStr = req.params.id;
         const id = isNaN(idStr) ? idStr : parseInt(idStr, 10);
         const { messageId: targetMsgIdRaw, title: customTitle } = req.body || {};
@@ -94,84 +102,91 @@ function registerConversationsRoutes(app) {
 
         const targetMsgId = isNaN(targetMsgIdRaw) ? targetMsgIdRaw : parseInt(targetMsgIdRaw, 10);
 
-        const db = readDb();
-        const origConv = (db.conversations || []).find(c => c.id === id);
-        if (!origConv) {
-            res.status(404).send('Conversation Not Found');
-            return;
-        }
+        let statusError = null;
+        const forkedConv = await mutateDb((db) => {
+            const origConv = (db.conversations || []).find(c => c.id === id);
+            if (!origConv) {
+                statusError = { status: 404, message: 'Conversation Not Found' };
+                return null;
+            }
 
-        const allMessages = db.messages || [];
-        const targetMsg = allMessages.find(m => m.id === targetMsgId && m.conversationId === id);
-        if (!targetMsg) {
-            res.status(404).send('Target message not found');
-            return;
-        }
+            const allMessages = db.messages || [];
+            const targetMsg = allMessages.find(m => m.id === targetMsgId && m.conversationId === id);
+            if (!targetMsg) {
+                statusError = { status: 404, message: 'Target message not found' };
+                return null;
+            }
 
-        // Build active message chain up to targetMsg
-        const activeMessages = allMessages.filter(m => m.conversationId === id && m.isActive !== false);
-        const activeMap = new Map();
-        activeMessages.forEach(m => activeMap.set(m.id, m));
+            // Build active message chain up to targetMsg
+            const activeMessages = allMessages.filter(m => m.conversationId === id && m.isActive !== false);
+            const activeMap = new Map();
+            activeMessages.forEach(m => activeMap.set(m.id, m));
 
-        const chain = [];
-        let current = activeMap.get(targetMsgId) || targetMsg;
-        while (current) {
-            chain.unshift(current);
-            if (!current.parentMsgId) break;
-            current = activeMap.get(current.parentMsgId) || allMessages.find(m => m.id === current.parentMsgId);
-        }
+            const chain = [];
+            let current = activeMap.get(targetMsgId) || targetMsg;
+            while (current) {
+                chain.unshift(current);
+                if (!current.parentMsgId) break;
+                current = activeMap.get(current.parentMsgId) || allMessages.find(m => m.id === current.parentMsgId);
+            }
 
-        // Create new conversation
-        if (!db.conversations) db.conversations = [];
-        const newConvTitle = customTitle || (origConv.title ? `Fork of ${origConv.title}` : 'Forked Chat');
-        const newConv = {
-            id: generateUniqueId(db, 'conversations'),
-            title: newConvTitle,
-            activeModel: origConv.activeModel || 'deepseek-v4-pro',
-            systemPromptId: origConv.systemPromptId || null,
-            presetId: origConv.presetId || null,
-            params: origConv.params ? { ...origConv.params } : {},
-            blockOverrides: origConv.blockOverrides ? { ...origConv.blockOverrides } : {},
-            directorNote: origConv.directorNote || '',
-            lastAppliedEngineSignature: origConv.lastAppliedEngineSignature || '',
-            createdAt: Date.now()
-        };
-        db.conversations.push(newConv);
-
-        // Copy message chain
-        if (!db.messages) db.messages = [];
-        const idMap = new Map();
-        for (const msg of chain) {
-            const newMsgId = generateUniqueId(db, 'messages');
-            idMap.set(msg.id, newMsgId);
-
-            const newParentId = msg.parentMsgId ? (idMap.get(msg.parentMsgId) || null) : null;
-            const newMsg = {
-                id: newMsgId,
-                conversationId: newConv.id,
-                role: msg.role,
-                content: msg.content,
-                reasoning: msg.reasoning,
-                timestamp: msg.timestamp,
-                parentMsgId: newParentId,
-                versionGroupId: newMsgId,
-                version: 1,
-                isActive: true
+            // Create new conversation
+            if (!db.conversations) db.conversations = [];
+            const newConvTitle = customTitle || (origConv.title ? `Fork of ${origConv.title}` : 'Forked Chat');
+            const createdConv = {
+                id: generateUniqueId(db, 'conversations'),
+                title: newConvTitle,
+                activeModel: origConv.activeModel || 'deepseek-v4-pro',
+                systemPromptId: origConv.systemPromptId || null,
+                presetId: origConv.presetId || null,
+                params: origConv.params ? { ...origConv.params } : {},
+                blockOverrides: origConv.blockOverrides ? { ...origConv.blockOverrides } : {},
+                directorNote: origConv.directorNote || '',
+                lastAppliedEngineSignature: origConv.lastAppliedEngineSignature || '',
+                createdAt: Date.now()
             };
-            db.messages.push(newMsg);
-        }
+            db.conversations.push(createdConv);
 
-        writeDb(db);
-        res.json(newConv);
+            // Copy message chain
+            if (!db.messages) db.messages = [];
+            const idMap = new Map();
+            for (const msg of chain) {
+                const newMsgId = generateUniqueId(db, 'messages');
+                idMap.set(msg.id, newMsgId);
+
+                const newParentId = msg.parentMsgId ? (idMap.get(msg.parentMsgId) || null) : null;
+                const newMsg = {
+                    id: newMsgId,
+                    conversationId: createdConv.id,
+                    role: msg.role,
+                    content: msg.content,
+                    reasoning: msg.reasoning,
+                    timestamp: msg.timestamp,
+                    parentMsgId: newParentId,
+                    versionGroupId: newMsgId,
+                    version: 1,
+                    isActive: true
+                };
+                db.messages.push(newMsg);
+            }
+
+            return createdConv;
+        });
+
+        if (statusError) {
+            res.status(statusError.status).send(statusError.message);
+        } else {
+            res.json(forkedConv);
+        }
     });
 
-    app.delete('/api/conversations/:id', (req, res) => {
+    app.delete('/api/conversations/:id', async (req, res) => {
         const idStr = req.params.id;
         const id = isNaN(idStr) ? idStr : parseInt(idStr, 10);
-        const db = readDb();
-        db.conversations = (db.conversations || []).filter(c => c.id !== id);
-        db.messages = (db.messages || []).filter(m => m.conversationId !== id);
-        writeDb(db);
+        await mutateDb((db) => {
+            db.conversations = (db.conversations || []).filter(c => c.id !== id);
+            db.messages = (db.messages || []).filter(m => m.conversationId !== id);
+        });
         res.json({ success: true });
     });
 }

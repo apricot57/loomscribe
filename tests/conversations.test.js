@@ -48,14 +48,7 @@ function request(app, method, pathUrl, body = null) {
 }
 
 test.describe('Conversation Endpoints (/api/conversations)', () => {
-    const dbPath = path.resolve(__dirname, '../data/db.json');
-    let originalDbContent = null;
-
-    test.before(() => {
-        if (fs.existsSync(dbPath)) {
-            originalDbContent = fs.readFileSync(dbPath, 'utf-8');
-        }
-    });
+    const dbPath = db.getDbFile();
 
     test.beforeEach(() => {
         db.writeDb({ conversations: [], messages: [], prompts: [], settings: {} });
@@ -66,9 +59,11 @@ test.describe('Conversation Endpoints (/api/conversations)', () => {
     });
 
     test.after(() => {
-        if (originalDbContent !== null) {
-            fs.writeFileSync(dbPath, originalDbContent, 'utf-8');
-        }
+        try {
+            if (fs.existsSync(dbPath) && dbPath.endsWith('.test.json')) {
+                fs.unlinkSync(dbPath);
+            }
+        } catch (_) {}
     });
 
     test('GET /api/conversations returns list of conversations', async () => {
@@ -283,5 +278,26 @@ test.describe('Conversation Endpoints (/api/conversations)', () => {
         // Target message not found in this conversation -> 404
         const resTargetMissing = await request(app, 'POST', '/api/conversations/100/fork', { messageId: 999 });
         assert.strictEqual(resTargetMissing.status, 404);
+    });
+
+    test('POST /api/conversations handles concurrent requests sequentially without lost updates', async () => {
+        const app = express();
+        app.use(express.json());
+        registerConversationsRoutes(app);
+
+        const count = 15;
+        const promises = [];
+        for (let i = 0; i < count; i++) {
+            promises.push(request(app, 'POST', '/api/conversations', { title: `Concurrent Chat ${i}` }));
+        }
+
+        const results = await Promise.all(promises);
+        for (const res of results) {
+            assert.strictEqual(res.status, 200);
+            assert.ok(res.body.id);
+        }
+
+        const currentDb = db.readDb();
+        assert.strictEqual(currentDb.conversations.length, count);
     });
 });

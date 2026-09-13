@@ -48,14 +48,7 @@ function request(app, method, pathUrl, body = null) {
 }
 
 test.describe('Conversation Fork Endpoint', () => {
-    const dbPath = path.resolve(__dirname, '../data/db.json');
-    let originalDbContent = null;
-
-    test.before(() => {
-        if (fs.existsSync(dbPath)) {
-            originalDbContent = fs.readFileSync(dbPath, 'utf-8');
-        }
-    });
+    const dbPath = db.getDbFile();
 
     test.beforeEach(() => {
         db.writeDb({ conversations: [], messages: [], settings: {} });
@@ -66,9 +59,11 @@ test.describe('Conversation Fork Endpoint', () => {
     });
 
     test.after(() => {
-        if (originalDbContent !== null) {
-            fs.writeFileSync(dbPath, originalDbContent, 'utf-8');
-        }
+        try {
+            if (fs.existsSync(dbPath) && dbPath.endsWith('.test.json')) {
+                fs.unlinkSync(dbPath);
+            }
+        } catch (_) {}
     });
 
     test('POST /api/conversations/:id/fork forks conversation up to target message', async () => {

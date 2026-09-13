@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { compilePrompt } = require('../../../engine/compiler');
 const { readDb } = require('../db');
+const logger = require('../logger');
 
 const PRESETS_DIR = path.resolve(__dirname, '../../../engine/presets');
 const SCHEMA_PATH = path.resolve(__dirname, '../../../engine/schema.json');
@@ -21,6 +22,54 @@ function validatePresetId(id) {
     return /^[a-z0-9_]+$/.test(id);
 }
 
+// Type-checks preset fields; returns an error message or null when valid.
+function validatePreset(body) {
+    if (typeof body.title !== 'string' || !body.title.trim()) {
+        return 'Missing required field: title';
+    }
+    if (body.description !== undefined && typeof body.description !== 'string') {
+        return 'Invalid field: description must be a string.';
+    }
+    if (body.system_body !== undefined && typeof body.system_body !== 'string') {
+        return 'Invalid field: system_body must be a string.';
+    }
+    if (body.post_history_body !== undefined && typeof body.post_history_body !== 'string') {
+        return 'Invalid field: post_history_body must be a string.';
+    }
+    if (body.blocks !== undefined) {
+        if (!Array.isArray(body.blocks)) {
+            return 'Invalid field: blocks must be an array of block objects.';
+        }
+        for (const block of body.blocks) {
+            if (!block || typeof block !== 'object' || Array.isArray(block)) {
+                return 'Invalid field: blocks must contain block objects.';
+            }
+            if (typeof block.id !== 'string' || !block.id) {
+                return 'Invalid field: each block must have a string id.';
+            }
+            if (block.enabled !== undefined && typeof block.enabled !== 'boolean') {
+                return `Invalid field: block "${block.id}" enabled must be a boolean.`;
+            }
+            if ((block.order !== undefined && typeof block.order !== 'number') || Number.isNaN(block.order)) {
+                return `Invalid field: block "${block.id}" order must be a number.`;
+            }
+        }
+    }
+    if (body.defaults !== undefined) {
+        if (!body.defaults || typeof body.defaults !== 'object' || Array.isArray(body.defaults)) {
+            return 'Invalid field: defaults must be an object.';
+        }
+        for (const [key, val] of Object.entries(body.defaults)) {
+            // Booleans are accepted alongside numbers/strings: existing presets
+            // (and the schema toggles) use them as defaults.
+            if (typeof val !== 'number' && typeof val !== 'string' && typeof val !== 'boolean') {
+                return `Invalid field: default "${key}" must be a number, string or boolean.`;
+            }
+        }
+    }
+    return null;
+}
+
 function isPresetUsedByConversation(id) {
     const db = readDb();
     return (db.conversations || []).some(c => c.presetId === id);
@@ -35,10 +84,19 @@ function registerEngineRoutes(app) {
                 return;
             }
             const files = fs.readdirSync(PRESETS_DIR).filter(f => f.endsWith('.json'));
-            const presets = files.map(f => {
-                const content = fs.readFileSync(path.join(PRESETS_DIR, f), 'utf-8');
-                return JSON.parse(content);
-            });
+            const presets = [];
+            for (const f of files) {
+                try {
+                    const content = fs.readFileSync(path.join(PRESETS_DIR, f), 'utf-8');
+                    const parsed = JSON.parse(content);
+                    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                        presets.push(parsed);
+                    }
+                } catch (err) {
+                    // One malformed file must not break the whole listing.
+                    logger.warn('preset_list_parse_failed', { file: f, error: err.message });
+                }
+            }
 
             // Group by category
             const grouped = {};
@@ -98,8 +156,9 @@ function registerEngineRoutes(app) {
             if (!id || !validatePresetId(id)) {
                 return res.status(400).json({ error: 'Invalid or missing preset ID. Use lowercase letters, numbers and underscores only.' });
             }
-            if (!body.title || !body.title.trim()) {
-                return res.status(400).json({ error: 'Missing required field: title' });
+            const validationError = validatePreset(body);
+            if (validationError) {
+                return res.status(400).json({ error: validationError });
             }
 
             const filePath = path.join(PRESETS_DIR, `${id}.json`);
@@ -136,8 +195,9 @@ function registerEngineRoutes(app) {
             }
 
             const body = req.body;
-            if (!body.title || !body.title.trim()) {
-                return res.status(400).json({ error: 'Missing required field: title' });
+            const validationError = validatePreset(body);
+            if (validationError) {
+                return res.status(400).json({ error: validationError });
             }
 
             const preset = sanitizePreset(body);

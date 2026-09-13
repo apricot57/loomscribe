@@ -1,8 +1,13 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { readDb, writeDb, mutateDb } = require('../src/server/db');
+const { getDbFile, readDb, writeDb, mutateDb } = require('../src/server/db');
 
 test.describe('Database Concurrency & Serialized Mutations (src/server/db.js)', () => {
+
+    test('getDbFile returns isolated db.test.json during testing to protect db.json', () => {
+        const file = getDbFile();
+        assert.ok(file.endsWith('db.test.json'), `Expected test database path, got ${file}`);
+    });
 
     test('readDb returns valid object with required tables', () => {
         const db = readDb();
@@ -72,4 +77,43 @@ test.describe('Database Concurrency & Serialized Mutations (src/server/db.js)', 
         }
         writeDb(readBack);
     });
+
+    test('mutateDb rejects and quarantines a corrupted database file without overwriting it', async () => {
+        const fs = require('fs');
+        const path = require('path');
+        const dbPath = getDbFile();
+        const dataDir = path.dirname(dbPath);
+        const corruptContent = '{"conversations": [broken json';
+
+        // Plain read path: falls back (cached or default) but must not throw
+        const snapshot = readDb();
+        assert.ok(snapshot && Array.isArray(snapshot.messages));
+
+        fs.writeFileSync(dbPath, corruptContent, 'utf-8');
+
+        await assert.rejects(
+            mutateDb((db) => {
+                db._corruptMarker = true;
+            }),
+            /Database file is corrupted/
+        );
+
+        // The corrupt file was quarantined with its original bytes intact
+        const quarantineFiles = fs.readdirSync(dataDir).filter(f => f.startsWith('db.corrupt.') && f.endsWith('.json'));
+        assert.ok(quarantineFiles.length > 0, 'expected a db.corrupt.<timestamp>.json quarantine file');
+        const quarantinedBytes = fs.readFileSync(path.join(dataDir, quarantineFiles[quarantineFiles.length - 1]), 'utf-8');
+        assert.strictEqual(quarantinedBytes, corruptContent);
+
+        // No valid database was written over the corrupt file
+        if (fs.existsSync(dbPath)) {
+            assert.strictEqual(fs.readFileSync(dbPath, 'utf-8'), corruptContent);
+        }
+
+        // Cleanup: remove quarantine copies and restore a clean test database
+        for (const f of quarantineFiles) {
+            fs.unlinkSync(path.join(dataDir, f));
+        }
+        writeDb({ conversations: [], messages: [], prompts: [], settings: {} });
+    });
+
 });

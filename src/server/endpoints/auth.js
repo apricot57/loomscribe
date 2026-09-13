@@ -5,6 +5,13 @@ const logger = require('../logger');
 const validTokens = new Map();
 const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
+function safeCompare(a, b) {
+    if (typeof a !== 'string' || typeof b !== 'string') return false;
+    const aHash = crypto.createHash('sha256').update(a).digest();
+    const bHash = crypto.createHash('sha256').update(b).digest();
+    return crypto.timingSafeEqual(aHash, bHash);
+}
+
 function generateToken() {
     return crypto.randomBytes(32).toString('hex');
 }
@@ -51,7 +58,7 @@ function auth(app) {
             return res.json({ token: 'no-auth', message: 'Auth disabled' });
         }
 
-        if (!password || password !== appPassword) {
+        if (!password || !safeCompare(password, appPassword)) {
             logger.warn('auth_login_fail', { ip: req.ip });
             return res.status(401).json({ error: 'Invalid password' });
         }

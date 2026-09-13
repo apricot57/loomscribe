@@ -48,14 +48,7 @@ function request(app, method, pathUrl, body = null) {
 }
 
 test.describe('Message Version Endpoints', () => {
-    const dbPath = path.resolve(__dirname, '../data/db.json');
-    let originalDbContent = null;
-
-    test.before(() => {
-        if (fs.existsSync(dbPath)) {
-            originalDbContent = fs.readFileSync(dbPath, 'utf-8');
-        }
-    });
+    const dbPath = db.getDbFile();
 
     test.beforeEach(() => {
         db.writeDb({ conversations: [], messages: [], settings: {} });
@@ -66,9 +59,11 @@ test.describe('Message Version Endpoints', () => {
     });
 
     test.after(() => {
-        if (originalDbContent !== null) {
-            fs.writeFileSync(dbPath, originalDbContent, 'utf-8');
-        }
+        try {
+            if (fs.existsSync(dbPath) && dbPath.endsWith('.test.json')) {
+                fs.unlinkSync(dbPath);
+            }
+        } catch (_) {}
     });
 
     test('GET /api/messages filters messages by conversationId', async () => {
@@ -96,6 +91,12 @@ test.describe('Message Version Endpoints', () => {
         app.use(express.json());
         registerMessagesRoutes(app);
 
+        db.writeDb({
+            conversations: [{ id: 5, title: 'conv 5' }],
+            messages: [],
+            settings: {}
+        });
+
         const res = await request(app, 'POST', '/api/messages', {
             conversationId: 5,
             role: 'user',
@@ -112,6 +113,105 @@ test.describe('Message Version Endpoints', () => {
 
         const savedDb = db.readDb();
         assert.strictEqual(savedDb.messages.length, 1);
+    });
+
+
+    test('POST /api/messages rejects invalid payloads without persisting', async () => {
+        const app = express();
+        app.use(express.json());
+        registerMessagesRoutes(app);
+
+        db.writeDb({
+            conversations: [{ id: 5, title: 'conv 5' }],
+            messages: [],
+            settings: {}
+        });
+
+        const badRole = await request(app, 'POST', '/api/messages', {
+            conversationId: 5, role: 'hacker', content: 'x'
+        });
+        assert.strictEqual(badRole.status, 400);
+
+        const missingContent = await request(app, 'POST', '/api/messages', {
+            conversationId: 5, role: 'user'
+        });
+        assert.strictEqual(missingContent.status, 400);
+
+        const nonStringContent = await request(app, 'POST', '/api/messages', {
+            conversationId: 5, role: 'user', content: 42
+        });
+        assert.strictEqual(nonStringContent.status, 400);
+
+        const emptyContent = await request(app, 'POST', '/api/messages', {
+            conversationId: 5, role: 'user', content: '   '
+        });
+        assert.strictEqual(emptyContent.status, 400);
+
+        const unknownConversation = await request(app, 'POST', '/api/messages', {
+            conversationId: 999, role: 'user', content: 'x'
+        });
+        assert.strictEqual(unknownConversation.status, 404);
+
+        const missingConversation = await request(app, 'POST', '/api/messages', {
+            role: 'user', content: 'x'
+        });
+        assert.strictEqual(missingConversation.status, 404);
+
+        const badVersion = await request(app, 'POST', '/api/messages', {
+            conversationId: 5, role: 'user', content: 'x', version: 'two'
+        });
+        assert.strictEqual(badVersion.status, 400);
+
+        const zeroVersion = await request(app, 'POST', '/api/messages', {
+            conversationId: 5, role: 'user', content: 'x', version: 0
+        });
+        assert.strictEqual(zeroVersion.status, 400);
+
+        const badIsActive = await request(app, 'POST', '/api/messages', {
+            conversationId: 5, role: 'user', content: 'x', isActive: 'yes'
+        });
+        assert.strictEqual(badIsActive.status, 400);
+
+        const unknownVersionGroupId = await request(app, 'POST', '/api/messages', {
+            conversationId: 5, role: 'user', content: 'x', versionGroupId: 424242
+        });
+        assert.strictEqual(unknownVersionGroupId.status, 400);
+
+        const savedDb = db.readDb();
+        assert.strictEqual(savedDb.messages.length, 0);
+    });
+
+    test('PUT /api/messages/:id rejects invalid field updates', async () => {
+        const app = express();
+        app.use(express.json());
+        registerMessagesRoutes(app);
+
+        db.writeDb({
+            messages: [
+                { id: 30, conversationId: 1, role: 'assistant', content: 'original bot content', versionGroupId: 30, version: 1, isActive: true }
+            ]
+        });
+
+        const badContent = await request(app, 'PUT', '/api/messages/30', { content: 123 });
+        assert.strictEqual(badContent.status, 400);
+
+        const emptyContent = await request(app, 'PUT', '/api/messages/30', { content: '' });
+        assert.strictEqual(emptyContent.status, 400);
+
+        const badVersion = await request(app, 'PUT', '/api/messages/30', { version: 1.5 });
+        assert.strictEqual(badVersion.status, 400);
+
+        const badIsActive = await request(app, 'PUT', '/api/messages/30', { isActive: 'true' });
+        assert.strictEqual(badIsActive.status, 400);
+
+        const badVersionGroupId = await request(app, 'PUT', '/api/messages/30', { versionGroupId: 999999 });
+        assert.strictEqual(badVersionGroupId.status, 400);
+
+        const savedDb = db.readDb();
+        const m30 = savedDb.messages.find(m => m.id === 30);
+        assert.strictEqual(m30.content, 'original bot content');
+        assert.strictEqual(m30.version, 1);
+        assert.strictEqual(m30.isActive, true);
     });
 
     test('DELETE /api/messages deletes all messages for specified conversationId', async () => {
