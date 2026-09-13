@@ -49,29 +49,42 @@ function request(app, method, pathUrl, body = null) {
 }
 
 test.describe('Config Endpoints for Custom Models', () => {
-    const dbPath = path.resolve(__dirname, '../data/db.json');
-    let originalDbContent = null;
+    const dbPath = db.getDbFile();
 
-    test.before(() => {
-        if (fs.existsSync(dbPath)) {
-            originalDbContent = fs.readFileSync(dbPath, 'utf-8');
-        }
-    });
+    // Save API key env vars so tests are deterministic whether or not real keys are exported
+    const originalApiKeys = {
+        DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY,
+        GLM_API_KEY: process.env.GLM_API_KEY,
+        ZAI_API_KEY: process.env.ZAI_API_KEY,
+        OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    };
 
     test.beforeEach(() => {
         // Reset DB to clean state before each test
         db.writeDb({ conversations: [], messages: [], prompts: [], settings: {} });
+        for (const key of Object.keys(originalApiKeys)) {
+            delete process.env[key];
+        }
     });
 
     test.afterEach(() => {
         // Reset DB to clean state
         db.writeDb({ conversations: [], messages: [], prompts: [], settings: {} });
+        for (const [key, value] of Object.entries(originalApiKeys)) {
+            if (value !== undefined) {
+                process.env[key] = value;
+            } else {
+                delete process.env[key];
+            }
+        }
     });
 
     test.after(() => {
-        if (originalDbContent !== null) {
-            fs.writeFileSync(dbPath, originalDbContent, 'utf-8');
-        }
+        try {
+            if (fs.existsSync(dbPath) && dbPath.endsWith('.test.json')) {
+                fs.unlinkSync(dbPath);
+            }
+        } catch (_) {}
     });
 
     test('GET /api/config returns customModels array', async () => {
@@ -255,6 +268,105 @@ test.describe('Config Endpoints for Custom Models', () => {
         assert.deepStrictEqual(getRes.body.openaiModels, ['gpt-5.6', 'gpt-4o', 'o3-mini']);
     });
 
+    test('POST /api/config saves and retrieves GLM configuration', async () => {
+        const app = express();
+        app.use(express.json());
+        registerConfigRoutes(app);
+
+        db.writeDb({ settings: {} });
+
+        const res = await request(app, 'POST', '/api/config', {
+            glmApiKey: 'fake-glm-key-for-tests',
+            pinnedGlmModels: ['glm-4.7-flash', 'glm-4.7'],
+            glmModels: ['glm-4.7-flash', 'glm-4.7', 'glm-5.3-flash']
+        });
+
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.success, true);
+        assert.strictEqual(res.body.hasGlmKey, true);
+        assert.deepStrictEqual(res.body.pinnedGlmModels, ['glm-4.7-flash', 'glm-4.7']);
+        assert.deepStrictEqual(res.body.glmModels, ['glm-4.7-flash', 'glm-4.7', 'glm-5.3-flash']);
+
+        const getRes = await request(app, 'GET', '/api/config');
+        assert.strictEqual(getRes.body.hasGlmKey, true);
+        assert.deepStrictEqual(getRes.body.pinnedGlmModels, ['glm-4.7-flash', 'glm-4.7']);
+        assert.deepStrictEqual(getRes.body.glmModels, ['glm-4.7-flash', 'glm-4.7', 'glm-5.3-flash']);
+    });
+
+    test('POST /api/config saves and retrieves OpenRouter key and pinned models', async () => {
+        const app = express();
+        app.use(express.json());
+        registerConfigRoutes(app);
+
+        db.writeDb({ settings: {} });
+
+        const res = await request(app, 'POST', '/api/config', {
+            openrouterApiKey: 'sk-or-v1-test1234',
+            pinnedOpenRouterModels: ['anthropic/claude-sonnet-4.5', 'openai/gpt-4o']
+        });
+
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.success, true);
+        assert.strictEqual(res.body.hasOpenRouterKey, true);
+        assert.deepStrictEqual(res.body.pinnedOpenRouterModels, ['anthropic/claude-sonnet-4.5', 'openai/gpt-4o']);
+
+        const getRes = await request(app, 'GET', '/api/config');
+        assert.strictEqual(getRes.body.hasOpenRouterKey, true);
+        assert.deepStrictEqual(getRes.body.pinnedOpenRouterModels, ['anthropic/claude-sonnet-4.5', 'openai/gpt-4o']);
+    });
+
+    test('POST /api/config saves and retrieves openrouterModelDetails cache', async () => {
+        const app = express();
+        app.use(express.json());
+        registerConfigRoutes(app);
+
+        db.writeDb({ settings: {} });
+
+        const modelDetails = {
+            'deepseek/deepseek-v4-flash': {
+                name: 'DeepSeek V4 Flash',
+                contextLength: 128000,
+                promptCostPerMillion: 0.14,
+                completionCostPerMillion: 0.28,
+                lastUpdated: 1789210000000
+            }
+        };
+
+        const res = await request(app, 'POST', '/api/config', {
+            pinnedOpenRouterModels: ['deepseek/deepseek-v4-flash'],
+            openrouterModelDetails: modelDetails
+        });
+
+        assert.strictEqual(res.status, 200);
+        assert.deepStrictEqual(res.body.openrouterModelDetails, modelDetails);
+
+        const getRes = await request(app, 'GET', '/api/config');
+        assert.deepStrictEqual(getRes.body.openrouterModelDetails, modelDetails);
+        assert.deepStrictEqual(getRes.body.pinnedOpenRouterModels, ['deepseek/deepseek-v4-flash']);
+    });
+
+    test('GET /api/openrouter/model-info validates query parameters', async () => {
+        const app = express();
+        app.use(express.json());
+        registerConfigRoutes(app);
+
+        const res = await request(app, 'GET', '/api/openrouter/model-info');
+        assert.strictEqual(res.status, 400);
+        assert.match(res.body.error, /Missing required "model"/);
+    });
+
+    test('POST /api/config/fetch-glm-models rejects when no key is provided', async () => {
+        const app = express();
+        app.use(express.json());
+        registerConfigRoutes(app);
+
+        db.writeDb({ settings: {} });
+
+        const res = await request(app, 'POST', '/api/config/fetch-glm-models');
+        assert.strictEqual(res.status, 400);
+        assert.match(res.body.error, /No GLM API key/);
+    });
+
     test('POST /api/config/fetch-openai-models rejects when no key is provided', async () => {
         const app = express();
         app.use(express.json());
@@ -265,5 +377,54 @@ test.describe('Config Endpoints for Custom Models', () => {
         const res = await request(app, 'POST', '/api/config/fetch-openai-models');
         assert.strictEqual(res.status, 400);
         assert.match(res.body.error, /No OpenAI API key/);
+    });
+
+    test('POST /api/config allows and persists slate theme', async () => {
+        const app = express();
+        app.use(express.json());
+        registerConfigRoutes(app);
+
+        db.writeDb({ settings: { theme: 'cyan' } });
+
+        const res = await request(app, 'POST', '/api/config', { theme: 'slate' });
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.theme, 'slate');
+
+        const getRes = await request(app, 'GET', '/api/config');
+        assert.strictEqual(getRes.body.theme, 'slate');
+    });
+    test('GET and POST /api/config manages customizable sliding window and off toggle', async () => {
+        const app = express();
+        app.use(express.json());
+        registerConfigRoutes(app);
+
+        // Default state
+        db.writeDb({ settings: {} });
+        const defaultRes = await request(app, 'GET', '/api/config');
+        assert.strictEqual(defaultRes.status, 200);
+        assert.strictEqual(defaultRes.body.slidingWindowEnabled, false);
+        assert.strictEqual(defaultRes.body.slidingWindowSize, 16);
+
+        // Update sliding window size
+        const updateRes = await request(app, 'POST', '/api/config', {
+            slidingWindowEnabled: true,
+            slidingWindowSize: 32
+        });
+        assert.strictEqual(updateRes.status, 200);
+        assert.strictEqual(updateRes.body.slidingWindowEnabled, true);
+        assert.strictEqual(updateRes.body.slidingWindowSize, 32);
+
+        // Turn off sliding window
+        const offRes = await request(app, 'POST', '/api/config', {
+            slidingWindowEnabled: false
+        });
+        assert.strictEqual(offRes.status, 200);
+        assert.strictEqual(offRes.body.slidingWindowEnabled, false);
+        assert.strictEqual(offRes.body.slidingWindowSize, 32);
+
+        // Verify persistence via GET
+        const verifyGet = await request(app, 'GET', '/api/config');
+        assert.strictEqual(verifyGet.body.slidingWindowEnabled, false);
+        assert.strictEqual(verifyGet.body.slidingWindowSize, 32);
     });
 });
