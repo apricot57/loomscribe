@@ -1,0 +1,64 @@
+﻿/* ==========================================================================
+   Themes (Accent Palettes)
+   ========================================================================== */
+
+html.theme-cyan, body.theme-cyan {
+    --accent: #06b6d4;
+    --accent-hover: #22d3ee;
+    --accent-muted: rgba(6, 182, 212, 0.15);
+    --accent-subtle: rgba(6, 182, 212, 0.08);
+    --accent-glow: rgba(6, 182, 212, 0.25);
+    --accent-contrast: #041319;
+    --reasoning-bg: rgba(6, 182, 212, 0.04);
+    --reasoning-border: rgba(6, 182, 212, 0.15);
+    --reasoning-text: #7dd3fc;
+}
+
+html.theme-teal, body.theme-teal {
+    --accent: #10b981;
+    --accent-hover: #34d399;
+    --accent-muted: rgba(16, 185, 129, 0.15);
+    --accent-subtle: rgba(16, 185, 129, 0.08);
+    --accent-glow: rgba(16, 185, 129, 0.25);
+    --accent-contrast: #021a11;
+    --reasoning-bg: rgba(16, 185, 129, 0.04);
+    --reasoning-border: rgba(16, 185, 129, 0.15);
+    --reasoning-text: #6ee7b7;
+}
+
+html.theme-purple, body.theme-purple {
+    --accent: #a855f7;
+    --accent-hover: #c084fc;
+    --accent-muted: rgba(168, 85, 247, 0.15);
+    --accent-subtle: rgba(168, 85, 247, 0.08);
+    --accent-glow: rgba(168, 85, 247, 0.25);
+    --accent-contrast: #170426;
+    --reasoning-bg: rgba(168, 85, 247, 0.04);
+    --reasoning-border: rgba(168, 85, 247, 0.15);
+    --reasoning-text: #d8b4fe;
+}
+
+html.theme-amber, body.theme-amber {
+    --accent: #f59e0b;
+    --accent-hover: #fbbf24;
+    --accent-muted: rgba(245, 158, 11, 0.15);
+    --accent-subtle: rgba(245, 158, 11, 0.08);
+    --accent-glow: rgba(245, 158, 11, 0.25);
+    --accent-contrast: #201402;
+    --reasoning-bg: rgba(245, 158, 11, 0.04);
+    --reasoning-border: rgba(245, 158, 11, 0.15);
+    --reasoning-text: #fde68a;
+}
+
+html.theme-slate, body.theme-slate {
+    --accent: #e4e4e7;
+    --accent-hover: #ffffff;
+    --accent-muted: rgba(255, 255, 255, 0.12);
+    --accent-subtle: rgba(255, 255, 255, 0.05);
+    --accent-glow: rgba(255, 255, 255, 0.15);
+    --accent-contrast: #09090b;
+    --reasoning-bg: rgba(255, 255, 255, 0.03);
+    --reasoning-border: rgba(255, 255, 255, 0.1);
+    --reasoning-text: #cbd5e1;
+}
+

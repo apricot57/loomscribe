@@ -1,0 +1,233 @@
+/* ==========================================================================
+   LoomScribe — Login Page
+   Imports only the token/reset layers; avoids the full app-shell modules.
+   ========================================================================== */
+
+@import './modules/variables.css';
+@import './modules/themes.css';
+@import './modules/base.css';
+
+/* ── Undo app-shell layout locks set in base.css ─────────────────────────── */
+html {
+    height: auto;
+    overflow: auto;
+}
+
+body {
+    height: auto;
+    overflow: auto;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+}
+
+/* ── Ambient accent glow ──────────────────────────────────────────────────── */
+body::before {
+    content: '';
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--accent-subtle) 0%, transparent 70%);
+    top: 20%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* ── Login Card ───────────────────────────────────────────────────────────── */
+.login-card {
+    width: 100%;
+    max-width: 400px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 36px 32px;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    z-index: 1;
+}
+
+/* ── Brand ────────────────────────────────────────────────────────────────── */
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+}
+
+.brand-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--brand-mid) 50%, var(--brand-end) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px var(--accent-glow);
+}
+
+.brand-icon svg {
+    width: 20px;
+    height: 20px;
+    color: #fff;
+}
+
+.brand-name {
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+}
+
+/* ── Login Header ─────────────────────────────────────────────────────────── */
+.login-header h1 {
+    font-size: 1.35rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+    color: var(--text-primary);
+}
+
+.login-header p {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+}
+
+/* ── Error Alert ──────────────────────────────────────────────────────────── */
+.error-alert {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: var(--radius-md);
+    background: var(--danger-bg);
+    border: 1px solid rgba(244, 63, 94, 0.25);
+    color: var(--danger);
+    font-size: 0.85rem;
+    margin-bottom: 20px;
+    animation: shake 0.35s ease;
+}
+
+.error-alert.visible {
+    display: flex;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-5px); }
+    40%, 80% { transform: translateX(5px); }
+}
+
+/* ── Form ─────────────────────────────────────────────────────────────────── */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.form-input {
+    width: 100%;
+    height: 44px;
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 0 14px;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    font-family: inherit;
+    outline: none;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.form-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.form-input::placeholder {
+    color: var(--text-muted);
+}
+
+/* ── Submit Button ────────────────────────────────────────────────────────── */
+.submit-btn {
+    width: 100%;
+    height: 44px;
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--accent);
+    color: var(--accent-contrast);
+    font-size: 0.9rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background var(--transition-fast), transform 0.1s ease, box-shadow var(--transition-fast);
+    box-shadow: 0 2px 10px var(--accent-glow);
+}
+
+.submit-btn:hover {
+    background: var(--accent-hover);
+    box-shadow: 0 4px 16px var(--accent-glow);
+}
+
+.submit-btn:active {
+    transform: scale(0.985);
+}
+
+.submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ── Loading Spinner ──────────────────────────────────────────────────────── */
+.spinner {
+    display: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid transparent;
+    border-top-color: var(--accent-contrast);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+.submit-btn.loading .btn-text {
+    display: none;
+}
+
+.submit-btn.loading .spinner {
+    display: block;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ── Footer Note ──────────────────────────────────────────────────────────── */
+.footer-note {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 24px;
+}

@@ -1,0 +1,154 @@
+﻿/* ==========================================================================
+   Chat Input Dock
+   ========================================================================== */
+
+.chat-input-dock {
+    width: 100%;
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 0 20px 20px;
+    position: relative;
+    z-index: 10;
+}
+
+.input-card {
+    background: var(--bg-input);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: var(--shadow-md);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.input-card:focus-within {
+    border-color: var(--border-hover);
+    box-shadow: 0 0 0 1px var(--border-hover), var(--shadow-lg);
+}
+
+.chat-textarea {
+    width: 100%;
+    max-height: 200px;
+    min-height: 24px;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-size: 0.92rem;
+    line-height: 1.5;
+    resize: none;
+    padding: 0;
+}
+
+.chat-textarea::placeholder {
+    color: var(--text-muted);
+}
+
+.input-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-top: 4px;
+    min-height: 32px;
+}
+
+.input-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    flex: 1;
+    min-width: 0;
+}
+
+.chat-settings-btn {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    min-height: 30px;
+    border-radius: var(--radius-pill);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+    padding: 0;
+}
+
+.chat-settings-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-surface-elevated);
+    border-color: var(--border-hover);
+}
+
+.chat-settings-btn.active {
+    color: var(--accent);
+    background: var(--accent-subtle);
+    border-color: var(--accent-muted);
+    box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.input-chips {
+    display: contents;
+}
+
+.input-chips.collapsed {
+    display: none;
+}
+
+.input-chips .chip-btn {
+    animation: fadeIn 0.15s var(--ease-out);
+}
+
+.input-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+.send-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    color: var(--accent-contrast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+}
+
+.send-btn:hover {
+    background: var(--accent-hover);
+    transform: scale(1.05);
+}
+
+.send-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.stop-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-pill);
+    background: var(--danger);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+}
+
+.stop-btn:hover {
+    background: var(--danger-hover);
+}
+
