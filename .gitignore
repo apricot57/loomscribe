@@ -10,10 +10,17 @@ data/
 # Prompt Engine Preset JSON configurations
 engine/presets/
 
+# Test result report logs & benchmark output
+MODEL_TESTING*.json
+*.log
+data/eval-reports/
+
 # Git worktrees & planning docs
 .worktrees/
 .superpowers/
 .planning/
 docs/superpowers/
+omp-session-*.html
+.omp/
 
 

@@ -23,11 +23,12 @@ Modern LLMs cache prompt prefixes to save cost and latency. If the prompt prefix
 * **KV Cache Impact**: **Cache-safe.** Since Slot 2 instructions are appended *after* the chat history, they reside at the very end of the prompt payload. You can modify these settings or write new Director's Notes every turn without ever busting the preceding history's KV cache.
 
 ### 3. Provider & Model Compatibility
-The dual-slot compiler payload is natively compatible with standard OpenAI and DeepSeek chat completion formats:
-* **OpenAI Endpoints**: Discovers available models dynamically and supports direct model pinning (e.g. `gpt-5.6`, `gpt-4o`, `o3-mini`, previews) via `https://api.openai.com/v1/chat/completions`.
+The dual-slot compiler payload is natively compatible with standard OpenAI, DeepSeek, GLM / Z.AI, and OpenRouter chat completion formats:
+* **OpenAI Endpoints**: Discovers available models dynamically and supports direct model pinning (e.g. `gpt-5.6`, `gpt-4o`, `o3-mini`, previews) via `https://api.openai.com/v1/chat/completions`. Automatically strips temperature on reasoning models (`o1`, `o3`, `o4-*`).
+* **GLM / Z.AI Endpoints**: Connects to `https://api.z.ai/api/paas/v4/chat/completions` with configurable reasoning levels (`low`, `medium`, `high`) and explicit `{ thinking: { type: 'disabled' } }` parameter forwarding.
+* **OpenRouter Endpoints**: Connects to `https://openrouter.ai/api/v1/chat/completions` with catalog search across 300+ models, live pricing metadata, configurable reasoning effort (`reasoning: { effort }`), and per-turn cost calculation.
 * **DeepSeek Endpoints**: Supports reasoning/thinking blocks and fast streaming via `https://api.deepseek.com/chat/completions`.
-* **Custom OpenAI-Compatible Endpoints**: Compatible with local and cloud providers including Ollama, LM Studio, Groq, OpenRouter, and vLLM.
-
+* **Custom OpenAI-Compatible Endpoints**: Compatible with local and cloud backends including Ollama, LM Studio, Groq, and vLLM.
 ---
 
 ## 2. Parameter Schema & Recency Stabilization
@@ -47,6 +48,10 @@ LoomScribe stabilizes prompt parameters across long contexts by generating an ep
 | `suggest_choices` | Slot 2 (Post-History) | Safe | Generates 3 numbered branching choices at response end. |
 | `outline_mode` | Slot 1 & 2 (Bypass) | Cache Notice | Swaps prose rules for structural narrative synopses. |
 | `premises_mode` | Slot 1 & 2 (Bypass) | Cache Notice | Generates premise pitches and scene-starting openers. |
+
+> [!NOTE]
+> **Mutual Exclusivity & Architectural Bypass:**
+> `outline_mode` and `premises_mode` are mutually exclusive architectural directives. When either mode is active, narrative prose blocks (POV, scene intensity, dialogue style, and POV focus) are bypassed by the compiler, and the Inspector displays visual bypassed state badges.
 
 ---
 
