@@ -1,142 +1,51 @@
 [
   {
-    "id": "base_writer",
-    "title": "Base Writer",
-    "file": "base_writer.md",
+    "id": "story_engine",
+    "title": "Interactive Story Engine",
+    "file": "story_engine.md",
     "group": "core",
     "order": 10
-  },
-  {
-    "id": "tone_register",
-    "title": "Tone & Register",
-    "file": "tone_register.md",
-    "group": "core",
-    "order": 20
-  },
-  {
-    "id": "intensity_tender",
-    "title": "Intensity — Tender",
-    "file": "intensity_tender.md",
-    "group": "scene_intensity",
-    "order": 65
-  },
-  {
-    "id": "intensity_sensory",
-    "title": "Intensity — Sensory",
-    "file": "intensity_sensory.md",
-    "group": "scene_intensity",
-    "order": 66
-  },
-  {
-    "id": "intensity_charged",
-    "title": "Intensity — Charged",
-    "file": "intensity_charged.md",
-    "group": "scene_intensity",
-    "order": 67
-  },
-  {
-    "id": "intensity_raw",
-    "title": "Intensity — Raw",
-    "file": "intensity_raw.md",
-    "group": "scene_intensity",
-    "order": 68
-  },
-  {
-    "id": "dialogue_silent",
-    "title": "Dialogue — Silent",
-    "file": "dialogue_silent.md",
-    "group": "dialogue_style",
-    "order": 69
-  },
-  {
-    "id": "dialogue_playful",
-    "title": "Dialogue — Playful",
-    "file": "dialogue_playful.md",
-    "group": "dialogue_style",
-    "order": 70
-  },
-  {
-    "id": "dialogue_candid",
-    "title": "Dialogue — Candid",
-    "file": "dialogue_candid.md",
-    "group": "dialogue_style",
-    "order": 71
-  },
-  {
-    "id": "dialogue_commanding",
-    "title": "Dialogue — Commanding",
-    "file": "dialogue_commanding.md",
-    "group": "dialogue_style",
-    "order": 72
-  },
-  {
-    "id": "format_rules",
-    "title": "Format Rules",
-    "file": "format_rules.md",
-    "group": "core",
-    "order": 50
   },
   {
     "id": "pov_third",
     "title": "POV — Close Third",
     "file": "pov_third.md",
     "group": "pov",
-    "order": 80
+    "order": 20
   },
   {
     "id": "pov_first",
     "title": "POV — Deep First",
     "file": "pov_first.md",
     "group": "pov",
-    "order": 81
-  },
-  {
-    "id": "pov_author",
-    "title": "POV — Omniscient",
-    "file": "pov_author.md",
-    "group": "pov",
-    "order": 82
+    "order": 21
   },
   {
     "id": "pov_second",
     "title": "POV — Second Person",
     "file": "pov_second.md",
     "group": "pov",
-    "order": 83
+    "order": 22
   },
   {
-    "id": "focus_balanced",
-    "title": "POV Focus — Balanced",
-    "file": "focus_balanced.md",
-    "group": "pov_focus",
-    "order": 83
-  },
-  {
-    "id": "focus_self",
-    "title": "POV Focus — Self",
-    "file": "focus_self.md",
-    "group": "pov_focus",
-    "order": 84
-  },
-  {
-    "id": "focus_partner",
-    "title": "POV Focus — Partner",
-    "file": "focus_partner.md",
-    "group": "pov_focus",
-    "order": 85
+    "id": "pov_author",
+    "title": "POV — Omniscient",
+    "file": "pov_author.md",
+    "group": "pov",
+    "order": 23
   },
   {
     "id": "outline_mode",
-    "title": "Outline Mode",
+    "title": "Mode — Outline & Beats",
     "file": "outline_mode.md",
-    "group": "outline",
-    "order": 95
+    "group": "mode",
+    "order": 50
   },
   {
     "id": "premises_mode",
-    "title": "Premises & Ideas Mode",
+    "title": "Mode — Story Premises",
     "file": "premises_mode.md",
-    "group": "premises",
-    "order": 96
+    "group": "mode",
+    "order": 51
   }
 ]

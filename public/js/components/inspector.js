@@ -360,30 +360,17 @@ function renderParameterControls(params, schema) {
     if (!container) return;
 
     const povVal = params.pov || 'third';
-    const defaultTone = params.scene_intensity === 'raw' ? 'gritty' :
-        (params.scene_intensity === 'tender' ? 'tender' :
-        (params.scene_intensity === 'charged' ? 'cinematic' : 'atmospheric'));
-    const toneVal = params.narrative_tone || defaultTone;
-    const wordCountVal = params.word_count !== undefined ? Number(params.word_count) : 1500;
+    const wordCountVal = params.word_count !== undefined ? Number(params.word_count) : 1200;
 
     const povOptions = [
         { value: 'third', label: 'Close Third Person' },
         { value: 'first', label: 'Deep First Person' },
         { value: 'second', label: 'Second Person ("You")' },
         { value: 'author', label: 'Omniscient Narrator' },
-        { value: 'off', label: 'Off / Default' }
-    ];
-
-    const toneOptions = [
-        { value: 'gritty', label: 'Visceral & Gritty' },
-        { value: 'atmospheric', label: 'Atmospheric & Subtext' },
-        { value: 'cinematic', label: 'Cinematic & High-Tension' },
-        { value: 'tender', label: 'Tender & Intimate' },
         { value: 'off', label: 'Preset Default / Off' }
     ];
 
     const currentPovLabel = povOptions.find(o => o.value === povVal)?.label || 'Close Third Person';
-    const currentToneLabel = toneOptions.find(o => o.value === toneVal)?.label || 'Atmospheric & Subtext';
 
     const outlineMode = params.outline_mode === true || params.outline_mode === 'true';
     const premisesMode = params.premises_mode === true || params.premises_mode === 'true';
@@ -415,30 +402,6 @@ function renderParameterControls(params, schema) {
                 </div>
             </div>
         </div>
-
-        <div class="param-group ${proseBypassActive ? 'bypassed' : ''}">
-            <div class="param-header">
-                <span>Narrative Tone</span>
-                <span class="param-value-tag ${proseBypassActive ? 'bypassed' : ''}" id="tone-value-tag">${proseBypassActive ? 'Bypassed' : toneVal}</span>
-            </div>
-            <div class="custom-select-wrap" id="wrap-param-tone">
-                <button type="button" class="custom-select-trigger" id="param-tone-trigger" ${proseBypassActive ? 'disabled' : ''}>
-                    <span class="custom-select-value">${escapeHtml(currentToneLabel)}</span>
-                    <svg class="custom-select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
-                </button>
-                <div class="custom-select-menu hidden" id="param-tone-menu">
-                    ${toneOptions.map(o => `
-                        <button type="button" class="custom-select-option ${o.value === toneVal ? 'selected' : ''}" data-value="${o.value}">
-                            <span>${escapeHtml(o.label)}</span>
-                            ${o.value === toneVal ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
-                        </button>
-                    `).join('')}
-                </div>
-            </div>
-        </div>
-
         <div class="param-group ${isPremisesMode ? 'bypassed' : ''}">
             <div class="param-header">
                 <span>Target Length</span>
@@ -478,8 +441,6 @@ function renderParameterControls(params, schema) {
 function attachParameterListeners() {
     const povTrigger = document.getElementById('param-pov-trigger');
     const povMenu = document.getElementById('param-pov-menu');
-    const toneTrigger = document.getElementById('param-tone-trigger');
-    const toneMenu = document.getElementById('param-tone-menu');
 
     // Setup custom dropdown toggling
     const setupDropdown = (trigger, menu, onSelect) => {
@@ -515,13 +476,6 @@ function attachParameterListeners() {
         if (tag) tag.textContent = val;
         updateParamInState('pov', val);
     });
-
-    setupDropdown(toneTrigger, toneMenu, (val) => {
-        const tag = document.getElementById('tone-value-tag');
-        if (tag) tag.textContent = val;
-        updateParamInState('narrative_tone', val);
-    });
-
     const wordCountInput = document.getElementById('param-word-count');
     const wordCountLabel = document.getElementById('param-word-count-label');
     if (wordCountInput) {

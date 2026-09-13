@@ -7,195 +7,55 @@
     "max": 3000,
     "step": 100,
     "unit": "words",
-    "default": 1500,
-    "slot": "post_history"
-  },
-  {
-    "id": "sliding_window",
-    "label": "Context Window (Turns)",
-    "type": "slider",
-    "min": 2,
-    "max": 30,
-    "step": 1,
-    "unit": "turns",
-    "default": 10,
+    "default": 1200,
     "slot": "post_history"
   },
   {
     "id": "pov",
-    "label": "Point of View",
+    "label": "Narrative Perspective",
     "type": "select",
     "options": [
       {
         "value": "third",
-        "label": "Close Third"
+        "label": "Close Third Person"
       },
       {
         "value": "first",
-        "label": "Deep First"
-      },
-      {
-        "value": "author",
-        "label": "Omniscient"
+        "label": "Deep First Person"
       },
       {
         "value": "second",
         "label": "Second Person (You)"
       },
       {
+        "value": "author",
+        "label": "Omniscient Narrator"
+      },
+      {
         "value": "off",
-        "label": "Off"
+        "label": "Preset Default / Off"
       }
     ],
     "default": "third",
     "slot": "system"
   },
   {
-    "id": "narrative_tone",
-    "label": "Narrative Tone",
-    "type": "select",
-    "options": [
-      {
-        "value": "gritty",
-        "label": "Visceral & Gritty"
-      },
-      {
-        "value": "atmospheric",
-        "label": "Atmospheric & Subtext"
-      },
-      {
-        "value": "cinematic",
-        "label": "Cinematic & High-Tension"
-      },
-      {
-        "value": "tender",
-        "label": "Tender & Intimate"
-      },
-      {
-        "value": "off",
-        "label": "Off / Preset Default"
-      }
-    ],
-    "default": "off",
-    "slot": "system"
-  },
-  {
-    "id": "scene_intensity",
-    "label": "Scene Intensity",
-    "type": "select",
-    "options": [
-      {
-        "value": "tender",
-        "label": "Tender"
-      },
-      {
-        "value": "sensory",
-        "label": "Sensory"
-      },
-      {
-        "value": "charged",
-        "label": "Charged"
-      },
-      {
-        "value": "raw",
-        "label": "Raw"
-      },
-      {
-        "value": "off",
-        "label": "Off"
-      }
-    ],
-    "default": "charged",
-    "slot": "system"
-  },
-  {
-    "id": "dialogue_style",
-    "label": "Dialogue Style",
-    "type": "select",
-    "options": [
-      {
-        "value": "silent",
-        "label": "Silent"
-      },
-      {
-        "value": "playful",
-        "label": "Playful"
-      },
-      {
-        "value": "candid",
-        "label": "Candid"
-      },
-      {
-        "value": "commanding",
-        "label": "Commanding"
-      },
-      {
-        "value": "off",
-        "label": "Off"
-      }
-    ],
-    "default": "playful",
-    "slot": "system"
-  },
-  {
-    "id": "pov_focus",
-    "label": "POV Focus Spotlight",
-    "type": "select",
-    "options": [
-      {
-        "value": "balanced",
-        "label": "Balanced"
-      },
-      {
-        "value": "self",
-        "label": "POV Interiority"
-      },
-      {
-        "value": "partner",
-        "label": "Partner Reaction"
-      },
-      {
-        "value": "off",
-        "label": "Off"
-      }
-    ],
-    "default": "balanced",
-    "slot": "system"
+    "id": "suggest_choices",
+    "label": "Suggest Continuation Choices",
+    "type": "toggle",
+    "default": true,
+    "slot": "post_history"
   },
   {
     "id": "complication_generator",
-    "label": "Complication Generator",
+    "label": "Dynamic Complications",
     "type": "toggle",
-    "default": false,
-    "slot": "post_history"
-  },
-  {
-    "id": "suggest_choices",
-    "label": "Suggest Next Choices",
-    "type": "toggle",
-    "default": false,
-    "slot": "post_history"
-  },
-  {
-    "id": "pushback",
-    "label": "Pushback / Resistance",
-    "type": "slider",
-    "min": 0,
-    "max": 5,
-    "labels": [
-      "Off",
-      "Compliant",
-      "Hesitant",
-      "Realistic",
-      "Reluctant",
-      "Resistant"
-    ],
-    "default": 3,
+    "default": true,
     "slot": "post_history"
   },
   {
     "id": "outline_mode",
-    "label": "Outline / Brainstorm Mode",
+    "label": "Outline & Beats Mode",
     "type": "toggle",
     "default": false,
     "slot": "system"

@@ -2,19 +2,18 @@ const fs = require('fs');
 const path = require('path');
 const logger = require('../src/server/logger');
 
+const PRESETS_DIR = path.join(__dirname, 'presets');
 const REGISTRY_PATH = path.join(__dirname, 'blocks', 'index.json');
 const SCHEMA_PATH = path.join(__dirname, 'schema.json');
-const PRESETS_DIR = path.join(__dirname, 'presets');
-const BLOCKS_DIR = path.join(__dirname, 'blocks');
 
 /**
- * Interpolates {{param_name}} placeholders in text with values from params.
- * Logs a warning if an unknown placeholder is found, leaving it unchanged.
+ * Replaces {{param_name}} placeholders with validated parameter values.
+ * Unknown placeholders are logged as warnings and preserved.
  *
- * @param {string} text
- * @param {Object} params
- * @param {string} presetId
- * @returns {string}
+ * @param {string} text Raw markdown or text containing placeholders
+ * @param {Object} params Validated parameter key-value dictionary
+ * @param {string} presetId Preset identifier for logging context
+ * @returns {string} Interpolated text
  */
 function interpolatePlaceholders(text, params = {}, presetId = '') {
     if (!text || typeof text !== 'string') return text;
@@ -39,62 +38,20 @@ const SELECT_PARAM_BLOCK_RULES = {
             author: ['pov_author'],
             off: []
         }
-    },
-    narrative_tone: {
-        managedBlocks: [
-            'intensity_tender', 'intensity_sensory', 'intensity_charged', 'intensity_raw',
-            'dialogue_silent', 'dialogue_playful', 'dialogue_candid', 'dialogue_commanding'
-        ],
-        valueMap: {
-            gritty: ['intensity_raw', 'dialogue_candid'],
-            atmospheric: ['intensity_sensory', 'dialogue_silent'],
-            cinematic: ['intensity_charged', 'dialogue_commanding'],
-            tender: ['intensity_tender', 'dialogue_playful'],
-            off: []
-        }
-    },
-    scene_intensity: {
-        managedBlocks: ['intensity_tender', 'intensity_sensory', 'intensity_charged', 'intensity_raw'],
-        valueMap: {
-            tender: ['intensity_tender'],
-            sensory: ['intensity_sensory'],
-            charged: ['intensity_charged'],
-            raw: ['intensity_raw'],
-            off: []
-        }
-    },
-    dialogue_style: {
-        managedBlocks: ['dialogue_silent', 'dialogue_playful', 'dialogue_candid', 'dialogue_commanding'],
-        valueMap: {
-            silent: ['dialogue_silent'],
-            playful: ['dialogue_playful'],
-            candid: ['dialogue_candid'],
-            commanding: ['dialogue_commanding'],
-            off: []
-        }
-    },
-    pov_focus: {
-        managedBlocks: ['focus_balanced', 'focus_self', 'focus_partner'],
-        valueMap: {
-            balanced: ['focus_balanced'],
-            self: ['focus_self'],
-            partner: ['focus_partner'],
-            off: []
-        }
     }
 };
 
-// Narrative bypass modes that deactivate prose blocks
+// Narrative bypass modes that deactivate standard prose blocks
 const PROSE_BYPASS_MODES = {
     premises_mode: {
         activeBlock: 'premises_mode',
-        disabledGroups: ['narrative_tone', 'scene_intensity', 'dialogue_style', 'pov_focus', 'pov'],
-        disabledBlocks: ['format_rules', 'pov_third', 'pov_first', 'pov_second', 'pov_author']
+        disabledGroups: ['pov'],
+        disabledBlocks: ['story_engine', 'pov_third', 'pov_first', 'pov_second', 'pov_author']
     },
     outline_mode: {
         activeBlock: 'outline_mode',
-        disabledGroups: ['narrative_tone', 'scene_intensity', 'dialogue_style', 'pov_focus', 'pov'],
-        disabledBlocks: ['format_rules', 'pov_third', 'pov_first', 'pov_second', 'pov_author']
+        disabledGroups: ['pov'],
+        disabledBlocks: ['pov_third', 'pov_first', 'pov_second', 'pov_author']
     }
 };
 
@@ -105,35 +62,9 @@ const POV_RECENCY_LABELS = {
     author: 'Omniscient'
 };
 
-const TONE_RECENCY_LABELS = {
-    gritty: 'Visceral & Gritty (High physical stakes, sharp friction)',
-    atmospheric: 'Atmospheric & Subtext (Sensory texture, unspoken psychological depth)',
-    cinematic: 'Cinematic & High-Tension (Dramatic pacing, commanding dialogue)',
-    tender: 'Tender & Intimate (Character vulnerability, warm pacing)'
-};
-const INTENSITY_RECENCY_LABELS = {
-    tender: 'Tender & Atmospheric',
-    sensory: 'Sensory & Tactile',
-    charged: 'High-Tension & Charged',
-    raw: 'Raw & Direct'
-};
-
-const DIALOGUE_RECENCY_LABELS = {
-    silent: 'Subtext-Heavy & Minimalist',
-    playful: 'Witty & Playful',
-    candid: 'Direct & Candid',
-    commanding: 'Dominant & Commanding'
-};
-
-const FOCUS_RECENCY_LABELS = {
-    balanced: 'Balanced Dynamic',
-    self: 'POV Character Interiority',
-    partner: 'Partner Reactions & Behavioral Shifts'
-};
-
 /**
- * Compiles a two-slot prompt according to the prompt engine plan.
- * 
+ * Compiles a dual-slot prompt for the interactive storytelling engine.
+ *
  * @param {Object} options
  * @param {string|null} options.presetId
  * @param {Object} [options.params]
@@ -143,7 +74,7 @@ const FOCUS_RECENCY_LABELS = {
  * @returns {{ systemPrompt: string, postHistory: string }}
  */
 function compilePrompt({ presetId, params, blockOverrides, directorNote, worldRules = [] }) {
-    // Stage 1: If presetId is null/falsy, return empty strings
+    // Stage 1: If presetId is null/falsy, return empty prompts
     if (!presetId) {
         return { systemPrompt: "", postHistory: "" };
     }
@@ -287,18 +218,11 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote, worldRu
             forceState(PROSE_BYPASS_MODES[mode].activeBlock, false);
         }
 
-        // Enable default core format rules
-        forceState('format_rules', true);
+        // Enable core storytelling engine block
+        forceState('story_engine', true);
 
-        // Apply declarative mappings for select parameters
-        const hasActiveTone = validParams.narrative_tone && validParams.narrative_tone !== 'off';
+        // Apply declarative mappings for select parameters (POV)
         for (const [paramKey, rule] of Object.entries(SELECT_PARAM_BLOCK_RULES)) {
-            if (paramKey === 'narrative_tone') {
-                if (!hasActiveTone) continue;
-            }
-            if (hasActiveTone && (paramKey === 'scene_intensity' || paramKey === 'dialogue_style')) {
-                continue;
-            }
             const paramVal = validParams[paramKey];
             const activeForParam = rule.valueMap[paramVal] || [];
 
@@ -330,11 +254,10 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote, worldRu
 
     const blockBodies = [];
     for (const block of activeBlocks) {
-        const regEntry = blockRegistryMap[block.id];
-        if (!regEntry || !regEntry.file) {
-            throw new Error(`Block file missing: ${block.id}`);
-        }
-        const blockFilePath = path.join(BLOCKS_DIR, regEntry.file);
+        const entry = blockRegistryMap[block.id];
+        if (!entry || !entry.file) continue;
+
+        const blockFilePath = path.join(__dirname, 'blocks', entry.file);
         if (!fs.existsSync(blockFilePath)) {
             throw new Error(`Block file missing: ${block.id}`);
         }
@@ -409,31 +332,17 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote, worldRu
         if (POV_RECENCY_LABELS[validParams.pov]) {
             postParts.push(`[Active POV: ${POV_RECENCY_LABELS[validParams.pov]}]`);
         }
-        if (validParams.narrative_tone && validParams.narrative_tone !== 'off' && TONE_RECENCY_LABELS[validParams.narrative_tone]) {
-            postParts.push(`[Active Tone: ${TONE_RECENCY_LABELS[validParams.narrative_tone]}]`);
-        } else {
-            if (INTENSITY_RECENCY_LABELS[validParams.scene_intensity]) {
-                postParts.push(`[Active Intensity: ${INTENSITY_RECENCY_LABELS[validParams.scene_intensity]}]`);
-            }
-            if (DIALOGUE_RECENCY_LABELS[validParams.dialogue_style]) {
-                postParts.push(`[Active Dialogue: ${DIALOGUE_RECENCY_LABELS[validParams.dialogue_style]}]`);
-            }
-            if (FOCUS_RECENCY_LABELS[validParams.pov_focus]) {
-                postParts.push(`[Active Focus: ${FOCUS_RECENCY_LABELS[validParams.pov_focus]}]`);
-            }
-        }
     }
 
-    // Complication generator
+    // Dynamic Complication generator
     if (validParams.complication_generator === true) {
-        postParts.push("Before the scene resolves or escalates cleanly, introduce one specific complication that creates friction. Choose the type that best fits the scene:\n- **External interruption:** A sound from outside the room, a phone notification, footsteps, a door — something that forces a pause or a decision.\n- **Emotional rupture:** A flash of guilt, doubt, or recognition of what they are doing — an internal moment that surfaces visibly and cannot be immediately suppressed.\n- **Physical hesitation:** A body that does not cooperate with intention — hands that stop, a voice that comes out wrong, a physical reaction that reveals something unintended.\n- **Power shift:** A moment where the dynamic between the characters tilts unexpectedly — something said or done that neither anticipated.\nWrite the complication as a scene beat, not an announcement. It must feel earned and specific to these characters in this moment.");
+        postParts.push("Before the scene resolves or escalates cleanly, introduce one specific complication that creates dramatic friction. Choose the type that best fits the scene:\n- **External interruption:** A sudden sound, an approaching figure, an unexpected communication, or an environmental hazard.\n- **Emotional rupture:** A flash of guilt, doubt, or sudden recognition of risk that surfaces visibly and cannot be ignored.\n- **Physical hesitation:** An obstacle in the environment, a weapon or tool that malfunctions, physical exhaustion, or injury.\n- **Power shift:** An unexpected revelation, boundary assertion, or shift in leverage between the characters.\nWrite the complication as a natural scene beat, not an announcement. It must feel earned and grounded in the scene.");
     }
 
-    // Suggest next choices with counter-pressure directive
+    // Interactive continuation choices
     if (validParams.suggest_choices === true) {
-        postParts.push("IMPORTANT: Regardless of whether previous turns had options, you MUST end this turn with exactly three numbered choices (1., 2., 3.) about how to proceed with the story. Keep each choice brief, specific, and evocative, offering diverse paths for the next scene or character actions.");
+        postParts.push("IMPORTANT: You MUST end this turn with exactly three numbered continuation choices (1., 2., 3.) suggesting how the protagonist might proceed. Keep each choice brief, evocative, and distinct, offering meaningful narrative branches (e.g. bold physical action, cautious investigation, diplomatic negotiation, or tactical retreat).");
     }
-
 
     // User Director's Note
     if (directorNote && directorNote.trim()) {
@@ -445,6 +354,7 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote, worldRu
         const rulesList = activeRules.map(r => `- ${r}`).join('\n');
         postParts.push(`[Active World Constraints: Enforce established setting laws in all character dialogue, physical actions, and supernatural/technical costs:\n${rulesList}]`);
     }
+
     const postHistory = postParts.join('\n\n');
 
     return {

@@ -35,12 +35,12 @@ test.describe('Prompt Engine Compiler (compilePrompt)', () => {
         const { systemPrompt, postHistory } = compilePrompt({ presetId: 'detective_noir' });
 
         assert.ok(systemPrompt.length > 0);
-        assert.ok(systemPrompt.includes('Core Role & Frame'));
-        assert.ok(systemPrompt.includes('Tone & Register'));
-        assert.ok(systemPrompt.includes('Format Rules'));
+        assert.ok(systemPrompt.includes('Narrative Engine & Interactivity'));
+        assert.ok(systemPrompt.includes('Multi-Stance Reactivity'));
+        assert.ok(systemPrompt.includes('Worldbuilding via Friction & Cost'));
+        assert.ok(systemPrompt.includes('POV — Close Third'));
 
         assert.ok(postHistory.includes('Active POV: Close Third Person'));
-        assert.ok(postHistory.includes('Active Intensity: Sensory & Tactile'));
         assert.ok(postHistory.includes('Write approximately 1200 words.'));
     });
 
@@ -67,18 +67,21 @@ test.describe('Prompt Engine Compiler (compilePrompt)', () => {
     test('Validates select parameters against schema options with fallback', () => {
         const valid = compilePrompt({
             presetId: 'detective_noir',
-            params: { pov: 'first', scene_intensity: 'raw', dialogue_style: 'commanding' }
+            params: { pov: 'first' }
         });
         assert.ok(valid.postHistory.includes('Active POV: Deep First Person'));
-        assert.ok(valid.postHistory.includes('Active Intensity: Raw & Direct'));
-        assert.ok(valid.postHistory.includes('Active Dialogue: Dominant & Commanding'));
+
+        const validSecond = compilePrompt({
+            presetId: 'detective_noir',
+            params: { pov: 'second' }
+        });
+        assert.ok(validSecond.postHistory.includes('Active POV: Interactive Second Person ("You")'));
 
         const invalid = compilePrompt({
             presetId: 'detective_noir',
-            params: { pov: 'second_person_nonexistent', scene_intensity: 'ultra_crazy' }
+            params: { pov: 'second_person_nonexistent' }
         });
         assert.ok(invalid.postHistory.includes('Active POV: Close Third Person'));
-        assert.ok(invalid.postHistory.includes('Active Intensity: Sensory & Tactile'));
     });
 
     test('Coerces toggle parameters (strings "true"/"false" and booleans)', () => {
@@ -86,15 +89,15 @@ test.describe('Prompt Engine Compiler (compilePrompt)', () => {
             presetId: 'detective_noir',
             params: { complication_generator: 'true', suggest_choices: true }
         });
-        assert.ok(toggleTrue.postHistory.includes('introduce one specific complication that creates friction'));
-        assert.ok(toggleTrue.postHistory.includes('MUST end this turn with exactly three numbered choices'));
+        assert.ok(toggleTrue.postHistory.includes('introduce one specific complication that creates dramatic friction'));
+        assert.ok(toggleTrue.postHistory.includes('MUST end this turn with exactly three numbered continuation choices'));
 
         const toggleFalse = compilePrompt({
             presetId: 'detective_noir',
             params: { complication_generator: 'false', suggest_choices: false }
         });
-        assert.ok(!toggleFalse.postHistory.includes('introduce one specific complication that creates friction'));
-        assert.ok(!toggleFalse.postHistory.includes('MUST end this turn with exactly three numbered choices'));
+        assert.ok(!toggleFalse.postHistory.includes('introduce one specific complication that creates dramatic friction'));
+        assert.ok(!toggleFalse.postHistory.includes('MUST end this turn with exactly three numbered continuation choices'));
     });
 
     test('Applies premises_mode prose bypass and disables narrative blocks', () => {
@@ -103,20 +106,18 @@ test.describe('Prompt Engine Compiler (compilePrompt)', () => {
             params: {
                 premises_mode: true,
                 pov: 'first',
-                scene_intensity: 'raw',
                 complication_generator: true,
                 suggest_choices: true
             }
         });
 
         assert.ok(res.systemPrompt.includes('Premises & Ideas Mode'));
-        assert.ok(!res.systemPrompt.includes('Format Rules'));
+        assert.ok(!res.systemPrompt.includes('Narrative Engine & Interactivity'));
         assert.ok(!res.systemPrompt.includes('POV — Deep First'));
 
         assert.ok(res.postHistory.includes('Generate exactly six fully developed story premises'));
         assert.ok(res.postHistory.includes('Scene Opener'));
         assert.ok(!res.postHistory.includes('Active POV:'));
-        assert.ok(!res.postHistory.includes('Active Intensity:'));
     });
 
     test('Applies outline_mode prose bypass and disables narrative blocks', () => {
@@ -125,23 +126,22 @@ test.describe('Prompt Engine Compiler (compilePrompt)', () => {
             params: {
                 outline_mode: true,
                 word_count: 2000,
-                pov: 'author',
-                scene_intensity: 'raw'
+                pov: 'author'
             }
         });
 
         assert.ok(res.systemPrompt.includes('Outline & Brainstorming Mode'));
-        assert.ok(!res.systemPrompt.includes('Format Rules'));
+        assert.ok(!res.systemPrompt.includes('POV — Omniscient'));
         assert.ok(res.postHistory.includes('Focus on plotting, outlining, and brainstorming narrative directions'));
         assert.ok(res.postHistory.includes('Write approximately 2000 words.'));
         assert.ok(!res.postHistory.includes('Active POV:'));
-        assert.ok(!res.postHistory.includes('Active Intensity:'));
     });
 
     test('Maps all POV options accurately in standard mode', () => {
         const povs = [
             { id: 'third', expectedBlock: 'POV — Close Third', expectedLabel: 'Close Third Person' },
             { id: 'first', expectedBlock: 'POV — Deep First', expectedLabel: 'Deep First Person' },
+            { id: 'second', expectedBlock: 'POV — Second Person', expectedLabel: 'Interactive Second Person ("You")' },
             { id: 'author', expectedBlock: 'POV — Omniscient', expectedLabel: 'Omniscient' },
             { id: 'off', expectedBlock: null, expectedLabel: null }
         ];
@@ -160,39 +160,20 @@ test.describe('Prompt Engine Compiler (compilePrompt)', () => {
         }
     });
 
-    test('Maps scene_intensity options accurately to blocks', () => {
-        const intensities = [
-            { id: 'tender', expectedBlock: 'Intensity — Tender' },
-            { id: 'sensory', expectedBlock: 'Intensity — Sensory' },
-            { id: 'charged', expectedBlock: 'Intensity — Charged' },
-            { id: 'raw', expectedBlock: 'Intensity — Raw' }
-        ];
-
-        for (const { id, expectedBlock } of intensities) {
-            const res = compilePrompt({
-                presetId: 'detective_noir',
-                params: { scene_intensity: id }
-            });
-            assert.ok(res.systemPrompt.includes(expectedBlock), `Intensity ${id} should include block ${expectedBlock}`);
-        }
-    });
-
     test('Manual blockOverrides take precedence over preset and mapped settings', () => {
         const res = compilePrompt({
             presetId: 'detective_noir',
             params: {
-                scene_intensity: 'sensory'
+                pov: 'third'
             },
             blockOverrides: {
-                intensity_sensory: false,
-                intensity_raw: true,
-                format_rules: false
+                pov_third: false,
+                pov_second: true
             }
         });
 
-        assert.ok(!res.systemPrompt.includes('Intensity — Sensory'));
-        assert.ok(res.systemPrompt.includes('Intensity — Raw'));
-        assert.ok(!res.systemPrompt.includes('Format Rules'));
+        assert.ok(!res.systemPrompt.includes('POV — Close Third'));
+        assert.ok(res.systemPrompt.includes('POV — Second Person'));
     });
 
     test('Appends directorNote to postHistory', () => {
@@ -214,7 +195,7 @@ test.describe('Prompt Engine Compiler (compilePrompt)', () => {
         const baseline = compilePrompt({ presetId: 'detective_noir' });
 
         // JSON.parse (not an object literal) so __proto__ arrives as an own key
-        const blockOverrides = JSON.parse('{"__proto__":{"junk":true},"base_writer":false}');
+        const blockOverrides = JSON.parse('{"__proto__":{"junk":true},"story_engine":false}');
         const result = compilePrompt({ presetId: 'detective_noir', blockOverrides });
 
         assert.strictEqual(({}).junk, undefined);
@@ -222,7 +203,7 @@ test.describe('Prompt Engine Compiler (compilePrompt)', () => {
         assert.strictEqual(({}).order, undefined);
 
         // Legitimate override still applies; output otherwise identical to baseline
-        assert.ok(!result.systemPrompt.includes('Core Role & Frame'));
+        assert.ok(!result.systemPrompt.includes('Narrative Engine & Interactivity'));
         assert.strictEqual(result.postHistory, baseline.postHistory);
     });
 
@@ -232,7 +213,7 @@ test.describe('Prompt Engine Compiler (compilePrompt)', () => {
         // Written as raw JSON text so __proto__ is an own key of the parsed preset
         const raw = '{"id":"' + protoPresetId + '","title":"Proto Pollution Test",' +
             '"system_body":"Custom system body.","post_history_body":"","blocks":' +
-            '[{"id":"__proto__","enabled":true,"order":5},{"id":"base_writer","enabled":true,"order":10}],' +
+            '[{"id":"__proto__","enabled":true,"order":5},{"id":"story_engine","enabled":true,"order":10}],' +
             '"defaults":{}}';
         fs.writeFileSync(presetPath, raw, 'utf-8');
         try {
@@ -243,7 +224,7 @@ test.describe('Prompt Engine Compiler (compilePrompt)', () => {
             assert.strictEqual(({}).junk, undefined);
 
             // The __proto__ pseudo-block must not contribute an active block
-            assert.ok(result.systemPrompt.includes('Core Role & Frame'));
+            assert.ok(result.systemPrompt.includes('Narrative Engine & Interactivity'));
             assert.ok(result.systemPrompt.includes('Custom system body.'));
         } finally {
             if (fs.existsSync(presetPath)) {

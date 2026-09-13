@@ -157,23 +157,20 @@ test.describe('Interactive Story & Worldbuilding Engine', () => {
         assert.strictEqual(trailingChoices[2].number, 3);
         assert.ok(trailingChoices[2].text.includes('Trigger the incendiary charge'));
     });
-    test('Consolidated narrative_tone and second person POV compile accurately', () => {
+    test('Second person POV and interactive world constraints compile accurately', () => {
         const result = compilePrompt({
             presetId: 'vampire_gothic',
             params: {
-                pov: 'second',
-                narrative_tone: 'gritty'
+                pov: 'second'
             }
         });
 
         // Slot 1 checks
         assert.ok(result.systemPrompt.includes('POV — Second Person'));
         assert.ok(result.systemPrompt.includes('Write strictly from a second-person ("you") perspective'));
-        assert.ok(result.systemPrompt.includes('Intensity — Raw'));
-        assert.ok(result.systemPrompt.includes('Dialogue — Candid'));
+        assert.ok(result.systemPrompt.includes('Narrative Engine & Interactivity'));
 
         // Slot 2 checks
         assert.ok(result.postHistory.includes('[Active POV: Interactive Second Person ("You")]'));
-        assert.ok(result.postHistory.includes('[Active Tone: Visceral & Gritty (High physical stakes, sharp friction)]'));
     });
 });
