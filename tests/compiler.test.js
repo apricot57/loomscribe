@@ -1,6 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const { compilePrompt, interpolatePlaceholders } = require('../engine/compiler');
+const fs = require('fs');
+const path = require('path');
 
 test.describe('Prompt Engine Compiler (compilePrompt)', () => {
 
@@ -206,5 +208,48 @@ test.describe('Prompt Engine Compiler (compilePrompt)', () => {
         const text = 'Target is {{word_count}} words with {{pov}} POV and {{unknown_param}}.';
         const res = interpolatePlaceholders(text, { word_count: 1200, pov: 'first' }, 'test_preset');
         assert.strictEqual(res, 'Target is 1200 words with first POV and {{unknown_param}}.');
+    });
+
+    test('Rejects __proto__ keys in blockOverrides without polluting Object.prototype', () => {
+        const baseline = compilePrompt({ presetId: 'detective_noir' });
+
+        // JSON.parse (not an object literal) so __proto__ arrives as an own key
+        const blockOverrides = JSON.parse('{"__proto__":{"junk":true},"base_writer":false}');
+        const result = compilePrompt({ presetId: 'detective_noir', blockOverrides });
+
+        assert.strictEqual(({}).junk, undefined);
+        assert.strictEqual(({}).enabled, undefined);
+        assert.strictEqual(({}).order, undefined);
+
+        // Legitimate override still applies; output otherwise identical to baseline
+        assert.ok(!result.systemPrompt.includes('Core Role & Frame'));
+        assert.strictEqual(result.postHistory, baseline.postHistory);
+    });
+
+    test('Ignores __proto__ entries in preset blocks without polluting Object.prototype', () => {
+        const protoPresetId = 'test_proto_pollution_preset';
+        const presetPath = path.join(__dirname, '..', 'engine', 'presets', `${protoPresetId}.json`);
+        // Written as raw JSON text so __proto__ is an own key of the parsed preset
+        const raw = '{"id":"' + protoPresetId + '","title":"Proto Pollution Test",' +
+            '"system_body":"Custom system body.","post_history_body":"","blocks":' +
+            '[{"id":"__proto__","enabled":true,"order":5},{"id":"base_writer","enabled":true,"order":10}],' +
+            '"defaults":{}}';
+        fs.writeFileSync(presetPath, raw, 'utf-8');
+        try {
+            const result = compilePrompt({ presetId: protoPresetId });
+
+            assert.strictEqual(({}).enabled, undefined);
+            assert.strictEqual(({}).order, undefined);
+            assert.strictEqual(({}).junk, undefined);
+
+            // The __proto__ pseudo-block must not contribute an active block
+            assert.ok(result.systemPrompt.includes('Core Role & Frame'));
+            assert.ok(result.systemPrompt.includes('Custom system body.'));
+        } finally {
+            if (fs.existsSync(presetPath)) {
+                fs.unlinkSync(presetPath);
+            }
+        }
+        assert.strictEqual(({}).enabled, undefined);
     });
 });

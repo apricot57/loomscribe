@@ -218,7 +218,7 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote }) {
         throw new Error('Failed to load block registry index.json');
     }
 
-    const blockState = {};
+    const blockState = Object.create(null);
     for (const entry of registry) {
         blockState[entry.id] = { enabled: false, order: entry.order };
     }

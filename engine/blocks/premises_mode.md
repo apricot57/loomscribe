@@ -3,7 +3,7 @@
 - **Focus on conflict & core tension.** Identify the specific psychological, relational, or environmental tension for each option — make the dilemma, obstacle, or escalation feel grounded and inevitable.
 - **Match prose intensity to active preset.** Use direct, evocative, and grounded vocabulary appropriate to the scene and active genre/preset. Avoid sterile euphemisms or vague summaries.
 - **Establish distinct character voices.** Ensure character backgrounds, roles, and motivations feel specific rather than interchangeable across options.
-- **Keep all characters adults aged 18 or older** in every premise.
+- **Keep all characters aged 18 or older** in every premise.
 
 ### Guidelines for Scene Openers
 For each premise, construct an immediate **Scene Opener**:
