@@ -434,13 +434,6 @@ function compilePrompt({ presetId, params, blockOverrides, directorNote, worldRu
         postParts.push("IMPORTANT: Regardless of whether previous turns had options, you MUST end this turn with exactly three numbered choices (1., 2., 3.) about how to proceed with the story. Keep each choice brief, specific, and evocative, offering diverse paths for the next scene or character actions.");
     }
 
-    // Pushback / resistance slider
-    const pushbackVal = validParams.pushback;
-    if (pushbackVal === 1 || pushbackVal === 2) {
-        postParts.push("Character Behavior: Receptive and highly compliant. The AI-controlled characters should easily go along with the user character's initiatives, suggestions, and actions with minimal hesitation.");
-    } else if (pushbackVal >= 4) {
-        postParts.push("Character Behavior: Guarded and resistant. Characters prioritize their own secret motivations, strict boundaries, fears, or independent goals. They will actively push back, refuse, express doubt, or create friction against the user character's advances and suggestions.");
-    }
 
     // User Director's Note
     if (directorNote && directorNote.trim()) {
